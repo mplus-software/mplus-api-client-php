@@ -156,6 +156,7 @@ class MplusQAPIclient
 
     $options = array(
       'location' => $location_with_credentials,
+      'uri' => 'urn:mplusqapi',
       'trace' => true,
       'exceptions' => true, 
       'cache_wsdl' => WSDL_CACHE_NONE, 
@@ -166,7 +167,8 @@ class MplusQAPIclient
       throw new MplusQAPIException('Fingerprint of SSL certificate doesn\'t match.');
     }
 
-    $this->client = new SoapClient('MplusQapi.wsdl', $options);
+    // $this->client = new SoapClient('MplusQapi.wsdl', $options);
+    $this->client = new SoapClient(null, $options);
   } // END initClient()
 
   //----------------------------------------------------------------------------
@@ -175,8 +177,10 @@ class MplusQAPIclient
   {
     $fingerprint_matches = false;
     $g = stream_context_create (array('ssl' => array('capture_peer_cert' => true)));
-    $r = stream_socket_client(str_replace('https', 'ssl', $location), $errno,
-      $errstr, 30, STREAM_CLIENT_CONNECT, $g);
+    if (false === ($r = stream_socket_client(str_replace('https', 'ssl', $location), $errno,
+      $errstr, 30, STREAM_CLIENT_CONNECT, $g))) {
+      return $fingerprint_matches;
+    }
     $cont = stream_context_get_params($r);
     if (isset($cont['options']['ssl']['peer_certificate'])) {
       // $certificate_info = openssl_x509_parse($cont['options']['ssl']['peer_certificate']);
@@ -404,6 +408,9 @@ class MplusQAPIDataParser
     if (isset($soapApiVersion->majorNumber)) {
       $apiVersion = objectToArray($soapApiVersion);
     }
+    else if (isset($soapApiVersion['majorNumber'])) {
+      $apiVersion = $soapApiVersion;
+    }
     return $apiVersion;
   } // END parseApiVersion()
 
@@ -438,18 +445,39 @@ class MplusQAPIDataParser
   public function parseProducts($soapProducts) {
     if (isset($soapProducts->products)) {
       $soapProducts = $soapProducts->products;
+    } elseif (isset($soapProducts['products'])) {
+      $soapProducts = $soapProducts['products'];
+    } else {
+      $soapProducts = null;
+    }
+    if ( ! is_null($soapProducts)) {
       if ( ! is_array($soapProducts)) {
         $soapProducts = array($soapProducts);
       }
       $products = array();
       foreach ($soapProducts as $soapProduct) {
         $product = objectToArray($soapProduct);
-        if (isset($product['articles']['article'])) {
+        if ( ! is_array($product['groupNumbers'])) {
+          if ( ! empty($product['groupNumbers'])) {
+            $product['groupNumbers'] = array($product['groupNumbers']);
+          } else {
+            $product['groupNumbers'] = array();
+          }
+        }
+        if (isset($product['articles']['article']) and ! isset($product['articles']['article']['articleNumber'])) {
           $product['articles'] = $product['articles']['article'];
         }
         foreach ($product['articles'] as $idx => $article) {
-          if (isset($article['images']['image'])) {
+          $orig_article = $article;
+          if (isset($article['images']['image']) and ! isset($article['images']['image']['imageName'])) {
             $article['images'] = $article['images']['image'];
+          }
+          if ( ! is_array($article['images'])) {
+            if ( ! empty($article['images'])) {
+              $article['images'] = array($article['images']);
+            } else {
+              $article['images'] = array();
+            }
           }
           $product['articles'][$idx] = $article;
         }
@@ -465,6 +493,12 @@ class MplusQAPIDataParser
   public function parseArticleGroups($soapArticleGroups) {
     if (isset($soapArticleGroups->articleGroupList->articleGroups)) {
       $soapArticleGroups = $soapArticleGroups->articleGroupList->articleGroups;
+    } elseif (isset($soapArticleGroups->articleGroups)) {
+      $soapArticleGroups = $soapArticleGroups->articleGroups;
+    } else {
+      $soapArticleGroups = null;
+    }
+    if ( ! is_null($soapArticleGroups)) {
       if ( ! is_array($soapArticleGroups)) {
         $soapArticleGroups = array($soapArticleGroups);
       }
