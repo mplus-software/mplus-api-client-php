@@ -36,3 +36,5 @@ try {
   exit($e->getMessage());
 }
 ```
+
+Visit the [Mplus Developers website](http://developers.mpluskassa.nl/php/) for more information.
