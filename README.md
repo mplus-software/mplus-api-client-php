@@ -13,7 +13,7 @@ The following script will connect to the API with your credentials and try to re
 require_once('Mplusqapiclient.php');
 
 $mplusqapiclient = new Mplusqapiclient();
-$mplusqapiclient->setApiServer('api.mpluskassa.nl');
+$mplusqapiclient->setApiServer($your_api_url);
 $mplusqapiclient->setApiPort(443);
 $mplusqapiclient->setApiPath($your_api_path);
 $mplusqapiclient->setApiFingerprint($certificate_fingerprint);
