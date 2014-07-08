@@ -6,7 +6,7 @@ define('TERMINAL_STATUS_UNKNOWN', 3);
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '0.0.1';
+  const CLIENT_VERSION  = '0.0.2';
 
    /**
    * @var string
@@ -134,8 +134,12 @@ class MplusQAPIclient
   public function initClient()
   {
     $location = $this->apiServer;
+    $require_fingerprint_check = true;
     if (false === stripos($location, 'http://') and false === stripos($location, 'https://')) {
       $location = 'https://'.$location;
+    }
+    if (false !== stripos($location, 'http://')) {
+      $require_fingerprint_check = false;
     }
     if (isset($this->apiPort) and ! empty($this->apiPort) and $this->apiPort != '80') {
       $location .= ':'.$this->apiPort;
@@ -159,16 +163,16 @@ class MplusQAPIclient
       'uri' => 'urn:mplusqapi',
       'trace' => true,
       'exceptions' => true, 
-      'cache_wsdl' => WSDL_CACHE_NONE, 
       'features' => SOAP_SINGLE_ELEMENT_ARRAYS,
+      'cache_wsdl' => WSDL_CACHE_NONE,
       );
 
-    if ( ! $this->checkFingerprint($location)) {
+    if ($require_fingerprint_check and ! $this->checkFingerprint($location)) {
       throw new MplusQAPIException('Fingerprint of SSL certificate doesn\'t match.');
     }
 
-    // $this->client = new SoapClient('MplusQapi.wsdl', $options);
-    $this->client = new SoapClient(null, $options);
+    $this->client = new SoapClient('MplusQapi.wsdl', $options);
+    // $this->client = new SoapClient(null, $options);
   } // END initClient()
 
   //----------------------------------------------------------------------------
@@ -177,7 +181,7 @@ class MplusQAPIclient
   {
     $fingerprint_matches = false;
     $g = stream_context_create (array('ssl' => array('capture_peer_cert' => true)));
-    if (false === ($r = stream_socket_client(str_replace('https', 'ssl', $location), $errno,
+    if (false === ($r = @stream_socket_client(str_replace('https', 'ssl', $location), $errno,
       $errstr, 30, STREAM_CLIENT_CONNECT, $g))) {
       return $fingerprint_matches;
     }
@@ -609,7 +613,7 @@ class MplusQAPIDataParser
 
   public function parseSendMessageResult($soapSendMessageResult) {
     if (isset($soapSendMessageResult->response)) {
-      return $soapSendMessageResult->response;
+      return strtolower($soapSendMessageResult->response) == 'true';
     }
     return false;
   } // END parseSendMessageResult())
