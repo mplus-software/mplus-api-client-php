@@ -6,7 +6,15 @@ define('TERMINAL_STATUS_UNKNOWN', 3);
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '0.0.2';
+  const CLIENT_VERSION  = '0.1.0';
+
+  var $MIN_API_VERSION_MAJOR = 0;
+  var $MIN_API_VERSION_MINOR = 2;
+  var $MIN_API_VERSION_REVIS = 0;
+
+  var $MAX_API_VERSION_MAJOR = 0;
+  var $MAX_API_VERSION_MINOR = 2;
+  var $MAX_API_VERSION_REVIS = 0;
 
    /**
    * @var string
@@ -172,8 +180,59 @@ class MplusQAPIclient
     }
 
     $this->client = new SoapClient('MplusQapi.wsdl', $options);
+    $this->checkApiVersion();
+    // i($this->client->__getTypes());
     // $this->client = new SoapClient(null, $options);
   } // END initClient()
+
+  //----------------------------------------------------------------------------
+
+  protected function checkApiVersion()
+  {
+    $compatible = true;
+    if (false !== ($api_version = $this->getApiVersion())) {
+      if ($api_version['majorNumber'] < $this->MIN_API_VERSION_MAJOR || $api_version['majorNumber'] > $this->MAX_API_VERSION_MAJOR) {
+        $compatible = false;
+      }
+      if ($api_version['majorNumber'] > $this->MIN_API_VERSION_MAJOR && $api_version['majorNumber'] < $this->MAX_API_VERSION_MAJOR) {
+        $compatible = true;
+      }
+      if ($api_version['majorNumber'] == $this->MIN_API_VERSION_MAJOR || $api_version['majorNumber'] == $this->MAX_API_VERSION_MAJOR) {
+        if ($api_version['majorNumber'] == $this->MIN_API_VERSION_MAJOR && $this->MIN_API_VERSION_MAJOR < $this->MAX_API_VERSION_MAJOR) {
+          $this->MAX_API_VERSION_MINOR = 999999999;
+          $this->MAX_API_VERSION_REVIS = 999999999;
+        }
+        if ($api_version['majorNumber'] == $this->MAX_API_VERSION_MAJOR && $this->MIN_API_VERSION_MAJOR < $this->MAX_API_VERSION_MAJOR) {
+          $this->MIN_API_VERSION_MINOR = 0;
+          $this->MIN_API_VERSION_REVIS = 0;
+        }
+        if ($api_version['minorNumber'] < $this->MIN_API_VERSION_MINOR || $api_version['minorNumber'] > $this->MAX_API_VERSION_MINOR) {
+          $compatible = false;
+        }
+        if ($api_version['minorNumber'] > $this->MIN_API_VERSION_MINOR && $api_version['minorNumber'] < $this->MAX_API_VERSION_MINOR) {
+          $compatible = true;
+        }
+        if ($api_version['minorNumber'] == $this->MIN_API_VERSION_MINOR || $api_version['minorNumber'] == $this->MAX_API_VERSION_MINOR) {
+          if ($api_version['minorNumber'] == $this->MIN_API_VERSION_MINOR && $this->MIN_API_VERSION_MINOR < $this->MAX_API_VERSION_MINOR) {
+            $this->MAX_API_VERSION_REVIS = 999999999;
+          }
+          if ($api_version['minorNumber'] == $this->MAX_API_VERSION_MINOR && $this->MIN_API_VERSION_MINOR < $this->MAX_API_VERSION_MINOR) {
+            $this->MIN_API_VERSION_REVIS = 0;
+          }
+          if ($api_version['revisionNumber'] < $this->MIN_API_VERSION_REVIS || $api_version['revisionNumber'] > $this->MAX_API_VERSION_REVIS) {
+            $compatible = false;
+          }
+        }
+      }
+    }
+    if ( ! $compatible) {
+      throw new MplusQAPIException(sprintf('API version %s is not supported. Supported API versions: %s',
+          $api_version['majorNumber'].'.'.$api_version['minorNumber'].'.'.$api_version['revisionNumber'], 
+          $this->MIN_API_VERSION_MAJOR.'.'.$this->MIN_API_VERSION_MINOR.'.'.$this->MIN_API_VERSION_REVIS
+          .' - '
+          .$this->MAX_API_VERSION_MAJOR.'.'.$this->MAX_API_VERSION_MINOR.'.'.$this->MAX_API_VERSION_REVIS));
+    }
+  } // END checkApiVersion()
 
   //----------------------------------------------------------------------------
 
@@ -234,17 +293,61 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getProducts($groupNumbers = array())
+  public function getVatGroupList()
   {
     try {
-      $result = $this->client->getProducts($this->parser->convertGetProductsRequest($groupNumbers));
+      $result = $this->client->getVatGroupList();
+      return $this->parser->parseVatGroupList($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException("SoapFault occurred: ".$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException("Exception occurred: ".$e->getMessage(), 0, $e);
+    }
+  } // END getVatGroupList()
+
+  //----------------------------------------------------------------------------
+
+  public function getProducts($articleNumbers = array(), $groupNumbers = array(), $pluNumbers = array())
+  {
+    try {
+      $result = $this->client->getProducts($this->parser->convertGetProductsRequest($articleNumbers, $groupNumbers, $pluNumbers));
       return $this->parser->parseProducts($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException("SoapFault occurred: ".$e->getMessage(), 0, $e);
     } catch (Exception $e) {
       throw new MplusQAPIException("Exception occurred: ".$e->getMessage(), 0, $e);
     }
-  } // END getOrder()
+  } // END getProducts()
+
+  //----------------------------------------------------------------------------
+
+  public function createProduct($product)
+  {
+    try {
+      $result = $this->client->createProduct($this->parser->convertProduct($product));
+      return $this->parser->parseCreateProductResult($result);
+
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException("SoapFault occurred: ".$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException("Exception occurred: ".$e->getMessage(), 0, $e);
+    }
+  } // END createProduct()
+
+  //----------------------------------------------------------------------------
+
+  public function updateProduct($product)
+  {
+    try {
+      $result = $this->client->updateProduct($this->parser->convertProduct($product));
+      return $this->parser->parseUpdateProductResult($result);
+
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException("SoapFault occurred: ".$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException("Exception occurred: ".$e->getMessage(), 0, $e);
+    }
+  } // END updateProduct()
 
   //----------------------------------------------------------------------------
 
@@ -291,11 +394,10 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getOrder($orderUuid)
+  public function getOrder($orderId)
   {
     try {
-      $result = $this->client->getOrder($this->parser->convertOrderUuid($orderUuid));
-      // print_r($result);exit;
+      $result = $this->client->getOrder($this->parser->convertOrderId($orderId));
       return $this->parser->parseOrderResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException("SoapFault occurred: ".$e->getMessage(), 0, $e);
@@ -306,12 +408,23 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function getReceiptsByOrder($orderId)
+  {
+    try {
+      $result = $this->client->getReceiptsByOrder($this->parser->convertOrderId($orderId));
+      return $this->parser->parseReceiptsByOrderResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException("SoapFault occurred: ".$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException("Exception occurred: ".$e->getMessage(), 0, $e);
+    }
+  } // END getReceiptsByOrder()
+
+  //----------------------------------------------------------------------------
+
   public function createOrder($order)
   {
     try {
-      if ( ! isset($order['OrderUuid'])) {
-        $order['OrderUuid'] = null;
-      }
       $result = $this->client->createOrder($this->parser->convertOrder($order));
       return $this->parser->parseCreateOrderResult($result);
     } catch (SoapFault $e) {
@@ -326,10 +439,9 @@ class MplusQAPIclient
   public function updateOrder($order)
   {
     try {
-      if ( ! isset($order['OrderUuid'])) {
-        throw new MplusQAPIException("No OrderUuid set.");
+      if ( ! isset($order['orderId'])) {
+        throw new MplusQAPIException("No orderId set.");
       }
-      // print_r($this->parser->convertOrder($order));exit;
       $result = $this->client->updateOrder($this->parser->convertOrder($order));
       return $this->parser->parseUpdateOrderResult($result);
     } catch (SoapFault $e) {
@@ -341,10 +453,10 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function cancelOrder($orderUuid)
+  public function cancelOrder($orderId)
   {
     try {
-      $result = $this->client->cancelOrder($this->parser->convertOrderUuid($orderUuid));
+      $result = $this->client->cancelOrder($this->parser->convertOrderId($orderId));
       return $this->parser->parseCancelOrderResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException("SoapFault occurred: ".$e->getMessage(), 0, $e);
@@ -358,9 +470,6 @@ class MplusQAPIclient
   public function findRelation($relation)
   {
     try {
-      if ( ! isset($relation['relationNumber'])) {
-        $relation['relationNumber'] = 0;
-      }
       $result = $this->client->findRelation($this->parser->convertRelation($relation));
       return $this->parser->parseFindRelationResult($result);
     } catch (SoapFault $e) {
@@ -368,14 +477,11 @@ class MplusQAPIclient
     } catch (Exception $e) {
       throw new MplusQAPIException("Exception occurred: ".$e->getMessage(), 0, $e);
     }
-  }
+  } // END findRelation()
 
   public function createRelation($relation)
   {
     try {
-      if ( ! isset($relation['relationNumber'])) {
-        $relation['relationNumber'] = 0;
-      }
       $result = $this->client->createRelation($this->parser->convertRelation($relation));
       return $this->parser->parseCreateRelationResult($result);
     } catch (SoapFault $e) {
@@ -383,7 +489,104 @@ class MplusQAPIclient
     } catch (Exception $e) {
       throw new MplusQAPIException("Exception occurred: ".$e->getMessage(), 0, $e);
     }
-  }
+  } // END createRelation()
+
+  public function updateRelation($relation)
+  {
+    try {
+      $result = $this->client->updateRelation($this->parser->convertRelation($relation));
+      return $this->parser->parseUpdateRelationResult($result);
+
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException("SoapFault occurred: ".$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException("Exception occurred: ".$e->getMessage(), 0, $e);
+    }
+  } // END updateRelation()
+
+  public function getRelation($relationNumber)
+  {
+    try {
+      $result = $this->client->getRelation($this->parser->convertGeneric('relationNumber', $relationNumber));
+      return $this->parser->parseGetRelationResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException("SoapFault occurred: ".$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException("Exception occurred: ".$e->getMessage(), 0, $e);
+    }
+  } // END getRelation()
+
+  //----------------------------------------------------------------------------
+
+  public function registerTerminal($terminal, $forceRegistration)
+  {
+    try {
+      $result = $this->client->registerTerminal($this->parser->convertRegisterTerminalRequest($terminal, $forceRegistration));
+      return $this->parser->parseRegisterTerminalResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException("SoapFault occurred: ".$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException("Exception occurred: ".$e->getMessage(), 0, $e);
+    }
+  } // END registerTerminal()
+
+  //----------------------------------------------------------------------------
+
+  public function getTableOrder($terminal, $branchNumber, $tableNumber)
+  {
+    try {
+      $result = $this->client->getTableOrder($this->parser->convertGetTableOrderRequest($terminal, $branchNumber, $tableNumber));
+      return $this->parser->parseGetTableOrderResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException("SoapFault occurred: ".$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException("Exception occurred: ".$e->getMessage(), 0, $e);
+    }
+  } // END getTableOrder()
+
+  //----------------------------------------------------------------------------
+
+  public function findTableOrder($terminal, $extOrderId)
+  {
+    try {
+      $result = $this->client->findTableOrder($this->parser->convertFindTableOrderRequest($terminal, $extOrderId));
+      return $this->parser->parseGetTableOrderResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException("SoapFault occurred: ".$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException("Exception occurred: ".$e->getMessage(), 0, $e);
+    }
+  } // END findTableOrder()
+
+  //----------------------------------------------------------------------------
+
+  public function saveTableOrder($terminal, $order)
+  {
+    try {
+      $result = $this->client->saveTableOrder($this->parser->convertSaveTableOrder($terminal, $order));
+      return $this->parser->parseSaveTableOrderResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException("SoapFault occurred: ".$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException("Exception occurred: ".$e->getMessage(), 0, $e);
+    }
+  } // END getTableOrder()
+
+  //----------------------------------------------------------------------------
+
+  public function cancelTableOrder($terminal, $branchNumber, $tableNumber)
+  {
+    try {
+      $result = $this->client->cancelTableOrder($this->parser->convertGetTableOrderRequest($terminal, $branchNumber, $tableNumber));
+      return $this->parser->parseCancelOrderResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException("SoapFault occurred: ".$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException("Exception occurred: ".$e->getMessage(), 0, $e);
+    }
+  } // END cancelTableOrder()
+
+  //----------------------------------------------------------------------------
 
   public function sendMessage($branchNumber, $terminalNumber, $text)
   {
@@ -434,7 +637,6 @@ class MplusQAPIDataParser
         case 'TERMINAL-STATUS-REGISTERED':
           $terminal['terminalStatus'] = TERMINAL_STATUS_REGISTERED;
           break;
-        case 'TERMINAL-STATUS-UNKNOWN':
         default:
           $terminal['terminalStatus'] = TERMINAL_STATUS_UNKNOWN;
           break;
@@ -446,12 +648,28 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function parseVatGroupList($soapVatGroupList) {
+    if (isset($soapVatGroupList->return)) {
+      $soapVatGroupList = $soapVatGroupList->return;
+    }
+    $vatGroups = array();
+    foreach ($soapVatGroupList as $soapVatGroup) {
+      $vatGroup = objectToArray($soapVatGroup);
+      $vatGroups[] = $vatGroup;
+    }
+    return $vatGroups;
+  } // END parseVatGroupList()
+
+  //----------------------------------------------------------------------------
+
   public function parseProducts($soapProducts) {
-    if (isset($soapProducts->products)) {
-      $soapProducts = $soapProducts->products;
-    } elseif (isset($soapProducts['products'])) {
-      $soapProducts = $soapProducts['products'];
-    } else {
+    if (isset($soapProducts->productList->product)) {
+      $soapProducts = $soapProducts->productList->product;
+    }
+    elseif (isset($soapProducts->productList)) {
+      $soapProducts = array();
+    }
+    else {
       $soapProducts = null;
     }
     if ( ! is_null($soapProducts)) {
@@ -461,29 +679,43 @@ class MplusQAPIDataParser
       $products = array();
       foreach ($soapProducts as $soapProduct) {
         $product = objectToArray($soapProduct);
-        if ( ! is_array($product['groupNumbers'])) {
-          if ( ! empty($product['groupNumbers'])) {
-            $product['groupNumbers'] = array($product['groupNumbers']);
-          } else {
-            $product['groupNumbers'] = array();
-          }
-        }
-        if (isset($product['articles']['article']) and ! isset($product['articles']['article']['articleNumber'])) {
-          $product['articles'] = $product['articles']['article'];
-        }
-        foreach ($product['articles'] as $idx => $article) {
-          $orig_article = $article;
-          if (isset($article['images']['image']) and ! isset($article['images']['image']['imageName'])) {
-            $article['images'] = $article['images']['image'];
-          }
-          if ( ! is_array($article['images'])) {
-            if ( ! empty($article['images'])) {
-              $article['images'] = array($article['images']);
-            } else {
-              $article['images'] = array();
+        if (isset($product['groupNumbers'])) {
+          if ( ! is_array($product['groupNumbers'])) {
+            if ( ! empty($product['groupNumbers'])) {
+              $product['groupNumbers'] = array($product['groupNumbers']);
+            }
+            else {
+              $product['groupNumbers'] = array();
             }
           }
-          $product['articles'][$idx] = $article;
+        }
+        else {
+          $product['groupNumbers'] = array();
+        }
+        if (isset($product['articleList']['article']) and ! isset($product['articleList']['article']['articleNumber'])) {
+          $product['articleList'] = $product['articleList']['article'];
+        }
+        if (isset($product['articleList'])) {
+          foreach ($product['articleList'] as $idx => $article) {
+            $orig_article = $article;
+            if ( ! isset($article['imageList'])) {
+              $article['imageList'] = array();
+            }
+            if (isset($article['imageList']['image']) and ! isset($article['imageList']['image']['imageName'])) {
+              $article['imageList'] = $article['imageList']['image'];
+            }
+            if ( ! is_array($article['imageList'])) {
+              if ( ! empty($article['imageList'])) {
+                $article['imageList'] = array($article['imageList']);
+              } else {
+                $article['imageList'] = array();
+              }
+            }
+            $product['articleList'][$idx] = $article;
+          }
+        }
+        else {
+          $product['articleList'] = array();
         }
         $products[] = $product;
       }
@@ -568,6 +800,94 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function parseReceiptsByOrderResult($soapReceiptsByOrderResult) {
+    if (isset($soapReceiptsByOrderResult->result) and $soapReceiptsByOrderResult->result == 'GET-RECEIPTS-BY-ORDER-RESULT-OK') {
+      $receipts = array();
+      if (isset($soapReceiptsByOrderResult->receiptList->receipt)) {
+        $soapReceipts = $soapReceiptsByOrderResult->receiptList->receipt;
+        $receipts = objectToArray($soapReceipts);
+        foreach ($receipts as $key => $receipt) {
+          if (isset($receipt['lineList']['line'])) {
+            $receipt['lineList'] = $receipt['lineList']['line'];
+          }
+          foreach ($receipt['lineList'] as $line_key => $line) {
+            if (isset($line['preparationList']['line'])) {
+              $line['preparationList'] = $line['preparationList']['line'];
+            }
+            $receipt['lineList'][$line_key] = $line;
+          }
+          if (isset($receipt['paymentList']['payment'])) {
+            $receipt['paymentList'] = $receipt['paymentList']['payment'];
+          }
+          $receipts[$key] = $receipt;
+        }
+      }
+      return $receipts;
+    }
+    return false;
+  } // END parseReceiptsByOrderResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseGetTableOrderResult($soapGetTableOrderResult) {
+    if (isset($soapGetTableOrderResult->result)) {
+      if ($soapGetTableOrderResult->result == 'GET-TABLE-ORDER-RESULT-OK') {
+        if (isset($soapGetTableOrderResult->order)) {
+          $soapOrder = $soapGetTableOrderResult->order;
+          $order = objectToArray($soapOrder);
+          if (isset($order['lineList']['line'])) {
+            $order['lineList'] = $order['lineList']['line'];
+          }
+          foreach ($order['lineList'] as $idx => $line) {
+            if (isset($line['preparationList']['line'])) {
+              $line['preparationList'] = $line['preparationList']['line'];
+            }
+            $order['lineList'][$idx] = $line;
+          }
+          return $order;
+        }
+      } else
+      if ($soapGetTableOrderResult->result == 'GET-TABLE-ORDER-RESULT-ALREADY-USED') {
+        if (isset($soapGetTableOrderResult->order)) {
+          $soapOrder = $soapGetTableOrderResult->order;
+          $order = array(
+            'orderId' => $soapOrder->orderId,
+            );
+          return $order;
+        }
+      }
+    }
+    return false;
+  } // END parseGetTableOrderResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseSaveTableOrderResult($soapSaveTableOrderResult) {
+    if (isset($soapSaveTableOrderResult->result)) {
+      if ($soapSaveTableOrderResult->result == 'SAVE-TABLE-ORDER-RESULT-OK') {
+        return true;
+      }
+      elseif ($soapSaveTableOrderResult->result == 'SAVE-TABLE-ORDER-RESULT-ORDER-HAS-CHANGED') {
+        if (isset($soapSaveTableOrderResult->errorMessage) and ! empty($soapSaveTableOrderResult->errorMessage)) {
+          throw new MplusQAPIException($soapSaveTableOrderResult->errorMessage);
+        }
+        else {
+          throw new MplusQAPIException('Table order has been changed from another terminal.');
+        }
+      } else {
+        if (isset($soapSaveTableOrderResult->errorMessage) and ! empty($soapSaveTableOrderResult->errorMessage)) {
+          throw new MplusQAPIException($soapSaveTableOrderResult->errorMessage);
+        }
+        else {
+          throw new MplusQAPIException('Unknown error.');
+        }
+      }
+    }
+    throw new MplusQAPIException('Unknown error.');
+  } // END parseSaveTableOrderResult()
+
+  //----------------------------------------------------------------------------
+
   public function parseFindRelationResult($soapFindRelationResult) {
     if (isset($soapFindRelationResult->result) and $soapFindRelationResult->result == 'FIND-RELATION-RESULT-OK') {
       if (isset($soapFindRelationResult->relation)) {
@@ -575,7 +895,53 @@ class MplusQAPIDataParser
       }
     }
     return false;
-  } // END parseCreateRelationResult()
+  } // END parseFindRelationResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseGetRelationResult($soapGetRelationResult) {
+    if (isset($soapGetRelationResult->result) and $soapGetRelationResult->result == 'GET-RELATION-RESULT-OK') {
+      if (isset($soapGetRelationResult->relation)) {
+        return objectToArray($soapGetRelationResult->relation);
+      }
+    }
+    return false;
+  } // END parseGetRelationResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseRegisterTerminalResult($soapRegisterTerminalResult)
+  {
+    if (isset($soapRegisterTerminalResult->result)) {
+      if ($soapRegisterTerminalResult->result == 'REGISTER-TERMINAL-RESULT-OK') {
+        return true;
+      }
+      else if ($soapRegisterTerminalResult->result == 'REGISTER-TERMINAL-RESULT-REGISTERED') {
+        if (isset($soapRegisterTerminalResult->errorMessage)) {
+          throw new MplusQAPIException($soapRegisterTerminalResult->errorMessage);
+        }
+        else {
+          throw new MplusQAPIException('Requested terminal already registered.');
+        }
+      }
+      else if ($soapRegisterTerminalResult->result == 'REGISTER-TERMINAL-RESULT-UNKNOWN') {
+        if (isset($soapRegisterTerminalResult->errorMessage)) {
+          throw new MplusQAPIException($soapRegisterTerminalResult->errorMessage);
+        }
+        else {
+          throw new MplusQAPIException('Requested terminal unknown.');
+        }
+      }
+      else {
+        if (isset($soapRegisterTerminalResult->errorMessage)) {
+          throw new MplusQAPIException($soapRegisterTerminalResult->errorMessage);
+        }
+        else {
+          throw new MplusQAPIException('Unknown error.');
+        }
+      }
+    }
+  } // END parseRegisterTerminalResult()
 
   //----------------------------------------------------------------------------
 
@@ -631,7 +997,44 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertOrder($order) {
+  public function parseUpdateRelationResult($soapUpdateRelationResult) {
+    if (isset($soapUpdateRelationResult->result) and $soapUpdateRelationResult->result == 'UPDATE-RELATION-RESULT-OK') {
+      return true;
+    }
+    return false;
+  } // END parseUpdateRelationResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseCreateProductResult($soapCreateProductResult) {
+    if (isset($soapCreateProductResult->result) and $soapCreateProductResult->result == 'CREATE-PRODUCT-RESULT-OK') {
+      if (isset($soapCreateProductResult->productNumber)) {
+        return $soapCreateProductResult->productNumber;
+      }
+    }
+    return false;
+  } // END parseCreateProductResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseUpdateProductResult($soapCreateProductResult) {
+    if (isset($soapUpdateProductResult->result) and $soapUpdateProductResult->result == 'UPDATE-PRODUCT-RESULT-OK') {
+      if (isset($soapUpdateProductResult->productNumber)) {
+        return $soapUpdateProductResult->productNumber;
+      }
+    }
+    return false;
+  } // END parseUpdateProductResult()
+
+  //----------------------------------------------------------------------------
+
+  /*public function convertOrder($order) {
+    if ( ! isset($order['orderId'])) {
+      $order['orderId'] = null;
+    }
+    if ( ! isset($order['entryTimestamp'])) {
+      $order['entryTimestamp'] = null;
+    }
     if ( ! isset($order['orderDeliveryState'])) {
       $order['orderDeliveryState'] = null;
     }
@@ -654,22 +1057,50 @@ class MplusQAPIDataParser
         $order['lineList'] = array('line' => current($order['lineList']));
       }
     }
-    // print_r($order);exit;
     $object = arrayToObject(array('order'=>$order));
     // print_r($object);exit;
     return $object;
-  } // END convertOrder()
+  } // END convertOrder()*/
 
   //----------------------------------------------------------------------------
 
-  public function convertGetProductsRequest($groupNumbers)
+  public function convertGetProductsRequest($articleNumbers, $groupNumbers, $pluNumbers)
   {
+    if ( ! is_array($articleNumbers)) {
+      $articleNumbers = array($articleNumbers);
+    }
     if ( ! is_array($groupNumbers)) {
       $groupNumbers = array($groupNumbers);
     }
-    $object = arrayToObject(array('request'=>array('groupNumbers'=>array_values($groupNumbers))));
+    if ( ! is_array($pluNumbers)) {
+      $pluNumbers = array($pluNumbers);
+    }
+    $object = arrayToObject(array('request'=>array(
+      'articleNumbers'=>array_values($articleNumbers),
+      'groupNumbers'=>array_values($groupNumbers),
+      'pluNumbers'=>$this->convertPluNumbers($pluNumbers),
+      )));
     return $object;
   } // END convertGetProductsRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertPluNumbers($pluNumbers)
+  {
+    $text = array();
+    foreach (array_values($pluNumbers) as $pluNumber) {
+      $text[] = array(
+        'text' => $pluNumber,
+        );
+    }
+    if (count($text) > 0) {
+      $object = arrayToObject(array('text'=>$text));
+    }
+    else {
+      $object = arrayToObject(array());
+    }
+    return $object;
+  } // END convertPluNumbers()
 
   //----------------------------------------------------------------------------
 
@@ -717,22 +1148,31 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertOrderUuid($orderUuid) {
-    $object = arrayToObject(array('orderUuid'=>$orderUuid));
+  public function convertOrderId($orderId) {
+    $object = arrayToObject(array('orderId'=>$orderId));
     return $object;
-  } // END convertOrderUuid()
+  } // END convertOrderId()
 
   //----------------------------------------------------------------------------
 
   public function convertRelation($relation) {
-    if ( ! isset($relation['website'])) {
-      $relation['website'] = '';
+    if ( ! isset($relation['relationNumber'])) {
+      $relation['relationNumber'] = 0;
     }
-    if ( ! isset($relation['points'])) {
-      $relation['points'] = 0;
+    if ( ! isset($relation['name'])) {
+      $relation['name'] = '';
     }
-    if ( ! isset($relation['balance'])) {
-      $relation['balance'] = 0;
+    if ( ! isset($relation['address'])) {
+      $relation['address'] = '';
+    }
+    if ( ! isset($relation['zipcode'])) {
+      $relation['zipcode'] = '';
+    }
+    if ( ! isset($relation['city'])) {
+      $relation['city'] = '';
+    }
+    if ( ! isset($relation['country'])) {
+      $relation['country'] = '';
     }
     if ( ! isset($relation['deliveryAddress'])) {
       $relation['deliveryAddress'] = '';
@@ -746,18 +1186,398 @@ class MplusQAPIDataParser
     if ( ! isset($relation['deliveryCountry'])) {
       $relation['deliveryCountry'] = '';
     }
+    if ( ! isset($relation['contact'])) {
+      $relation['contact'] = '';
+    }
+    if ( ! isset($relation['telephone'])) {
+      $relation['telephone'] = '';
+    }
+    if ( ! isset($relation['mobile'])) {
+      $relation['mobile'] = '';
+    }
+    if ( ! isset($relation['email'])) {
+      $relation['email'] = '';
+    }
+    if ( ! isset($relation['website'])) {
+      $relation['website'] = '';
+    }
+    if ( ! isset($relation['points'])) {
+      $relation['points'] = 0;
+    }
+    if ( ! isset($relation['balance'])) {
+      $relation['balance'] = 0;
+    }
     $object = arrayToObject(array('relation'=>$relation));
-    // print_r($object);exit;
     return $object;
   } // END convertRelation()
 
   //----------------------------------------------------------------------------
+
+  public function convertGeneric($name, $value) {
+    $object = arrayToObject(array($name=>$value));
+    return $object;
+  } // END convertGeneric()
+
+  //----------------------------------------------------------------------------
+
+  public function convertProduct($product)
+  {
+    if ( ! isset($product['productNumber'])) {
+      $product['productNumber'] = 0;
+    }
+    if ( ! isset($product['description'])) {
+      $product['description'] = '';
+    }
+    if ( ! isset($product['articleList'])) {
+      $product['articleList'] = array();
+    }
+    if ( ! isset($product['articleList']['article'])) {
+      $product['articleList'] = array('article' => $product['articleList']);
+    }
+    foreach ($product['articleList']['article'] as $idx => $article) {
+      if ( ! isset($article['articleNumber'])) {
+        $article['articleNumber'] = 0;
+      }
+      if ( ! isset($article['pluNumber'])) {
+        $article['pluNumber'] = 0;
+      }
+      if ( ! isset($article['description'])) {
+        $article['description'] = '';
+      }
+      if ( ! isset($article['colour'])) {
+        $article['colour'] = '';
+      }
+      if ( ! isset($article['size'])) {
+        $article['size'] = '';
+      }
+      if ( ! isset($article['invoice-text'])) {
+        $article['invoice-text'] = '';
+      }
+      if ( ! isset($article['receipt-text'])) {
+        $article['receipt-text'] = '';
+      }
+      if ( ! isset($article['display-text'])) {
+        $article['display-text'] = '';
+      }
+      if ( ! isset($article['barcode'])) {
+        $article['barcode'] = '';
+      }
+      if ( ! isset($article['turnoverGroup'])) {
+        $article['turnoverGroup'] = 0;
+      }
+      if ( ! isset($article['vatCode'])) {
+        $article['vatCode'] = 0;
+      }
+      if ( ! isset($article['vatPercentage'])) {
+        $article['vatPercentage'] = 0;
+      }
+      if ( ! isset($article['purchasePrice'])) {
+        $article['purchasePrice'] = 0;
+      }
+      if ( ! isset($article['priceIncl'])) {
+        $article['priceIncl'] = 0;
+      }
+      if ( ! isset($article['priceExcl'])) {
+        $article['priceExcl'] = 0;
+      }
+      if ( ! isset($article['imageList'])) {
+        $article['imageList'] = array();
+      }
+      if ( ! isset($article['imageList']['image']) and ! empty($article['imageList'])) {
+        $article['imageList'] = array('image' => $article['imageList']);
+      }
+      $product['articleList']['article'][$idx] = $article;
+    }
+    $object = arrayToObject(array('product'=>$product));
+    return $object;
+  } // END convertProduct()
+
+  //----------------------------------------------------------------------------
+
+  public function convertTerminal($terminal)
+  {
+    if ( ! isset($terminal['branchNumber'])) {
+      $terminal['branchNumber'] = 0;
+    }
+    if ( ! isset($terminal['branchName'])) {
+      $terminal['branchName'] = '';
+    }
+    if ( ! isset($terminal['terminalNumber'])) {
+      $terminal['terminalNumber'] = 0;
+    }
+    if ( ! isset($terminal['terminalName'])) {
+      $terminal['terminalName'] = '';
+    }
+    if ( ! isset($terminal['terminalStatus'])) {
+      $terminal['terminalStatus'] = 'TERMINAL-STATUS-AVAILABLE';
+    } 
+    if ( ! isset($terminal['uniqueDeviceIdentifier'])) {
+      $terminal['uniqueDeviceIdentifier'] = md5($_SERVER['REMOTE_ADDR']);
+    }
+    $object = arrayToObject(array('terminal'=>$terminal));
+    return $object;
+  } // END convertTerminal()
+
+  //----------------------------------------------------------------------------
+
+  public function convertOrder($order)
+  {
+    if ( ! isset($order['orderId'])) {
+      $order['orderId'] = '';
+    }
+    if ( ! isset($order['extOrderId'])) {
+      $order['extOrderId'] = '';
+    }
+    if ( ! isset($order['entryBranchNumber'])) {
+      $order['entryBranchNumber'] = 0;
+    }
+    if ( ! isset($order['employeeNumber'])) {
+      $order['employeeNumber'] = 0;
+    }
+    if ( ! isset($order['entryTimestamp'])) {
+      $order['entryTimestamp'] = time();
+    }
+    $order['entryTimestamp'] = $this->convertMplusDateTime($order['entryTimestamp']);
+    if ( ! isset($order['relationNumber'])) {
+      $order['relationNumber'] = 0;
+    }
+    if ( ! isset($order['financialDate'])) {
+      $order['financialDate'] = time();
+    }
+    $order['financialDate'] = $this->convertMplusDate($order['financialDate']);
+    if ( ! isset($order['financialBranchNumber'])) {
+      $order['financialBranchNumber'] = 0;
+    }
+    if ( ! isset($order['reference'])) {
+      $order['reference'] = '';
+    }
+    if ( ! isset($order['totalInclAmount'])) {
+      $order['totalInclAmount'] = 0;
+    }
+    if ( ! isset($order['totalExclAmount'])) {
+      $order['totalExclAmount'] = 0;
+    }
+    if ( ! isset($order['vatMethod'])) {
+      $order['vatMethod'] = 'VAT-METHOD-INCLUSIVE';
+    }
+    if ( ! isset($order['changeCounter'])) {
+      $order['changeCounter'] = 0;
+    }
+    if ( ! isset($order['versionNumber'])) {
+      $order['versionNumber'] = 0;
+    }
+    if ( ! isset($order['prepaidAmount'])) {
+      $order['prepaidAmount'] = 0;
+    }
+    if ( ! isset($order['deliveryState'])) {
+      $order['deliveryState'] = 'ORDER-DELIVERY-STATE-NOTHING';
+    }
+    if ( ! isset($order['cancelState'])) {
+      $order['cancelState'] = 'ORDER-CANCEL-STATE-NOTHING';
+    }
+    if ( ! isset($order['completeState'])) {
+      $order['completeState'] = 'ORDER-COMPLETE-STATE-NOTHING';
+    }
+    if ( ! isset($order['tableNumber'])) {
+      $order['tableNumber'] = 0;
+    }
+    if ( ! isset($order['orderNumber'])) {
+      $order['orderNumber'] = array(
+        'year'=>0,
+        'number'=>0,
+        );
+    }
+    $order['orderNumber'] = $this->convertYearNumber($order['orderNumber']);
+    if ( ! isset($order['lineList'])) {
+      $order['lineList'] = array();
+    }
+    $order['lineList'] = $this->convertOrderLineList($order['lineList']);
+    $object = arrayToObject(array('order'=>$order));
+    return $object;
+  } // END convertOrder();
+
+  //----------------------------------------------------------------------------
+
+  public function convertOrderLineList($lineList, $is_preparationList=false)
+  {
+    if ( ! isset($lineList['line']) and ! empty($lineList)) {
+      $lineList = array('line'=>$lineList);
+    }
+    if (isset($lineList['line'])) {
+      foreach ($lineList['line'] as $idx => $line) {
+        if ( ! isset($line['lineId'])) {
+          $line['lineId'] = '';
+        }
+        if ( ! isset($line['employeeNumber'])) {
+          $line['employeeNumber'] = 0;
+        }
+        if ( ! isset($line['articleNumber'])) {
+          $line['articleNumber'] = 0;
+        }
+        if ( ! isset($line['pluNumber'])) {
+          $line['pluNumber'] = 0;
+        }
+        if ( ! isset($line['text'])) {
+          $line['text'] = '';
+        }
+        if (isset($line['data'])) {
+          if ( ! isset($line['data']['quantity'])) {
+            $line['data']['quantity'] = 1;
+          }
+          if ( ! isset($line['data']['price'])) {
+            $line['data']['price'] = 0;
+          }
+          if ( ! isset($line['data']['turnoverGroup'])) {
+            $line['data']['turnoverGroup'] = 0;
+          }
+          if ( ! isset($line['data']['vatCode'])) {
+            $line['data']['vatCode'] = 0;
+          }
+          if ( ! isset($line['data']['vatPercentage'])) {
+            $line['data']['vatPercentage'] = 0;
+          }
+          if ( ! isset($line['data']['pricePerQuantity'])) {
+            $line['data']['pricePerQuantity'] = 0;
+          }
+          if ( ! isset($line['data']['siUnit'])) {
+            $line['data']['siUnit'] = '';
+          }
+          if ( ! isset($line['data']['discountPercentage'])) {
+            $line['data']['discountPercentage'] = 0;
+          }
+          if ( ! isset($line['data']['discountAmount'])) {
+            $line['data']['discountAmount'] = 0;
+          }
+        }
+        if ( ! isset($line['courseNumber'])) {
+          $line['courseNumber'] = 0;
+        }
+        if ( ! isset($line['lineType'])) {
+          $line['lineType'] = 'ORDER-LINE-TYPE-NONE';
+        }
+        if ( ! isset($line['preparationList'])) {
+          $line['preparationList'] = array();
+        }
+        if ( ! $is_preparationList) {
+          $line['preparationList'] = $this->convertOrderLineList($line['preparationList'], true);
+        }
+        $lineList['line'][$idx] = $line;
+      }
+    }
+    $object = arrayToObject($lineList);
+    return $object;
+  } // END convertOrderLineList()
+
+  //----------------------------------------------------------------------------
+
+  public function convertMplusDateTime($timestamp)
+  {
+    return $timestamp;
+  } // END convertMplusDateTime()
+
+  //----------------------------------------------------------------------------
+
+  public function convertMplusDate($timestamp)
+  {
+    return $timestamp;
+  } // END convertMplusDate()
+
+  //----------------------------------------------------------------------------
+
+  public function convertYearNumber($year_number)
+  {
+    return $year_number;
+  } // END convertYearNumber()
+
+  //----------------------------------------------------------------------------
+
+  public function convertGetTableOrderRequest($terminal, $branchNumber, $tableNumber)
+  {
+    $terminal = $this->convertTerminal($terminal);
+    $branchNumber = $this->convertBranchNumber($branchNumber);
+    $tableNumber = $this->convertTableNumber($tableNumber);
+    $object = arrayToObject(array(
+      'terminal'=>$terminal->terminal,
+      'branchNumber'=>$branchNumber->branchNumber,
+      'tableNumber'=>$tableNumber->tableNumber,
+      ));
+    return $object;
+  } // END convertGetTableOrderRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertFindTableOrderRequest($terminal, $extOrderId)
+  {
+    $terminal = $this->convertTerminal($terminal);
+    $extOrderId = $this->convertExtOrderId($extOrderId);
+    $object = arrayToObject(array(
+      'terminal'=>$terminal->terminal,
+      'extOrderId'=>$extOrderId->extOrderId,
+      ));
+    return $object;
+  } // END convertFindTableOrderRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertSaveTableOrder($terminal, $order)
+  {
+    $terminal = $this->convertTerminal($terminal);
+    $order = $this->convertOrder($order);
+    $object = arrayToObject(array(
+      'terminal'=>$terminal->terminal,
+      'order'=>$order->order,
+      ));
+    return $object;
+  } // END convertSaveTableOrder()
+
+  //----------------------------------------------------------------------------
+
+  public function convertBranchNumber($branchNumber)
+  {
+    $object = arrayToObject(array('branchNumber'=>$branchNumber));
+    return $object;
+  } // END convertBranchNumber()
+
+  //----------------------------------------------------------------------------
+
+  public function convertTableNumber($tableNumber)
+  {
+    $object = arrayToObject(array('tableNumber'=>$tableNumber));
+    return $object;
+  } // END convertTableNumber()
+
+  //----------------------------------------------------------------------------
+
+  public function convertForceRegistration($forceRegistration)
+  {
+    $object = arrayToObject(array('forceRegistration'=>$forceRegistration));
+    return $object;
+  } // END convertForceRegistration()
+
+  //----------------------------------------------------------------------------
+
+  public function convertRegisterTerminalRequest($terminal, $forceRegistration)
+  {
+    $terminal = $this->convertTerminal($terminal);
+    $forceRegistration = $this->convertForceRegistration($forceRegistration);
+    $object = arrayToObject(array(
+      'terminal'=>$terminal->terminal,
+      'forceRegistration'=>$forceRegistration->forceRegistration,
+      ));
+    return $object;
+  } // END convertRegisterTerminalRequest()
+
+  //----------------------------------------------------------------------------
 }
+
+//------------------------------------------------------------------------------
 
 class MplusQAPIException extends Exception
 {
 
 }
+
+//------------------------------------------------------------------------------
 
 function objectToArray($d) {
   if (is_object($d)) {
@@ -780,6 +1600,8 @@ function objectToArray($d) {
   }
 } // END objectToArray()
 
+//------------------------------------------------------------------------------
+
 function arrayToObject($d) {
   if (is_array($d)) {
     /*
@@ -787,13 +1609,25 @@ function arrayToObject($d) {
     * Using __FUNCTION__ (Magic constant)
     * for recursive call
     */
-    if (isset($d['groupNumbers'])) {
+    if (isset($d['articleNumbers']) or isset($d['groupNumbers'])) {
       return (object) $d;
-    } elseif (isset($d[0]['articleNumber'])) { // Als het om een element van 'articleNumber' gaat, dan moet het een Array zijn
+    }
+    elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['text'])) {
       return array_map(__FUNCTION__, $d);
-    } elseif (isset($d[0]) and is_integer($d[0])) {
+    }
+    elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['pluNumber'])) {
       return array_map(__FUNCTION__, $d);
-    } else {
+    }
+    elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['imageName'])) {
+      return array_map(__FUNCTION__, $d);
+    }
+    elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['articleNumber'])) {
+      return array_map(__FUNCTION__, $d);
+    }
+    elseif (isset($d[0]) and is_integer($d[0])) {
+      return array_map(__FUNCTION__, $d);
+    }
+    else {
       return (object) array_map(__FUNCTION__, $d);
     }
   }
@@ -802,3 +1636,5 @@ function arrayToObject($d) {
     return $d;
   }
 } // END arrayToObject()
+
+//------------------------------------------------------------------------------
