@@ -6,14 +6,14 @@ define('TERMINAL_STATUS_UNKNOWN', 3);
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '0.1.0';
+  const CLIENT_VERSION  = '0.3.0';
 
   var $MIN_API_VERSION_MAJOR = 0;
-  var $MIN_API_VERSION_MINOR = 2;
+  var $MIN_API_VERSION_MINOR = 3;
   var $MIN_API_VERSION_REVIS = 0;
 
   var $MAX_API_VERSION_MAJOR = 0;
-  var $MAX_API_VERSION_MINOR = 2;
+  var $MAX_API_VERSION_MINOR = 3;
   var $MAX_API_VERSION_REVIS = 0;
 
    /**
@@ -179,7 +179,7 @@ class MplusQAPIclient
       throw new MplusQAPIException('Fingerprint of SSL certificate doesn\'t match.');
     }
 
-    $this->client = new SoapClient('MplusQapi.wsdl', $options);
+    $this->client = new SoapClient('https://api.mpluskassa.nl/MplusQapi.wsdl', $options);
     $this->checkApiVersion();
     // i($this->client->__getTypes());
     // $this->client = new SoapClient(null, $options);
@@ -321,6 +321,20 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function getEmployees($employeeNumbers = array())
+  {
+    try {
+      $result = $this->client->getEmployees($this->parser->convertGetEmployeesRequest($employeeNumbers));
+      return $this->parser->parseEmployees($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException("SoapFault occurred: ".$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException("Exception occurred: ".$e->getMessage(), 0, $e);
+    }
+  } // END getEmployees()
+
+  //----------------------------------------------------------------------------
+
   public function createProduct($product)
   {
     try {
@@ -376,6 +390,20 @@ class MplusQAPIclient
       throw new MplusQAPIException("Exception occurred: ".$e->getMessage(), 0, $e);
     }
   } // END getStock()
+
+  //----------------------------------------------------------------------------
+
+  public function getShifts($financialDate, $branchNumbers = array(), $employeeNumbers = array())
+  {
+    try {
+      $result = $this->client->getShifts($this->parser->convertGetShiftsRequest($financialDate, $branchNumbers, $employeeNumbers));
+      return $this->parser->parseShifts($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException("SoapFault occurred: ".$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException("Exception occurred: ".$e->getMessage(), 0, $e);
+    }
+  } // END getShifts()
 
   //----------------------------------------------------------------------------
 
@@ -722,7 +750,23 @@ class MplusQAPIDataParser
       return $products;
     }
     return false;
-  } // END parseProducts()
+  } // END parseProductsemployees
+
+  //----------------------------------------------------------------------------
+
+  public function parseEmployees($soapEmployees) 
+  {
+    if (isset($soapEmployees->employeeList)) {
+      $soapEmployees = $soapEmployees->employeeList;
+      $employees = array();
+      if (isset($soapEmployees->employee)) {
+        $soapEmployees = $soapEmployees->employee;
+        $employees = objectToArray($soapEmployees);
+      }
+      return $employees;
+    }
+    return false;
+  } // END parseEmployees()
 
   //----------------------------------------------------------------------------
 
@@ -783,7 +827,33 @@ class MplusQAPIDataParser
       return $articleStocks;
     }
     return false;
-  } // END parseStock();
+  } // END parseStock()
+
+  //----------------------------------------------------------------------------
+
+  public function parseShifts($soapShifts) {
+    if (isset($soapShifts->shiftList)) {
+      $soapShifts = $soapShifts->shiftList;
+      $shifts = array();
+      if (isset($soapShifts->shift)) {
+        $shifts = objectToArray($soapShifts->shift);
+        foreach ($shifts as $key => $shift) {
+          if (isset($shift['financialDate'])) {
+            $shift['financialDate'] = $this->parseMplusDate($shift['financialDate']);
+          }
+          if (isset($shift['startTimestamp'])) {
+            $shift['startTimestamp'] = $this->parseMplusDateTime($shift['startTimestamp']);
+          }
+          if (isset($shift['endTimestamp'])) {
+            $shift['endTimestamp'] = $this->parseMplusDateTime($shift['endTimestamp']);
+          }
+          $shifts[$key] = $shift;
+        }
+      }
+      return $shifts;
+    }
+    return false;
+  } // END parseShifts()
 
   //----------------------------------------------------------------------------
 
@@ -1082,6 +1152,41 @@ class MplusQAPIDataParser
       )));
     return $object;
   } // END convertGetProductsRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertGetEmployeesRequest($employeeNumbers)
+  {
+    if ( ! is_array($employeeNumbers)) {
+      $employeeNumbers = array($employeeNumbers);
+    }
+    $object = arrayToObject(array('request'=>array(
+      'employeeNumbers'=>empty($employeeNumbers)?null:array_values($employeeNumbers),
+      )));
+    return $object;
+  } // END convertGetEmployeesRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertGetShiftsRequest($financialDate, $branchNumbers, $employeeNumbers)
+  {
+    if ( ! isset($financialDate) or is_null($financialDate) or empty($financialDate)) {
+      $financialDate = time();
+    }
+    $financialDate = $this->convertMplusDate($financialDate);
+    if ( ! is_array($branchNumbers)) {
+      $branchNumbers = array($branchNumbers);
+    }
+    if ( ! is_array($employeeNumbers)) {
+      $employeeNumbers = array($employeeNumbers);
+    }
+    $object = arrayToObject(array('request'=>array(
+      'financialDate'=>$financialDate,
+      'branchNumbers'=>empty($branchNumbers)?null:array_values($branchNumbers),
+      'employeeNumbers'=>empty($employeeNumbers)?null:array_values($employeeNumbers),
+      )));
+    return $object;
+  } // END convertGetShiftsRequest()
 
   //----------------------------------------------------------------------------
 
@@ -1472,15 +1577,50 @@ class MplusQAPIDataParser
 
   public function convertMplusDateTime($timestamp)
   {
-    return $timestamp;
+    return array(
+      'day' => date('j', $timestamp),
+      'mon' => date('n', $timestamp),
+      'year' => date('Y', $timestamp),
+      );
   } // END convertMplusDateTime()
+
+  //----------------------------------------------------------------------------
+
+  public function parseMplusDateTime($mplus_date_time)
+  {
+    if ($mplus_date_time['day'] == 0 || $mplus_date_time['mon'] == 0 || $mplus_date_time['year'] == 0) {
+      return null;
+    } else {
+      return mktime($mplus_date_time['hour'], $mplus_date_time['min'], $mplus_date_time['sec'], $mplus_date_time['mon'], $mplus_date_time['day'], $mplus_date_time['year']);
+    }
+  } // END parseMplusDateTime()
 
   //----------------------------------------------------------------------------
 
   public function convertMplusDate($timestamp)
   {
-    return $timestamp;
+    return array(
+      'day' => date('j', $timestamp),
+      'mon' => date('n', $timestamp),
+      'year' => date('Y', $timestamp),
+      'hour' => date('H', $timestamp),
+      'min' => date('i', $timestamp),
+      'sec' => date('s', $timestamp),
+      'isdst' => false,
+      'timezone' => 0,
+      );
   } // END convertMplusDate()
+
+  //----------------------------------------------------------------------------
+
+  public function parseMplusDate($mplus_date)
+  {
+    if ($mplus_date['day'] == 0 || $mplus_date['mon'] == 0 || $mplus_date['year'] == 0) {
+      return null;
+    } else {
+      return mktime(0, 0, 0, $mplus_date['mon'], $mplus_date['day'], $mplus_date['year']);
+    }
+  } // END parseMplusDate()
 
   //----------------------------------------------------------------------------
 
@@ -1602,7 +1742,12 @@ function objectToArray($d) {
 
 //------------------------------------------------------------------------------
 
-function arrayToObject($d) {
+$global_leave_as_array = null;
+function arrayToObject($d, $leave_as_array=null) {
+  global $global_leave_as_array;
+  if ( ! is_null($leave_as_array)) {
+    $global_leave_as_array = $leave_as_array;
+  }
   if (is_array($d)) {
     /*
     * Return array converted to object
@@ -1610,7 +1755,13 @@ function arrayToObject($d) {
     * for recursive call
     */
     if (isset($d['articleNumbers']) or isset($d['groupNumbers'])) {
+      if ( ! is_null($leave_as_array)) {
+        $global_leave_as_array = null;
+      }
       return (object) $d;
+    }
+    elseif ( ! is_null($global_leave_as_array) and is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0][$global_leave_as_array])) {
+      return array_map(__FUNCTION__, $d);
     }
     elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['text'])) {
       return array_map(__FUNCTION__, $d);
@@ -1633,6 +1784,9 @@ function arrayToObject($d) {
   }
   else {
     // Return object
+    if ( ! is_null($leave_as_array)) {
+      $global_leave_as_array = null;
+    }
     return $d;
   }
 } // END arrayToObject()
