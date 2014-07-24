@@ -524,7 +524,6 @@ class MplusQAPIclient
     try {
       $result = $this->client->updateRelation($this->parser->convertRelation($relation));
       return $this->parser->parseUpdateRelationResult($result);
-
     } catch (SoapFault $e) {
       throw new MplusQAPIException("SoapFault occurred: ".$e->getMessage(), 0, $e);
     } catch (Exception $e) {
@@ -677,8 +676,8 @@ class MplusQAPIDataParser
   //----------------------------------------------------------------------------
 
   public function parseVatGroupList($soapVatGroupList) {
-    if (isset($soapVatGroupList->return)) {
-      $soapVatGroupList = $soapVatGroupList->return;
+    if (isset($soapVatGroupList->vatGroup)) {
+      $soapVatGroupList = $soapVatGroupList->vatGroup;
     }
     $vatGroups = array();
     foreach ($soapVatGroupList as $soapVatGroup) {
