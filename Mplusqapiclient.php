@@ -6,7 +6,7 @@ define('TERMINAL_STATUS_UNKNOWN', 3);
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '0.3.0';
+  const CLIENT_VERSION  = '0.3.1';
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 3;
@@ -904,6 +904,12 @@ class MplusQAPIDataParser
         if (isset($soapGetTableOrderResult->order)) {
           $soapOrder = $soapGetTableOrderResult->order;
           $order = objectToArray($soapOrder);
+          if (isset($order['financialDate'])) {
+            $order['financialDate'] = $this->parseMplusDate($order['financialDate']);
+          }
+          if (isset($order['entryTimestamp'])) {
+            $order['entryTimestamp'] = $this->parseMplusDateTime($order['entryTimestamp']);
+          }
           if (isset($order['lineList']['line'])) {
             $order['lineList'] = $order['lineList']['line'];
           }
@@ -1580,6 +1586,11 @@ class MplusQAPIDataParser
       'day' => date('j', $timestamp),
       'mon' => date('n', $timestamp),
       'year' => date('Y', $timestamp),
+      'hour' => date('H', $timestamp),
+      'min' => date('i', $timestamp),
+      'sec' => date('s', $timestamp),
+      'isdst' => false,
+      'timezone' => 0,
       );
   } // END convertMplusDateTime()
 
@@ -1602,11 +1613,6 @@ class MplusQAPIDataParser
       'day' => date('j', $timestamp),
       'mon' => date('n', $timestamp),
       'year' => date('Y', $timestamp),
-      'hour' => date('H', $timestamp),
-      'min' => date('i', $timestamp),
-      'sec' => date('s', $timestamp),
-      'isdst' => false,
-      'timezone' => 0,
       );
   } // END convertMplusDate()
 
