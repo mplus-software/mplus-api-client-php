@@ -1,19 +1,32 @@
 <?php
 
-define('TERMINAL_STATUS_AVAILABLE', 1);
+/*define('TERMINAL_STATUS_AVAILABLE', 1);
 define('TERMINAL_STATUS_REGISTERED', 2);
 define('TERMINAL_STATUS_UNKNOWN', 3);
 
+define('ORDER_DELIVERY_STATE_NOTHING', 1);
+define('ORDER_DELIVERY_STATE_PARTIAL', 2);
+define('ORDER_DELIVERY_STATE_COMPLETE', 3);
+
+define('ORDER_CANCEL_STATE_NOTHING', 1);
+define('ORDER_CANCEL_STATE_PARTIAL', 2);
+define('ORDER_CANCEL_STATE_COMPLETE', 3);
+
+define('ORDER_COMPLETE_STATE_NOTHING', 1);
+define('ORDER_COMPLETE_STATE_PARTIAL', 2);
+define('ORDER_COMPLETE_STATE_PARTIAL_DELIVERY_PENDING', 3);
+define('ORDER_COMPLETE_STATE_COMPLETE', 4);*/
+
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '0.3.0';
+  const CLIENT_VERSION  = '0.5.0';
 
   var $MIN_API_VERSION_MAJOR = 0;
-  var $MIN_API_VERSION_MINOR = 3;
+  var $MIN_API_VERSION_MINOR = 5;
   var $MIN_API_VERSION_REVIS = 0;
 
   var $MAX_API_VERSION_MAJOR = 0;
-  var $MAX_API_VERSION_MINOR = 3;
+  var $MAX_API_VERSION_MINOR = 5;
   var $MAX_API_VERSION_REVIS = 0;
 
    /**
@@ -44,6 +57,10 @@ class MplusQAPIclient
    * @var 
    */
   private $client = null;
+  /**
+   * @var
+   */
+  private $skipApiVersionCheck = false;
   
   /**
    * @param string $apiServer The api server
@@ -139,6 +156,16 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  /**
+   * @param $apiSecret
+   */
+  public function skipApiVersionCheck($skipApiVersionCheck)
+  {
+    $this->skipApiVersionCheck = $skipApiVersionCheck;
+  } // END skipApiVersionCheck()
+
+  //----------------------------------------------------------------------------
+
   public function initClient()
   {
     $location = $this->apiServer;
@@ -179,10 +206,13 @@ class MplusQAPIclient
       throw new MplusQAPIException('Fingerprint of SSL certificate doesn\'t match.');
     }
 
-    $this->client = new SoapClient('https://api.mpluskassa.nl/MplusQapi.wsdl', $options);
-    $this->checkApiVersion();
-    // i($this->client->__getTypes());
-    // $this->client = new SoapClient(null, $options);
+    // $this->client = new SoapClient('http://192.168.0.217/github/mplus-software/mplus-api-wsdl/MplusQapi.wsdl', $options);
+    $this->client = new SoapClient('https://api.mpluskassa.nl/MplusQapi-0.5.0.wsdl', $options);
+
+    if ( ! $this->skipApiVersionCheck) {
+      $this->checkApiVersion();
+    }
+
   } // END initClient()
 
   //----------------------------------------------------------------------------
@@ -307,10 +337,10 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getProducts($articleNumbers = array(), $groupNumbers = array(), $pluNumbers = array())
+  public function getProducts($articleNumbers = array(), $groupNumbers = array(), $pluNumbers = array(), $changedSinceTimestamp = null, $changedSinceBranchNumber = null)
   {
     try {
-      $result = $this->client->getProducts($this->parser->convertGetProductsRequest($articleNumbers, $groupNumbers, $pluNumbers));
+      $result = $this->client->getProducts($this->parser->convertGetProductsRequest($articleNumbers, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber));
       return $this->parser->parseProducts($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException("SoapFault occurred: ".$e->getMessage(), 0, $e);
@@ -318,6 +348,20 @@ class MplusQAPIclient
       throw new MplusQAPIException("Exception occurred: ".$e->getMessage(), 0, $e);
     }
   } // END getProducts()
+
+  //----------------------------------------------------------------------------
+  
+  public function getImages($imageIds = array(), $includeImageData = true, $includeThumbData = true)
+  {
+    try {
+      $result = $this->client->getImages($this->parser->convertGetImagesRequest($imageIds, $includeImageData, $includeThumbData));
+      return $this->parser->parseImages($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException("SoapFault occurred: ".$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException("Exception occurred: ".$e->getMessage(), 0, $e);
+    }
+  } // END getImages()
 
   //----------------------------------------------------------------------------
 
@@ -411,7 +455,6 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->findOrder($this->parser->convertExtOrderId($extOrderId));
-      // i($result);
       return $this->parser->parseOrderResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException("SoapFault occurred: ".$e->getMessage(), 0, $e);
@@ -419,6 +462,34 @@ class MplusQAPIclient
       throw new MplusQAPIException("Exception occurred: ".$e->getMessage(), 0, $e);
     }
   } // END findOrder()
+
+  //----------------------------------------------------------------------------
+
+  public function payOrder($orderId, $prepay, $paymentList)
+  {
+    try {
+      $result = $this->client->payOrder($this->parser->convertPayOrderRequest($orderId, $prepay, $paymentList));
+      return $this->parser->parsePayOrderResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException("SoapFault occurred: ".$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException("Exception occurred: ".$e->getMessage(), 0, $e);
+    }
+  } // END payOrder()
+
+  //----------------------------------------------------------------------------
+
+  public function deliverOrder($orderId)
+  {
+    try {
+      $result = $this->client->deliverOrder($this->parser->convertDeliverOrderRequest($orderId));
+      return $this->parser->parseDeliverOrderResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException("SoapFault occurred: ".$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException("Exception occurred: ".$e->getMessage(), 0, $e);
+    }
+  } // END payOrder()
 
   //----------------------------------------------------------------------------
 
@@ -657,7 +728,7 @@ class MplusQAPIDataParser
     $terminals = array();
     foreach ($soapTerminalList as $soapTerminal) {
       $terminal = objectToArray($soapTerminal);
-      switch ($terminal['terminalStatus']) {
+      /*switch ($terminal['terminalStatus']) {
         case 'TERMINAL-STATUS-AVAILABLE':
           $terminal['terminalStatus'] = TERMINAL_STATUS_AVAILABLE;
           break;
@@ -667,7 +738,7 @@ class MplusQAPIDataParser
         default:
           $terminal['terminalStatus'] = TERMINAL_STATUS_UNKNOWN;
           break;
-      }
+      }*/
       $terminals[] = $terminal;
     }
     return $terminals;
@@ -725,19 +796,7 @@ class MplusQAPIDataParser
         if (isset($product['articleList'])) {
           foreach ($product['articleList'] as $idx => $article) {
             $orig_article = $article;
-            if ( ! isset($article['imageList'])) {
-              $article['imageList'] = array();
-            }
-            if (isset($article['imageList']['image']) and ! isset($article['imageList']['image']['imageName'])) {
-              $article['imageList'] = $article['imageList']['image'];
-            }
-            if ( ! is_array($article['imageList'])) {
-              if ( ! empty($article['imageList'])) {
-                $article['imageList'] = array($article['imageList']);
-              } else {
-                $article['imageList'] = array();
-              }
-            }
+            $article['imageList'] = $this->parseImageList(isset($article['imageList'])?$article['imageList']:array());
             $product['articleList'][$idx] = $article;
           }
         }
@@ -749,7 +808,51 @@ class MplusQAPIDataParser
       return $products;
     }
     return false;
-  } // END parseProductsemployees
+  } // END parseProducts()
+
+  //----------------------------------------------------------------------------
+
+  public function parseImages($soapImages)
+  {
+    $imageList = $this->parseImageList(isset($soapImages->imageList)?objectToArray($soapImages->imageList):array());
+    return $imageList;
+  } // END parseImages()
+
+  //----------------------------------------------------------------------------
+
+  public function parseImageList($imageList)
+  {
+    if (isset($imageList['image']) and ! isset($imageList['image']['imageName'])) {
+      $imageList = $imageList['image'];
+    }
+    if ( ! is_array($imageList)) {
+      if ( ! empty($imageList)) {
+        $imageList = array($imageList);
+      } else {
+        $imageList = array();
+      }
+    }
+    foreach ($imageList as $img_idx => $img) {
+      // $img_data = base64_decode($img['data']);
+      // header('Content-type:image/jpg');
+      // header('Content-length:'.strlen($img_data));
+      // exit($img_data);
+      if (isset($img['createdTimestamp'])) {
+        $img['createdTimestamp'] = $this->parseMplusDateTime($img['createdTimestamp']);
+      }
+      if (isset($img['changedTimestamp'])) {
+        $img['changedTimestamp'] = $this->parseMplusDateTime($img['changedTimestamp']);
+      }
+      if (empty($img['imageData'])) {
+        $img['imageData'] = null;
+      }
+      if (empty($img['thumbData'])) {
+        $img['thumbData'] = null;
+      }
+      $imageList[$img_idx] = $img;
+    }
+    return $imageList;
+  } // END parseImageList()
 
   //----------------------------------------------------------------------------
 
@@ -861,11 +964,42 @@ class MplusQAPIDataParser
       if (isset($soapOrderResult->order)) {
         $soapOrder = $soapOrderResult->order;
         $order = objectToArray($soapOrder);
+        if (isset($order['invoiceIds'])) {
+          if (isset($order['invoiceIds']['id'])) {
+            $order['invoiceIds'] = $order['invoiceIds']['id'];
+          }
+        }
         return $order;
       }
     }
     return false;
   } // END parseOrderResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parsePayOrderResult($soapPayOrderResult) {
+    if (isset($soapPayOrderResult->result) and $soapPayOrderResult->result == 'PAY-ORDER-RESULT-OK') {
+      if (isset($soapPayOrderResult->invoiceId)) {
+        return $soapPayOrderResult->invoiceId;
+      } else {
+        return true;
+      }
+    }
+    return false;
+  } // END parsePayOrderResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseDeliverOrderResult($soapPayOrderResult) {
+    if (isset($soapPayOrderResult->result) and $soapPayOrderResult->result == 'DELIVER-ORDER-RESULT-OK') {
+      if (isset($soapPayOrderResult->packingSlipId)) {
+        return $soapPayOrderResult->packingSlipId;
+      } else {
+        return true;
+      }
+    }
+    return false;
+  } // END parseDeliverOrderResult()
 
   //----------------------------------------------------------------------------
 
@@ -904,6 +1038,12 @@ class MplusQAPIDataParser
         if (isset($soapGetTableOrderResult->order)) {
           $soapOrder = $soapGetTableOrderResult->order;
           $order = objectToArray($soapOrder);
+          if (isset($order['financialDate'])) {
+            $order['financialDate'] = $this->parseMplusDate($order['financialDate']);
+          }
+          if (isset($order['entryTimestamp'])) {
+            $order['entryTimestamp'] = $this->parseMplusDateTime($order['entryTimestamp']);
+          }
           if (isset($order['lineList']['line'])) {
             $order['lineList'] = $order['lineList']['line'];
           }
@@ -1040,7 +1180,11 @@ class MplusQAPIDataParser
     if (isset($soapCancelOrderResult->result) and $soapCancelOrderResult->result == 'CANCEL-ORDER-RESULT-OK') {
       return true;
     } else {
-      return false;
+      if (isset($soapCancelOrderResult->message)) {
+        return $soapCancelOrderResult->message;
+      } else {
+        return false;
+      }
     }
   } // END parseCancelOrderResult()
 
@@ -1097,43 +1241,7 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  /*public function convertOrder($order) {
-    if ( ! isset($order['orderId'])) {
-      $order['orderId'] = null;
-    }
-    if ( ! isset($order['entryTimestamp'])) {
-      $order['entryTimestamp'] = null;
-    }
-    if ( ! isset($order['orderDeliveryState'])) {
-      $order['orderDeliveryState'] = null;
-    }
-    if ( ! isset($order['orderCancelState'])) {
-      $order['orderCancelState'] = null;
-    }
-    if ( ! isset($order['orderCompleteState'])) {
-      $order['orderCompleteState'] = null;
-    }
-    if (isset($order['lineList']) and is_array($order['lineList'])) {
-      foreach ($order['lineList'] as $idx => $line) {
-        if ( ! isset($line['articleNumber'])) {
-          $line['articleNumber'] = 0;
-        }
-        $order['lineList'][$idx] = $line;
-      }
-      if (count($order['lineList']) > 1) {
-        $order['lineList'] = array('line' => $order['lineList']);
-      } elseif (count($order['lineList']) == 1) {
-        $order['lineList'] = array('line' => current($order['lineList']));
-      }
-    }
-    $object = arrayToObject(array('order'=>$order));
-    // print_r($object);exit;
-    return $object;
-  } // END convertOrder()*/
-
-  //----------------------------------------------------------------------------
-
-  public function convertGetProductsRequest($articleNumbers, $groupNumbers, $pluNumbers)
+  public function convertGetProductsRequest($articleNumbers, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber)
   {
     if ( ! is_array($articleNumbers)) {
       $articleNumbers = array($articleNumbers);
@@ -1144,13 +1252,34 @@ class MplusQAPIDataParser
     if ( ! is_array($pluNumbers)) {
       $pluNumbers = array($pluNumbers);
     }
-    $object = arrayToObject(array('request'=>array(
+    $array = array('request'=>array(
       'articleNumbers'=>array_values($articleNumbers),
       'groupNumbers'=>array_values($groupNumbers),
       'pluNumbers'=>$this->convertPluNumbers($pluNumbers),
-      )));
+      ));
+    if ( ! is_null($changedSinceTimestamp) and ! is_null($changedSinceBranchNumber)) {
+      $array['request']['changedSinceTimestamp'] = $this->convertMplusDateTime($changedSinceTimestamp);
+      $array['request']['changedSinceBranchNumber'] = (int)$changedSinceBranchNumber;
+    }
+    $object = arrayToObject($array);
     return $object;
   } // END convertGetProductsRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertGetImagesRequest($imageIds, $includeImageData, $includeThumbData)
+  {
+    if ( ! is_array($imageIds)) {
+      $imageIds = array($imageIds);
+    }
+    $array = array('request'=>array(
+      'imageIds'=>array_values($imageIds),
+      'includeImageData'=>$includeImageData,
+      'includeThumbData'=>$includeThumbData,
+      ));
+    $object = arrayToObject($array);
+    return $object;
+  } // END convertGetImagesRequest()
 
   //----------------------------------------------------------------------------
 
@@ -1186,6 +1315,43 @@ class MplusQAPIDataParser
       )));
     return $object;
   } // END convertGetShiftsRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertPayOrderRequest($orderId, $prepay, $paymentList)
+  {
+    $array = array('request'=>array(
+      'orderId'=>$orderId,
+      'prepay'=>$prepay,
+      'paymentList'=>$this->convertPaymentList($paymentList),
+      ));
+    $object = arrayToObject($array);
+    return $object;
+  } // END convertPayOrderRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertDeliverOrderRequest($orderId)
+  {
+    $array = array('request'=>array(
+      'orderId'=>$orderId,
+      ));
+    $object = arrayToObject($array);
+    return $object;
+  } // END convertDeliverOrderRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertPaymentList($paymentList)
+  {
+    if ( ! isset($paymentList['payment'])) {
+      $paymentList = array('payment' => $paymentList);
+    }
+    foreach ($paymentList['payment'] as $idx => $payment) {
+      $paymentList['payment'][$idx] = $payment;
+    }
+    return $paymentList;
+  } // END convertPaymentList()
 
   //----------------------------------------------------------------------------
 
@@ -1228,6 +1394,7 @@ class MplusQAPIDataParser
       'branchNumber'=>$branchNumber,
       'articleNumbers'=>array('articleNumbers'=>$articleNumbers))));
     if (empty($articleNumbers)) {
+      $object->request->articleNumbers = new stdClass();
       $object->request->articleNumbers->articleNumbers = array();
     }
     return $object;
@@ -1318,7 +1485,8 @@ class MplusQAPIDataParser
   //----------------------------------------------------------------------------
 
   public function convertGeneric($name, $value) {
-    $object = arrayToObject(array($name=>$value));
+    $array = array($name=>$value);
+    $object = arrayToObject($array, null, true);
     return $object;
   } // END convertGeneric()
 
@@ -1473,6 +1641,9 @@ class MplusQAPIDataParser
     if ( ! isset($order['prepaidAmount'])) {
       $order['prepaidAmount'] = 0;
     }
+    if ( ! isset($order['fullyPaid'])) {
+      $order['fullyPaid'] = false;
+    }
     if ( ! isset($order['deliveryState'])) {
       $order['deliveryState'] = 'ORDER-DELIVERY-STATE-NOTHING';
     }
@@ -1481,9 +1652,6 @@ class MplusQAPIDataParser
     }
     if ( ! isset($order['completeState'])) {
       $order['completeState'] = 'ORDER-COMPLETE-STATE-NOTHING';
-    }
-    if ( ! isset($order['tableNumber'])) {
-      $order['tableNumber'] = 0;
     }
     if ( ! isset($order['orderNumber'])) {
       $order['orderNumber'] = array(
@@ -1496,6 +1664,9 @@ class MplusQAPIDataParser
       $order['lineList'] = array();
     }
     $order['lineList'] = $this->convertOrderLineList($order['lineList']);
+    if ( ! isset($order['invoiceIds'])) {
+      $order['invoiceIds'] = array();
+    }
     $object = arrayToObject(array('order'=>$order));
     return $object;
   } // END convertOrder();
@@ -1574,29 +1745,18 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertMplusDateTime($timestamp)
+  public function convertMplusDate($timestamp)
   {
     return array(
       'day' => date('j', $timestamp),
       'mon' => date('n', $timestamp),
       'year' => date('Y', $timestamp),
       );
-  } // END convertMplusDateTime()
+  } // END convertMplusDate()
 
   //----------------------------------------------------------------------------
 
-  public function parseMplusDateTime($mplus_date_time)
-  {
-    if ($mplus_date_time['day'] == 0 || $mplus_date_time['mon'] == 0 || $mplus_date_time['year'] == 0) {
-      return null;
-    } else {
-      return mktime($mplus_date_time['hour'], $mplus_date_time['min'], $mplus_date_time['sec'], $mplus_date_time['mon'], $mplus_date_time['day'], $mplus_date_time['year']);
-    }
-  } // END parseMplusDateTime()
-
-  //----------------------------------------------------------------------------
-
-  public function convertMplusDate($timestamp)
+  public function convertMplusDateTime($timestamp)
   {
     return array(
       'day' => date('j', $timestamp),
@@ -1608,7 +1768,7 @@ class MplusQAPIDataParser
       'isdst' => false,
       'timezone' => 0,
       );
-  } // END convertMplusDate()
+  } // END convertMplusDateTime()
 
   //----------------------------------------------------------------------------
 
@@ -1620,6 +1780,17 @@ class MplusQAPIDataParser
       return mktime(0, 0, 0, $mplus_date['mon'], $mplus_date['day'], $mplus_date['year']);
     }
   } // END parseMplusDate()
+
+  //----------------------------------------------------------------------------
+
+  public function parseMplusDateTime($mplus_date_time)
+  {
+    if ($mplus_date_time['day'] == 0 || $mplus_date_time['mon'] == 0 || $mplus_date_time['year'] == 0) {
+      return null;
+    } else {
+      return mktime($mplus_date_time['hour'], $mplus_date_time['min'], $mplus_date_time['sec'], $mplus_date_time['mon'], $mplus_date_time['day'], $mplus_date_time['year']);
+    }
+  } // END parseMplusDateTime()
 
   //----------------------------------------------------------------------------
 
@@ -1742,7 +1913,7 @@ function objectToArray($d) {
 //------------------------------------------------------------------------------
 
 $global_leave_as_array = null;
-function arrayToObject($d, $leave_as_array=null) {
+function arrayToObject($d, $leave_as_array=null, $debug=false) {
   global $global_leave_as_array;
   if ( ! is_null($leave_as_array)) {
     $global_leave_as_array = $leave_as_array;
@@ -1753,7 +1924,7 @@ function arrayToObject($d, $leave_as_array=null) {
     * Using __FUNCTION__ (Magic constant)
     * for recursive call
     */
-    if (isset($d['articleNumbers']) or isset($d['groupNumbers'])) {
+    if (isset($d['articleNumbers']) or isset($d['groupNumbers']) or isset($d['imageIds'])) {
       if ( ! is_null($leave_as_array)) {
         $global_leave_as_array = null;
       }
@@ -1772,6 +1943,12 @@ function arrayToObject($d, $leave_as_array=null) {
       return array_map(__FUNCTION__, $d);
     }
     elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['articleNumber'])) {
+      return array_map(__FUNCTION__, $d);
+    }
+    elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['amount'])) {
+      return array_map(__FUNCTION__, $d);
+    }
+    elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['id'])) {
       return array_map(__FUNCTION__, $d);
     }
     elseif (isset($d[0]) and is_integer($d[0])) {
