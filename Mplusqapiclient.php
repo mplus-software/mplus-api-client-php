@@ -1751,6 +1751,11 @@ class MplusQAPIDataParser
       'day' => date('j', $timestamp),
       'mon' => date('n', $timestamp),
       'year' => date('Y', $timestamp),
+      'hour' => date('H', $timestamp),
+      'min' => date('i', $timestamp),
+      'sec' => date('s', $timestamp),
+      'isdst' => false,
+      'timezone' => 0,
       );
   } // END convertMplusDate()
 
@@ -1762,11 +1767,6 @@ class MplusQAPIDataParser
       'day' => date('j', $timestamp),
       'mon' => date('n', $timestamp),
       'year' => date('Y', $timestamp),
-      'hour' => date('H', $timestamp),
-      'min' => date('i', $timestamp),
-      'sec' => date('s', $timestamp),
-      'isdst' => false,
-      'timezone' => 0,
       );
   } // END convertMplusDateTime()
 
