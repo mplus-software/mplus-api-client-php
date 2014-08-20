@@ -19,15 +19,15 @@ define('ORDER_COMPLETE_STATE_COMPLETE', 4);*/
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '0.5.0';
+  const CLIENT_VERSION  = '0.5.1';
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 5;
-  var $MIN_API_VERSION_REVIS = 0;
+  var $MIN_API_VERSION_REVIS = 1;
 
   var $MAX_API_VERSION_MAJOR = 0;
   var $MAX_API_VERSION_MINOR = 5;
-  var $MAX_API_VERSION_REVIS = 0;
+  var $MAX_API_VERSION_REVIS = 1;
 
    /**
    * @var string
@@ -207,7 +207,7 @@ class MplusQAPIclient
     }
 
     // $this->client = new SoapClient('http://192.168.0.217/github/mplus-software/mplus-api-wsdl/MplusQapi.wsdl', $options);
-    $this->client = new SoapClient('https://api.mpluskassa.nl/MplusQapi-0.5.0.wsdl', $options);
+    $this->client = new SoapClient('https://api.mpluskassa.nl/MplusQapi-0.5.1.wsdl', $options);
 
     if ( ! $this->skipApiVersionCheck) {
       $this->checkApiVersion();
@@ -1751,13 +1751,8 @@ class MplusQAPIDataParser
       'day' => date('j', $timestamp),
       'mon' => date('n', $timestamp),
       'year' => date('Y', $timestamp),
-      'hour' => date('H', $timestamp),
-      'min' => date('i', $timestamp),
-      'sec' => date('s', $timestamp),
-      'isdst' => false,
-      'timezone' => 0,
       );
-  } // END convertMplusDate()
+  } // END convertMplusDateTime()
 
   //----------------------------------------------------------------------------
 
@@ -1767,8 +1762,13 @@ class MplusQAPIDataParser
       'day' => date('j', $timestamp),
       'mon' => date('n', $timestamp),
       'year' => date('Y', $timestamp),
+      'hour' => date('H', $timestamp),
+      'min' => date('i', $timestamp),
+      'sec' => date('s', $timestamp),
+      'isdst' => false,
+      'timezone' => 0,
       );
-  } // END convertMplusDateTime()
+  } // END convertMplusDate()
 
   //----------------------------------------------------------------------------
 
