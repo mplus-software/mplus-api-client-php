@@ -19,15 +19,15 @@ define('ORDER_COMPLETE_STATE_COMPLETE', 4);*/
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '0.5.1';
+  const CLIENT_VERSION  = '0.6.4';
 
   var $MIN_API_VERSION_MAJOR = 0;
-  var $MIN_API_VERSION_MINOR = 5;
-  var $MIN_API_VERSION_REVIS = 1;
+  var $MIN_API_VERSION_MINOR = 6;
+  var $MIN_API_VERSION_REVIS = 4;
 
   var $MAX_API_VERSION_MAJOR = 0;
-  var $MAX_API_VERSION_MINOR = 5;
-  var $MAX_API_VERSION_REVIS = 1;
+  var $MAX_API_VERSION_MINOR = 6;
+  var $MAX_API_VERSION_REVIS = 4;
 
    /**
    * @var string
@@ -206,8 +206,10 @@ class MplusQAPIclient
       throw new MplusQAPIException('Fingerprint of SSL certificate doesn\'t match.');
     }
 
+    // $wsdl_url = 'https://api.mpluskassa.nl/MplusQapi-0.5.1.wsdl';
+    $wsdl_url = $location.'?wsdl';
     // $this->client = new SoapClient('http://192.168.0.217/github/mplus-software/mplus-api-wsdl/MplusQapi.wsdl', $options);
-    $this->client = new SoapClient('https://api.mpluskassa.nl/MplusQapi-0.5.1.wsdl', $options);
+    $this->client = new SoapClient($wsdl_url, $options);
 
     if ( ! $this->skipApiVersionCheck) {
       $this->checkApiVersion();
@@ -1551,6 +1553,9 @@ class MplusQAPIDataParser
       }
       if ( ! isset($article['priceExcl'])) {
         $article['priceExcl'] = 0;
+      }
+      if ( ! isset($article['webshop'])) {
+        $article['webshop'] = false;
       }
       if ( ! isset($article['imageList'])) {
         $article['imageList'] = array();
