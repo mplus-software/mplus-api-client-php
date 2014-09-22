@@ -206,9 +206,7 @@ class MplusQAPIclient
       throw new MplusQAPIException('Fingerprint of SSL certificate doesn\'t match.');
     }
 
-    // $wsdl_url = 'https://api.mpluskassa.nl/MplusQapi-0.5.1.wsdl';
     $wsdl_url = $location.'?wsdl';
-    // $this->client = new SoapClient('http://192.168.0.217/github/mplus-software/mplus-api-wsdl/MplusQapi.wsdl', $options);
     $this->client = new SoapClient($wsdl_url, $options);
 
     if ( ! $this->skipApiVersionCheck) {
