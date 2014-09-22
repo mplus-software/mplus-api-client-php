@@ -19,15 +19,15 @@ define('ORDER_COMPLETE_STATE_COMPLETE', 4);*/
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '0.6.4';
+  const CLIENT_VERSION  = '0.6.5';
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 6;
-  var $MIN_API_VERSION_REVIS = 4;
+  var $MIN_API_VERSION_REVIS = 2;
 
   var $MAX_API_VERSION_MAJOR = 0;
   var $MAX_API_VERSION_MINOR = 6;
-  var $MAX_API_VERSION_REVIS = 4;
+  var $MAX_API_VERSION_REVIS = 2;
 
    /**
    * @var string
