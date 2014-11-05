@@ -1,33 +1,16 @@
 <?php
 
-/*define('TERMINAL_STATUS_AVAILABLE', 1);
-define('TERMINAL_STATUS_REGISTERED', 2);
-define('TERMINAL_STATUS_UNKNOWN', 3);
-
-define('ORDER_DELIVERY_STATE_NOTHING', 1);
-define('ORDER_DELIVERY_STATE_PARTIAL', 2);
-define('ORDER_DELIVERY_STATE_COMPLETE', 3);
-
-define('ORDER_CANCEL_STATE_NOTHING', 1);
-define('ORDER_CANCEL_STATE_PARTIAL', 2);
-define('ORDER_CANCEL_STATE_COMPLETE', 3);
-
-define('ORDER_COMPLETE_STATE_NOTHING', 1);
-define('ORDER_COMPLETE_STATE_PARTIAL', 2);
-define('ORDER_COMPLETE_STATE_PARTIAL_DELIVERY_PENDING', 3);
-define('ORDER_COMPLETE_STATE_COMPLETE', 4);*/
-
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '0.7.1';
+  const CLIENT_VERSION  = '0.8.0';
 
   var $MIN_API_VERSION_MAJOR = 0;
-  var $MIN_API_VERSION_MINOR = 7;
-  var $MIN_API_VERSION_REVIS = 1;
+  var $MIN_API_VERSION_MINOR = 8;
+  var $MIN_API_VERSION_REVIS = 0;
 
   var $MAX_API_VERSION_MAJOR = 0;
-  var $MAX_API_VERSION_MINOR = 7;
-  var $MAX_API_VERSION_REVIS = 1;
+  var $MAX_API_VERSION_MINOR = 8;
+  var $MAX_API_VERSION_REVIS = 0;
 
   var $debug = false;
 
@@ -596,6 +579,34 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function getTurnoverGroups()
+  {
+    try {
+      $result = $this->client->getTurnoverGroups();
+      return $this->parser->parseGetTurnoverGroupsResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getTurnoverGroups()
+
+  //----------------------------------------------------------------------------
+
+  public function getBranches()
+  {
+    try {
+      $result = $this->client->getBranches();
+      return $this->parser->parseGetBranchesResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getBranches()
+
+  //----------------------------------------------------------------------------
+
   public function createOrder($order)
   {
     try {
@@ -1062,6 +1073,11 @@ class MplusQAPIDataParser
       if (isset($soapOrderResult->order)) {
         $soapOrder = $soapOrderResult->order;
         $order = objectToArray($soapOrder);
+        if (isset($order['lineList'])) {
+          if (isset($order['lineList']['line'])) {
+            $order['lineList'] = $order['lineList']['line'];
+          }
+        }
         if (isset($order['invoiceIds'])) {
           if (isset($order['invoiceIds']['id'])) {
             $order['invoiceIds'] = $order['invoiceIds']['id'];
@@ -1179,6 +1195,28 @@ class MplusQAPIDataParser
     }
     return $invoices;
   } // END parseGetInvoicesResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseGetTurnoverGroupsResult($soapGetTurnoverGroupsResult) {
+    $turnoverGroups = array();
+    if (isset($soapGetTurnoverGroupsResult->turnoverGroupList->turnoverGroup)) {
+      $soapTurnoverGroups = $soapGetTurnoverGroupsResult->turnoverGroupList->turnoverGroup;
+      $turnoverGroups = objectToArray($soapTurnoverGroups);
+    }
+    return $turnoverGroups;
+  } // END parseGetTurnoverGroupsResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseGetBranchesResult($soapGetBranchesResult) {
+    $branches = array();
+    if (isset($soapGetBranchesResult->branches->branch)) {
+      $soapBranches = $soapGetBranchesResult->branches->branch;
+      $branches = objectToArray($soapBranches);
+    }
+    return $branches;
+  } // END parseGetBranchesResult()
 
   //----------------------------------------------------------------------------
 
