@@ -14,8 +14,7 @@ require_once('Mplusqapiclient.php');
 
 $mplusqapiclient = new Mplusqapiclient();
 $mplusqapiclient->setApiServer($your_api_url);
-$mplusqapiclient->setApiPort(443);
-$mplusqapiclient->setApiPath($your_api_path);
+$mplusqapiclient->setApiPort($your_api_port);
 $mplusqapiclient->setApiFingerprint($certificate_fingerprint);
 $mplusqapiclient->setApiIdent($your_api_ident);
 $mplusqapiclient->setApiSecret($your_api_secret);
