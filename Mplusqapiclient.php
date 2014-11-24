@@ -2,15 +2,15 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '0.8.2';
+  const CLIENT_VERSION  = '0.8.3';
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 8;
-  var $MIN_API_VERSION_REVIS = 2;
+  var $MIN_API_VERSION_REVIS = 3;
 
   var $MAX_API_VERSION_MAJOR = 0;
   var $MAX_API_VERSION_MINOR = 8;
-  var $MAX_API_VERSION_REVIS = 2;
+  var $MAX_API_VERSION_REVIS = 3;
 
   var $debug = false;
 
@@ -352,6 +352,21 @@ class MplusQAPIclient
     try {
       $result = $this->client->getAvailableTerminalList();
       return $this->parser->parseTerminalList($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getAvailableTerminalList()
+
+  //----------------------------------------------------------------------------
+
+  public function getButtonLayout($terminal)
+  {
+    try {
+      $result = $this->client->getButtonLayout($this->parser->convertTerminal($terminal));
+      print_r($result);exit;
+      return $this->parser->parseButtonLayout($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
     } catch (Exception $e) {
@@ -2459,6 +2474,17 @@ class MplusQAPIDataParser
       ));
     return $object;
   } // END convertRegisterTerminalRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertButtonLayoutRequest($terminal)
+  {
+    $terminal = $this->convertTerminal($terminal);
+    $object = arrayToObject(array(
+      'terminal'=>$terminal->terminal,
+      ));
+    return $object;
+  } // END convertButtonLayoutRequest()
 
   //----------------------------------------------------------------------------
 }
