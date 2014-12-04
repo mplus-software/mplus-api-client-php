@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '0.8.3';
+  const CLIENT_VERSION  = '0.8.4';
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 8;
@@ -171,7 +171,7 @@ class MplusQAPIclient
     if (false !== stripos($location, 'http://')) {
       $require_fingerprint_check = false;
     }
-    if (isset($this->apiPort) and ! empty($this->apiPort) and $this->apiPort != '80') {
+    if (isset($this->apiPort) and ! empty($this->apiPort)) {
       $location .= ':'.$this->apiPort;
     }
     if (isset($this->apiPath) and ! empty($this->apiPath)) {
