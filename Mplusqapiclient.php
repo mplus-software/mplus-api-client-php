@@ -2,15 +2,15 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '0.8.3';
+  const CLIENT_VERSION  = '0.8.5';
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 8;
-  var $MIN_API_VERSION_REVIS = 3;
+  var $MIN_API_VERSION_REVIS = 5;
 
   var $MAX_API_VERSION_MAJOR = 0;
   var $MAX_API_VERSION_MINOR = 8;
-  var $MAX_API_VERSION_REVIS = 3;
+  var $MAX_API_VERSION_REVIS = 5;
 
   var $debug = false;
 
@@ -171,7 +171,7 @@ class MplusQAPIclient
     if (false !== stripos($location, 'http://')) {
       $require_fingerprint_check = false;
     }
-    if (isset($this->apiPort) and ! empty($this->apiPort) and $this->apiPort != '80') {
+    if (isset($this->apiPort) and ! empty($this->apiPort)) {
       $location .= ':'.$this->apiPort;
     }
     if (isset($this->apiPath) and ! empty($this->apiPath)) {
@@ -372,7 +372,23 @@ class MplusQAPIclient
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
-  } // END getAvailableTerminalList()
+  } // END getButtonLayout()
+
+  //----------------------------------------------------------------------------
+
+  public function getArticlesInLayout($terminal)
+  {
+    try {
+      $result = $this->client->getArticlesInLayout($this->parser->convertTerminal($terminal));
+      print_r($this->getLastResponse());exit;
+      print_r($result);exit;
+      return $this->parser->parseArticlesInLayout($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getArticlesInLayout()
 
   //----------------------------------------------------------------------------
 
