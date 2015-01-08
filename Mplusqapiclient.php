@@ -2084,6 +2084,9 @@ class MplusQAPIDataParser
       if ( ! isset($article['imageList'])) {
         $article['imageList'] = array();
       }
+      if ( ! isset($article['customFieldList'])) {
+        $article['customFieldList'] = array();
+      }
       if ( ! isset($article['imageList']['image']) and ! empty($article['imageList'])) {
         $article['imageList'] = array('image' => $article['imageList']);
       }
