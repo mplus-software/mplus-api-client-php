@@ -49,11 +49,11 @@ class MplusQAPIclient_VersionTester
   {
     if( ! function_exists('curl_init'))
     {
-      throw new MplusQAPIException('MplusQAPIException needs the CURL PHP extension.');
+      throw new MplusQAPIException_VersionTester('MplusQAPIclient_VersionTester needs the CURL PHP extension.');
     }
     if( ! function_exists('json_decode'))
     {
-      throw new MplusQAPIException('MplusQAPIException needs the JSON PHP extension.');
+      throw new MplusQAPIException_VersionTester('MplusQAPIclient_VersionTester needs the JSON PHP extension.');
     }
 
     if ( ! is_nulL($params)) {
@@ -178,7 +178,7 @@ class MplusQAPIclient_VersionTester
       );
 
     if ($require_fingerprint_check and ! $this->checkFingerprint($location)) {
-      throw new MplusQAPIException('Fingerprint of SSL certificate doesn\'t match.');
+      throw new MplusQAPIException_VersionTester('Fingerprint of SSL certificate doesn\'t match.');
     }
 
     $wsdl_url = $location.'?wsdl';
@@ -255,9 +255,9 @@ class MplusQAPIclient_VersionTester
       $result = $this->client->getApiVersion();
       return $this->parser->parseApiVersion($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      throw new MplusQAPIException_VersionTester('SoapFault occurred: '.$e->getMessage(), 0, $e);
     } catch (Exception $e) {
-      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+      throw new MplusQAPIException_VersionTester('Exception occurred: '.$e->getMessage(), 0, $e);
     }
   } // END getApiVersion()
 
@@ -298,7 +298,7 @@ class MplusQAPIDataParser_VersionTester
 
 //------------------------------------------------------------------------------
 
-class MplusQAPIException_VersionTester extends \Exception
+class MplusQAPIException_VersionTester extends Exception
 {
 
 }
