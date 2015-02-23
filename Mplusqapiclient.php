@@ -2,15 +2,15 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '0.9.0';
+  const CLIENT_VERSION  = '0.9.1';
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 9;
-  var $MIN_API_VERSION_REVIS = 0;
+  var $MIN_API_VERSION_REVIS = 1;
 
   var $MAX_API_VERSION_MAJOR = 0;
   var $MAX_API_VERSION_MINOR = 9;
-  var $MAX_API_VERSION_REVIS = 0;
+  var $MAX_API_VERSION_REVIS = 1;
 
   var $debug = false;
 
@@ -744,6 +744,48 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function getFinancialJournal($fromFinancialDate, $throughFinancialDate)
+  {
+    try {
+      $result = $this->client->getFinancialJournal($this->parser->convertGetFinancialJournalRequest($fromFinancialDate, $throughFinancialDate));
+      return $this->parser->parseGetFinancialJournalResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getFinancialJournal()
+
+  //----------------------------------------------------------------------------
+
+  public function getFinancialJournalByCashCount($cashCountId)
+  {
+    try {
+      $result = $this->client->getFinancialJournalByCashCount($this->parser->convertGetFinancialJournalByCashCountRequest($cashCountId));
+      return $this->parser->parseGetFinancialJournalResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getFinancialJournalByCashCount()
+
+  //----------------------------------------------------------------------------
+
+  public function getCashCountList($fromFinancialDate, $throughFinancialDate)
+  {
+    try {
+      $result = $this->client->getCashCountList($this->parser->convertGetCashCountListRequest($fromFinancialDate, $throughFinancialDate));
+      return $this->parser->parseGetCashCountListResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getCashCountList()
+
+  //----------------------------------------------------------------------------
+
   public function getTurnoverGroups()
   {
     try {
@@ -1474,7 +1516,8 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function parseGetJournalsResult($soapJournalsResult) {
+  public function parseGetJournalsResult($soapJournalsResult)
+  {
     $journals = array();
     if (isset($soapJournalsResult->journalList->journal)) {
       $soapJournals = $soapJournalsResult->journalList->journal;
@@ -1497,6 +1540,31 @@ class MplusQAPIDataParser
     }
     return $journals;
   } // END parseGetJournalsResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseGetFinancialJournalResult($soapFinancialJournalResult)
+  {
+    $financialJournal = array();
+    if (isset($soapFinancialJournalResult->financialGroupList->financialGroup)) {
+      $soapFinancialGroups = $soapFinancialJournalResult->financialGroupList->financialGroup;
+      $financialGroups = objectToArray($soapFinancialGroups);
+      $financialJournal['financialGroups'] = $financialGroups;
+    }
+    return $financialJournal;
+  } // END parseGetFinancialJournalResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseGetCashCountListResult($soapCashCountListResult)
+  {
+    $cashCountList = array();
+    if (isset($soapCashCountListResult->cashCountList->cashCount)) {
+      $soapCashCountList = $soapCashCountListResult->cashCountList->cashCount;
+      $cashCountList = objectToArray($soapCashCountList);
+    }
+    return $cashCountList;
+  } // END parseGetCashCountListResult()
 
   //----------------------------------------------------------------------------
 
@@ -2049,6 +2117,42 @@ class MplusQAPIDataParser
       )));
     return $object;
   } // END convertGetJournalsRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertGetFinancialJournalRequest($fromFinancialDate, $throughFinancialDate)
+  {
+    $fromFinancialDate = $this->convertMplusDate($fromFinancialDate);
+    $throughFinancialDate = $this->convertMplusDate($throughFinancialDate);
+    $object = arrayToObject(array('request'=>array(
+      'fromFinancialDate'=>$fromFinancialDate,
+      'throughFinancialDate'=>$throughFinancialDate,
+      )));
+    return $object;
+  } // END convertGetFinancialJournalRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertGetFinancialJournalByCashCountRequest($cashCountId)
+  {
+    $object = arrayToObject(array('request'=>array(
+      'cashCountId'=>$cashCountId,
+      )));
+    return $object;
+  } // END convertGetFinancialJournalByCashCountRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertGetCashCountListRequest($fromFinancialDate, $throughFinancialDate)
+  {
+    $fromFinancialDate = is_null($fromFinancialDate) ? null : $this->convertMplusDate($fromFinancialDate);
+    $throughFinancialDate = is_null($throughFinancialDate) ? null : $this->convertMplusDate($throughFinancialDate);
+    $object = arrayToObject(array('request'=>array(
+      'fromFinancialDate'=>$fromFinancialDate,
+      'throughFinancialDate'=>$throughFinancialDate,
+      )));
+    return $object;
+  } // END convertGetCashCountListRequest()
 
   //----------------------------------------------------------------------------
 
