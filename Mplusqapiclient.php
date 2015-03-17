@@ -1550,6 +1550,12 @@ class MplusQAPIDataParser
       $soapFinancialGroups = $soapFinancialJournalResult->financialGroupList->financialGroup;
       $financialGroups = objectToArray($soapFinancialGroups);
       $financialJournal['financialGroups'] = $financialGroups;
+      foreach ($financialJournal['financialGroups'] as $idx => $financialGroup) {
+        if (isset($financialGroup['vatGroupList']['vatGroup'])) {
+          $financialGroup['vatGroupList'] = $financialGroup['vatGroupList']['vatGroup'];
+          $financialJournal['financialGroups'][$idx] = $financialGroup;
+        }
+      }
     }
     return $financialJournal;
   } // END parseGetFinancialJournalResult()
@@ -1562,6 +1568,14 @@ class MplusQAPIDataParser
     if (isset($soapCashCountListResult->cashCountList->cashCount)) {
       $soapCashCountList = $soapCashCountListResult->cashCountList->cashCount;
       $cashCountList = objectToArray($soapCashCountList);
+      foreach ($cashCountList as $idx => $cashCount) {
+        if (isset($cashCount['cashCountLineList'])) {
+          if (isset($cashCount['cashCountLineList']['cashCountLine'])) {
+            $cashCount['cashCountLineList'] = $cashCount['cashCountLineList']['cashCountLine'];
+          }
+        }
+        $cashCountList[$idx] = $cashCount;
+      }
     }
     return $cashCountList;
   } // END parseGetCashCountListResult()
@@ -2295,9 +2309,6 @@ class MplusQAPIDataParser
   //----------------------------------------------------------------------------
 
   public function convertRelation($relation) {
-    if ( ! isset($relation['relationNumber'])) {
-      $relation['relationNumber'] = 0;
-    }
     if ( ! isset($relation['name'])) {
       $relation['name'] = '';
     }
