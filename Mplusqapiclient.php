@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '0.9.2';
+  const CLIENT_VERSION  = '0.9.4';
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 9;
@@ -347,6 +347,20 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function getDatabaseVersion()
+  {
+    try {
+      $result = $this->client->getDatabaseVersion();
+      return $this->parser->parseDatabaseVersion($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getDatabaseVersion()
+
+  //----------------------------------------------------------------------------
+
   public function getAvailableTerminalList()
   {
     try {
@@ -389,6 +403,20 @@ class MplusQAPIclient
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
   } // END getArticlesInLayout()
+
+  //----------------------------------------------------------------------------
+
+  public function getActiveEmployeeList($terminal)
+  {
+    try {
+      $result = $this->client->getActiveEmployeeList($this->parser->convertTerminal($terminal));
+      return $this->parser->parseActiveEmployeeList($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getActiveEmployeeList()
 
   //----------------------------------------------------------------------------
 
@@ -590,6 +618,20 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function payInvoice($invoiceId, $paymentList)
+  {
+    try {
+      $result = $this->client->payInvoice($this->parser->convertPayInvoiceRequest($invoiceId, $paymentList));
+      return $this->parser->parsePayInvoiceResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END payInvoice()
+
+  //----------------------------------------------------------------------------
+
   public function deliverOrder($orderId)
   {
     try {
@@ -713,20 +755,6 @@ class MplusQAPIclient
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
   } // END findInvoice()
-
-  //----------------------------------------------------------------------------
-
-  public function payInvoice($orderId, $prepay, $paymentList)
-  {
-    try {
-      $result = $this->client->payInvoice($this->parser->convertPayInvoiceRequest($orderId, $prepay, $paymentList));
-      return $this->parser->parsePayOrderResult($result);
-    } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
-    } catch (Exception $e) {
-      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
-    }
-  } // END payInvoice()
 
   //----------------------------------------------------------------------------
 
@@ -1019,6 +1047,22 @@ class MplusQAPIclient
     }
   } // END sendMessage()
 
+  //----------------------------------------------------------------------------
+
+  public function encryptString($plainString, $encryptionKey)
+  {
+    try {
+      $result = $this->client->encryptString($this->parser->convertEncryptStringRequest($plainString, $encryptionKey));
+      return $this->parser->parseEncryptStringResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END encryptString()
+
+  //----------------------------------------------------------------------------
+
 }
 
 //==============================================================================
@@ -1051,6 +1095,20 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function parseDatabaseVersion($soapdatabaseVersion)
+  {
+    $databaseVersion = false;
+    if (isset($soapdatabaseVersion->majorNumber)) {
+      $databaseVersion = objectToArray($soapdatabaseVersion);
+    }
+    else if (isset($soapdatabaseVersion['majorNumber'])) {
+      $databaseVersion = $soapdatabaseVersion;
+    }
+    return $databaseVersion;
+  } // END parseDatabaseVersion()
+
+  //----------------------------------------------------------------------------
+
   public function parseTerminalList($soapTerminalList) {
     if (isset($soapTerminalList->return)) {
       $soapTerminalList = $soapTerminalList->return;
@@ -1073,6 +1131,20 @@ class MplusQAPIDataParser
     }
     return $terminals;
   } // END parseTerminalList()
+
+  //----------------------------------------------------------------------------
+
+  public function parseActiveEmployeeList($soapActiveEmployeeList) 
+  {
+    if (isset($soapActiveEmployeeList->return)) {
+      $soapActiveEmployeeList = $soapActiveEmployeeList->return;
+    }
+    $active_employees = array();
+    foreach ($soapActiveEmployeeList as $soapActiveEmployee) {
+      $active_employees[] = objectToArray($soapActiveEmployee);
+    }
+    return $active_employees;
+  } // END parseActiveEmployeeList()
 
   //----------------------------------------------------------------------------
 
@@ -1356,6 +1428,15 @@ class MplusQAPIDataParser
     }
     return false;
   } // END parseOrderCategories()
+  
+  //----------------------------------------------------------------------------
+
+  public function parsePayInvoiceResult($soapPayInvoiceResult) {
+    if (isset($soapPayInvoiceResult->result) and $soapPayInvoiceResult->result == 'PAY-INVOICE-RESULT-OK') {
+      return true;
+    }
+    return false;
+  } // END parsePayInvoiceResult()
 
   //----------------------------------------------------------------------------
 
@@ -1831,7 +1912,16 @@ class MplusQAPIDataParser
       return strtolower($soapSendMessageResult->response) == 'true';
     }
     return false;
-  } // END parseSendMessageResult())
+  } // END parseSendMessageResult()
+
+//----------------------------------------------------------------------------
+
+  public function parseEncryptStringResult($soapEncryptStringResult) {
+    if (isset($soapEncryptStringResult->encryptedString)) {
+      return $soapEncryptStringResult->encryptedString;
+    }
+    return false;
+  } // END parseEncryptStringResult()
 
   //----------------------------------------------------------------------------
 
@@ -2170,6 +2260,18 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function convertPayInvoiceRequest($invoiceId, $paymentList)
+  {
+    $array = array('request'=>array(
+      'invoiceId'=>$invoiceId,
+      'paymentList'=>$this->convertPaymentList($paymentList),
+      ));
+    $object = arrayToObject($array);
+    return $object;
+  } // END convertPayInvoiceRequest()
+
+  //----------------------------------------------------------------------------
+
   public function convertPayOrderRequest($orderId, $prepay, $paymentList)
   {
     $array = array('request'=>array(
@@ -2279,6 +2381,16 @@ class MplusQAPIDataParser
       'text'=>$text)));
     return $object;
   } // END convertSendMessageRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertEncryptStringRequest($plainString, $encryptionKey)
+  {
+    $object = arrayToObject(array('request'=>array(
+      'plainString'=>$plainString,
+      'encryptionKey'=>$encryptionKey)));
+    return $object;
+  } // END convertEncryptStringRequest()
 
   //----------------------------------------------------------------------------
 
