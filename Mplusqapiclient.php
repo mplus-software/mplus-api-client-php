@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '0.9.4';
+  const CLIENT_VERSION  = '0.9.5';
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 9;
@@ -2421,54 +2421,6 @@ class MplusQAPIDataParser
   //----------------------------------------------------------------------------
 
   public function convertRelation($relation) {
-    if ( ! isset($relation['name'])) {
-      $relation['name'] = '';
-    }
-    if ( ! isset($relation['address'])) {
-      $relation['address'] = '';
-    }
-    if ( ! isset($relation['zipcode'])) {
-      $relation['zipcode'] = '';
-    }
-    if ( ! isset($relation['city'])) {
-      $relation['city'] = '';
-    }
-    if ( ! isset($relation['country'])) {
-      $relation['country'] = '';
-    }
-    if ( ! isset($relation['deliveryAddress'])) {
-      $relation['deliveryAddress'] = '';
-    }
-    if ( ! isset($relation['deliveryZipcode'])) {
-      $relation['deliveryZipcode'] = '';
-    }
-    if ( ! isset($relation['deliveryCity'])) {
-      $relation['deliveryCity'] = '';
-    }
-    if ( ! isset($relation['deliveryCountry'])) {
-      $relation['deliveryCountry'] = '';
-    }
-    if ( ! isset($relation['contact'])) {
-      $relation['contact'] = '';
-    }
-    if ( ! isset($relation['telephone'])) {
-      $relation['telephone'] = '';
-    }
-    if ( ! isset($relation['mobile'])) {
-      $relation['mobile'] = '';
-    }
-    if ( ! isset($relation['email'])) {
-      $relation['email'] = '';
-    }
-    if ( ! isset($relation['website'])) {
-      $relation['website'] = '';
-    }
-    if ( ! isset($relation['points'])) {
-      $relation['points'] = 0;
-    }
-    if ( ! isset($relation['balance'])) {
-      $relation['balance'] = 0;
-    }
     $object = arrayToObject(array('relation'=>$relation));
     return $object;
   } // END convertRelation()
