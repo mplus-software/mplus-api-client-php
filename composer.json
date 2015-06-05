@@ -1,0 +1,21 @@
+{
+	"name" : "mplus-software/mplus-api-client-php",
+	"description" : "PHP client for the Mplus Q-line API.",
+	"license" : "Unlicense",
+	"type" : "library",
+	"authors": [
+		{
+			"name": "Freerk Minnema",
+			"email": "dev@mpluskassa.nl",
+			"role": "Developer"
+		}
+	],
+	"require": {
+		"php" : ">=5.3.0",
+		"ext-json" : "*",
+		"lib-curl" : "*"
+	},
+	"autoload" : {
+		"files" : ["Mplusqapiclient.php"]
+	}
+}
