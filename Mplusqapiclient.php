@@ -2,15 +2,15 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '0.9.5';
+  const CLIENT_VERSION  = '0.9.6';
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 9;
-  var $MIN_API_VERSION_REVIS = 1;
+  var $MIN_API_VERSION_REVIS = 6;
 
   var $MAX_API_VERSION_MAJOR = 0;
   var $MAX_API_VERSION_MINOR = 9;
-  var $MAX_API_VERSION_REVIS = 1;
+  var $MAX_API_VERSION_REVIS = 6;
 
   var $debug = false;
 
@@ -509,7 +509,6 @@ class MplusQAPIclient
     try {
       $result = $this->client->createProduct($this->parser->convertProduct($product));
       return $this->parser->parseCreateProductResult($result);
-
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
     } catch (Exception $e) {
@@ -524,7 +523,6 @@ class MplusQAPIclient
     try {
       $result = $this->client->updateProduct($this->parser->convertProduct($product));
       return $this->parser->parseUpdateProductResult($result);
-
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
     } catch (Exception $e) {
@@ -1948,7 +1946,14 @@ class MplusQAPIDataParser
   public function parseCreateProductResult($soapCreateProductResult) {
     if (isset($soapCreateProductResult->result) and $soapCreateProductResult->result == 'CREATE-PRODUCT-RESULT-OK') {
       if (isset($soapCreateProductResult->productNumber)) {
-        return $soapCreateProductResult->productNumber;
+        if (isset($soapCreateProductResult->articleNumbers)) {
+          return array('productNumber'=>$soapCreateProductResult->productNumber,
+            'articleNumbers'=>objectToArray($soapCreateProductResult->articleNumbers));
+        } else {
+          return array('productNumber'=>$soapCreateProductResult->productNumber);
+        }
+      } else {
+        return true;
       }
     }
     return false;
@@ -1956,10 +1961,19 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function parseUpdateProductResult($soapCreateProductResult) {
+  public function parseUpdateProductResult($soapUpdateProductResult) {
     if (isset($soapUpdateProductResult->result) and $soapUpdateProductResult->result == 'UPDATE-PRODUCT-RESULT-OK') {
-      if (isset($soapUpdateProductResult->productNumber)) {
-        return $soapUpdateProductResult->productNumber;
+      if (isset($soapUpdateProductResult->existingArticleNumbers)) {
+        if (isset($soapUpdateProductResult->newArticleNumbers)) {
+          return array('existingArticleNumbers'=>objectToArray($soapUpdateProductResult->existingArticleNumbers),
+            'newArticleNumbers'=>objectToArray($soapUpdateProductResult->newArticleNumbers));
+        } else {
+          return array('existingArticleNumbers'=>objectToArray($soapUpdateProductResult->existingArticleNumbers));
+        }
+      } elseif (isset($soapUpdateProductResult->newArticleNumbers)) {
+        return array('newArticleNumbers'=>objectToArray($soapUpdateProductResult->newArticleNumbers));
+      } else {
+        return true;
       }
     }
     return false;
