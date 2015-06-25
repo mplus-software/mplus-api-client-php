@@ -2,15 +2,15 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '0.9.7';
+  const CLIENT_VERSION  = '0.9.8';
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 9;
-  var $MIN_API_VERSION_REVIS = 1;
+  var $MIN_API_VERSION_REVIS = 8;
 
   var $MAX_API_VERSION_MAJOR = 0;
   var $MAX_API_VERSION_MINOR = 9;
-  var $MAX_API_VERSION_REVIS = 1;
+  var $MAX_API_VERSION_REVIS = 8;
 
   var $debug = false;
 
@@ -963,6 +963,20 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function adjustPoints($relationNumber, $pointsAdjustment)
+  {
+    try {
+      $result = $this->client->adjustPoints($this->parser->convertAdjustPointsRequest($relationNumber, $pointsAdjustment));
+      return $this->parser->parseAdjustPointsResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END adjustPoints()
+
+  //----------------------------------------------------------------------------
+
   public function registerTerminal($terminal, $forceRegistration)
   {
     try {
@@ -1770,7 +1784,8 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function parseGetRelationResult($soapGetRelationResult) {
+  public function parseGetRelationResult($soapGetRelationResult)
+  {
     if (isset($soapGetRelationResult->result) and $soapGetRelationResult->result == 'GET-RELATION-RESULT-OK') {
       if (isset($soapGetRelationResult->relation)) {
         return objectToArray($soapGetRelationResult->relation);
@@ -1778,6 +1793,20 @@ class MplusQAPIDataParser
     }
     return false;
   } // END parseGetRelationResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseAdjustPointsResult($soapAdjustPointsResult)
+  {
+    if (isset($soapAdjustPointsResult->result) and $soapAdjustPointsResult->result == 'ADJUST-POINTS-RESULT-OK') {
+      if (isset($soapAdjustPointsResult->relation)) {
+        return objectToArray($soapAdjustPointsResult->relation);
+      } else {
+        return true;
+      }
+    }
+    return false;
+  } // END parseAdjustPointsResult()
 
   //----------------------------------------------------------------------------
 
@@ -2920,6 +2949,18 @@ class MplusQAPIDataParser
     $object = arrayToObject(array('forceRegistration'=>$forceRegistration));
     return $object;
   } // END convertForceRegistration()
+
+  //----------------------------------------------------------------------------
+
+  public function convertAdjustPointsRequest($relationNumber, $pointsAdjustment)
+  {
+    $array = array('request'=>array(
+      'relationNumber'=>$relationNumber,
+      'pointsAdjustment'=>$pointsAdjustment,
+      ));
+    $object = arrayToObject($array);
+    return $object;
+  } // END convertAdjustPointsRequest()
 
   //----------------------------------------------------------------------------
 
