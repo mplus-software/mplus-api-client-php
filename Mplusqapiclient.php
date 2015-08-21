@@ -2,15 +2,15 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '0.9.8';
+  const CLIENT_VERSION  = '0.9.9';
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 9;
-  var $MIN_API_VERSION_REVIS = 8;
+  var $MIN_API_VERSION_REVIS = 9;
 
   var $MAX_API_VERSION_MAJOR = 0;
   var $MAX_API_VERSION_MINOR = 9;
-  var $MAX_API_VERSION_REVIS = 8;
+  var $MAX_API_VERSION_REVIS = 9;
 
   var $debug = false;
 
@@ -1193,7 +1193,7 @@ class MplusQAPIDataParser
       $products = array();
       foreach ($soapProducts as $soapProduct) {
         $product = objectToArray($soapProduct);
-        if (isset($product['groupNumbers'])) {
+        if (array_key_exists('groupNumbers', $product)) {
           if ( ! is_array($product['groupNumbers'])) {
             if ( ! empty($product['groupNumbers'])) {
               $product['groupNumbers'] = array($product['groupNumbers']);
@@ -1205,6 +1205,15 @@ class MplusQAPIDataParser
         }
         else {
           $product['groupNumbers'] = array();
+        }
+        if (array_key_exists('sortOrderGroupList', $product)) {
+          if (array_key_exists('sortOrderGroup', $product['sortOrderGroupList'])) {
+            $product['sortOrderGroupList'] = $product['sortOrderGroupList']['sortOrderGroup'];
+          } else {
+            $product['sortOrderGroupList'] = array();
+          }
+        } else {
+          $product['sortOrderGroupList'] = array();
         }
         if (isset($product['articleList']['article']) and ! isset($product['articleList']['article']['articleNumber'])) {
           $product['articleList'] = $product['articleList']['article'];
