@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '0.9.9';
+  const CLIENT_VERSION  = '0.9.11';
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 9;
@@ -546,6 +546,20 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function saveArticleGroups($articleGroupList = array())
+  {
+    try {
+      $result = $this->client->saveArticleGroups($this->parser->convertSaveArticleGroupsRequest($articleGroupList));
+      return $this->parser->parseSaveArticleGroupsResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getArticleGroups()
+
+  //----------------------------------------------------------------------------
+
   public function getStock($branchNumber, $articleNumbers = array(), $stockId = null)
   {
     try {
@@ -823,6 +837,20 @@ class MplusQAPIclient
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
   } // END getTurnoverGroups()
+
+  //----------------------------------------------------------------------------
+
+  public function updateTurnoverGroups($turnoverGroups)
+  {
+    try {
+      $result = $this->client->updateTurnoverGroups($this->parser->convertUpdateTurnoverGroupsRequest($turnoverGroups));
+      return $this->parser->parseUpdateTurnoverGroupsResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END updateTurnoverGroups()
 
   //----------------------------------------------------------------------------
 
@@ -1255,11 +1283,14 @@ class MplusQAPIDataParser
       $relations = array();
       foreach ($soapRelations as $soapRelation) {
         $relation = objectToArray($soapRelation);
+        if (isset($relation['changeTimestamp'])) {
+          $relation['changeTimestamp'] = $this->parseMplusDateTime($relation['changeTimestamp']);
+        }
         if (isset($relation['imageList'])) {
           $relation['imageList'] = $this->parseImageList(isset($relation['imageList'])?$relation['imageList']:array());
         } else {
           $relation['imageList'] = array();
-        }        
+        }
         $relations[] = $relation;
       }
       return $relations;
@@ -1332,6 +1363,8 @@ class MplusQAPIDataParser
   public function parseArticleGroups($soapArticleGroups) {
     if (isset($soapArticleGroups->articleGroupList->articleGroups)) {
       $soapArticleGroups = $soapArticleGroups->articleGroupList->articleGroups;
+    } elseif (isset($soapArticleGroups->articleGroupList)) {
+      $soapArticleGroups = $soapArticleGroups->articleGroupList;
     } elseif (isset($soapArticleGroups->articleGroups)) {
       $soapArticleGroups = $soapArticleGroups->articleGroups;
     } else {
@@ -1342,10 +1375,13 @@ class MplusQAPIDataParser
         $soapArticleGroups = array($soapArticleGroups);
       }
       $products = array();
+      $articleGroups = array();
       foreach ($soapArticleGroups as $soapArticleGroup) {
         $articleGroup = objectToArray($soapArticleGroup);
-        $articleGroup['subGroupList'] = $this->parseArticleSubGroups($articleGroup['subGroupList']);
-        $articleGroups[] = $articleGroup;
+        if (isset($articleGroup['subGroupList'])) {
+          $articleGroup['subGroupList'] = $this->parseArticleSubGroups($articleGroup['subGroupList']);
+          $articleGroups[] = $articleGroup;
+        }
       }
       return $articleGroups;
     }
@@ -1695,6 +1731,15 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function parseUpdateTurnoverGroupsResult($soapUpdateTurnoverGroupsResult) {
+    if (isset($soapUpdateTurnoverGroupsResult->result) and $soapUpdateTurnoverGroupsResult->result == 'UPDATE-TURNOVER-GROUPS-RESULT-OK') {
+      return true;
+    }
+    return false;
+  } // END parseUpdateTurnoverGroupsResult()
+
+  //----------------------------------------------------------------------------
+
   public function parseGetDeliveryMethodsResult($soapGetDeliveryMethodsResult) {
     $deliveryMethods = array();
     if (isset($soapGetDeliveryMethodsResult->deliveryMethodList->deliveryMethod)) {
@@ -1797,7 +1842,11 @@ class MplusQAPIDataParser
   {
     if (isset($soapGetRelationResult->result) and $soapGetRelationResult->result == 'GET-RELATION-RESULT-OK') {
       if (isset($soapGetRelationResult->relation)) {
-        return objectToArray($soapGetRelationResult->relation);
+        $array = objectToArray($soapGetRelationResult->relation);
+        if (isset($array['changeTimestamp'])) {
+          $array['changeTimestamp'] = $this->parseMplusDateTime($array['changeTimestamp']);
+        }
+        return $array;
       }
     }
     return false;
@@ -1962,59 +2011,94 @@ class MplusQAPIDataParser
   //----------------------------------------------------------------------------
 
   public function parseCreateRelationResult($soapCreateRelationResult) {
+    $result = false;
     if (isset($soapCreateRelationResult->result) and $soapCreateRelationResult->result == 'CREATE-RELATION-RESULT-OK') {
+      $result = true;
+      if (isset($soapCreateRelationResult->relationNumber) or isset($soapCreateRelationResult->changeTimestamp) or isset($soapCreateRelationResult->syncMarker)) {
+        $result = array();
+      }
       if (isset($soapCreateRelationResult->relationNumber)) {
-        return $soapCreateRelationResult->relationNumber;
+        $result['relationNumber'] = $soapCreateRelationResult->relationNumber;
+      }
+      if (isset($soapCreateRelationResult->changeTimestamp)) {
+        $result['changeTimestamp'] = $this->parseMplusDateTime(objectToArray($soapCreateRelationResult->changeTimestamp));
+      }
+      if (isset($soapCreateRelationResult->syncMarker)) {
+        $result['syncMarker'] = $soapCreateRelationResult->syncMarker;
       }
     }
-    return false;
+    return $result;
   } // END parseCreateRelationResult()
 
   //----------------------------------------------------------------------------
 
   public function parseUpdateRelationResult($soapUpdateRelationResult) {
+    $result = false;
     if (isset($soapUpdateRelationResult->result) and $soapUpdateRelationResult->result == 'UPDATE-RELATION-RESULT-OK') {
-      return true;
+      $result = true;
+      if (isset($soapUpdateRelationResult->changeTimestamp) or isset($soapUpdateRelationResult->syncMarker)) {
+        $result = array();
+      }
+      if (isset($soapUpdateRelationResult->changeTimestamp)) {
+        $result['changeTimestamp'] = $this->parseMplusDateTime(objectToArray($soapUpdateRelationResult->changeTimestamp));
+      }
+      if (isset($soapUpdateRelationResult->syncMarker)) {
+        $result['syncMarker'] = $soapUpdateRelationResult->syncMarker;
+      }
+      return $result;
     }
-    return false;
+    return $result;
   } // END parseUpdateRelationResult()
 
   //----------------------------------------------------------------------------
 
   public function parseCreateProductResult($soapCreateProductResult) {
+    $result = false;
     if (isset($soapCreateProductResult->result) and $soapCreateProductResult->result == 'CREATE-PRODUCT-RESULT-OK') {
-      if (isset($soapCreateProductResult->productNumber)) {
-        if (isset($soapCreateProductResult->articleNumbers)) {
-          return array('productNumber'=>$soapCreateProductResult->productNumber,
-            'articleNumbers'=>objectToArray($soapCreateProductResult->articleNumbers));
-        } else {
-          return array('productNumber'=>$soapCreateProductResult->productNumber);
-        }
-      } else {
-        return true;
+      $result = true;
+      if (isset($soapCreateProductResult->productNumber) or isset($soapCreateProductResult->articleNumbers) or isset($soapUpdateProductResult->changeTimestamp) or isset($soapUpdateProductResult->syncMarker)) {
+        $result = array();
       }
+      if (isset($soapCreateProductResult->productNumber)) {
+        $result['productNumber'] = $soapCreateProductResult->productNumber;
+      }
+      if (isset($soapCreateProductResult->articleNumbers)) {
+        $result['articleNumbers'] = objectToArray($soapCreateProductResult->articleNumbers);
+      }
+      if (isset($soapCreateProductResult->changeTimestamp)) {
+        $result['changeTimestamp'] = $this->parseMplusDateTime(objectToArray($soapCreateProductResult->changeTimestamp));
+      }
+      if (isset($soapCreateProductResult->syncMarker)) {
+        $result['syncMarker'] = $soapCreateProductResult->syncMarker;
+      }
+      return $result;
     }
-    return false;
+    return $result;
   } // END parseCreateProductResult()
 
   //----------------------------------------------------------------------------
 
   public function parseUpdateProductResult($soapUpdateProductResult) {
+    $result = false;
     if (isset($soapUpdateProductResult->result) and $soapUpdateProductResult->result == 'UPDATE-PRODUCT-RESULT-OK') {
+      $result = true;
+      if (isset($soapUpdateProductResult->existingArticleNumbers) or isset($soapUpdateProductResult->newArticleNumbers) or isset($soapUpdateProductResult->changeTimestamp) or isset($soapUpdateProductResult->syncMarker)) {
+        $result = array();
+      }
+      if (isset($soapUpdateProductResult->newArticleNumbers)) {
+        $result['newArticleNumbers'] = objectToArray($soapUpdateProductResult->newArticleNumbers);
+      }
       if (isset($soapUpdateProductResult->existingArticleNumbers)) {
-        if (isset($soapUpdateProductResult->newArticleNumbers)) {
-          return array('existingArticleNumbers'=>objectToArray($soapUpdateProductResult->existingArticleNumbers),
-            'newArticleNumbers'=>objectToArray($soapUpdateProductResult->newArticleNumbers));
-        } else {
-          return array('existingArticleNumbers'=>objectToArray($soapUpdateProductResult->existingArticleNumbers));
-        }
-      } elseif (isset($soapUpdateProductResult->newArticleNumbers)) {
-        return array('newArticleNumbers'=>objectToArray($soapUpdateProductResult->newArticleNumbers));
-      } else {
-        return true;
+        $result['existingArticleNumbers'] = objectToArray($soapUpdateProductResult->existingArticleNumbers);
+      }
+      if (isset($soapUpdateProductResult->changeTimestamp)) {
+        $result['changeTimestamp'] = $this->parseMplusDateTime(objectToArray($soapUpdateProductResult->changeTimestamp));
+      }
+      if (isset($soapUpdateProductResult->syncMarker)) {
+        $result['syncMarker'] = $soapUpdateProductResult->syncMarker;
       }
     }
-    return false;
+    return $result;
   } // END parseUpdateProductResult()
 
   //----------------------------------------------------------------------------
@@ -2312,6 +2396,19 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function convertUpdateTurnoverGroupsRequest($turnoverGroups)
+  {
+    $array = array('request'=>array(
+      'turnoverGroupList'=>array(
+        'turnoverGroup'=>$turnoverGroups,
+        ),
+      ));
+    $object = arraytoObject($array);
+    return $object;
+  } // END convertUpdateTurnoverGroupsRequest()
+
+  //----------------------------------------------------------------------------
+
   public function convertPayInvoiceRequest($invoiceId, $paymentList)
   {
     $array = array('request'=>array(
@@ -2388,6 +2485,36 @@ class MplusQAPIDataParser
     $object = arrayToObject(array('request'=>array('groupNumbers'=>array_values($groupNumbers))));
     return $object;
   } // END convertGetArticleGroupsRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertSaveArticleGroupsRequest($articleGroupList, $depth=0)
+  {
+    foreach ($articleGroupList as $idx => $articleGroup) {
+      if ( ! array_key_exists('groupNumber', $articleGroup)) {
+        $articleGroup['groupNumber'] = 0;
+      }
+      if ( ! array_key_exists('text', $articleGroup)) {
+        $articleGroup['text'] = '';
+      }
+      if ( ! array_key_exists('subGroupList', $articleGroup)) {
+        $articleGroup['subGroupList'] = array();
+      }
+      if ( ! array_key_exists('articleGroups', $articleGroup['subGroupList']) and ! empty($articleGroup['subGroupList'])) {
+        $articleGroup['subGroupList'] = array('articleGroups'=>$articleGroup['subGroupList']);
+      }      
+      if (array_key_exists('articleGroups', $articleGroup['subGroupList'])) {
+        $articleGroup['subGroupList']['articleGroups'] = $this->convertSaveArticleGroupsRequest($articleGroup['subGroupList']['articleGroups'], $depth+1);
+      }
+      $articleGroupList[$idx] = $articleGroup;
+    }
+    if ($depth > 0) {
+      return $articleGroupList;
+    } else {
+      $object = arrayToObject(array('request'=>array('articleGroupList'=>array('articleGroups'=>$articleGroupList))));
+      return $object;
+    }
+  } // END convertSaveArticleGroupsRequest()
 
   //----------------------------------------------------------------------------
 
@@ -2569,6 +2696,12 @@ class MplusQAPIDataParser
         $article['imageList'] = array('image' => $article['imageList']);
       }
       $product['articleList']['article'][$idx] = $article;
+    }
+    if ( ! array_key_exists('sortOrderGroupList', $product)) {
+      $product['sortOrderGroupList'] = array();
+    }
+    if ( ! array_key_exists('sortOrderGroup', $product['sortOrderGroupList']) and ! empty($product['sortOrderGroupList'])) {
+      $product['sortOrderGroupList'] = array('sortOrderGroup' => $product['sortOrderGroupList']);
     }
     $object = arrayToObject(array('product'=>$product));
     return $object;
@@ -3068,7 +3201,7 @@ if ( ! function_exists('arrayToObject')) {
       * Using __FUNCTION__ (Magic constant)
       * for recursive call
       */
-      if (isset($d['articleNumbers']) or isset($d['groupNumbers']) or isset($d['imageIds']) or isset($d['journalFilter'])) {
+      if (isset($d['articleNumbers']) or isset($d['groupNumbers']) or isset($d['imageIds']) or isset($d['journalFilter']) or isset($d['turnoverGroup'])) {
         if ( ! is_null($leave_as_array)) {
           $global_leave_as_array = null;
         }
@@ -3087,6 +3220,9 @@ if ( ! function_exists('arrayToObject')) {
         return array_map(__FUNCTION__, $d);
       }
       elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['articleNumber'])) {
+        return array_map(__FUNCTION__, $d);
+      }
+      elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['groupNumber'])) {
         return array_map(__FUNCTION__, $d);
       }
       elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['amount'])) {
