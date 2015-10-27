@@ -2696,6 +2696,23 @@ class MplusQAPIDataParser
         $article['imageList'] = array('image' => $article['imageList']);
       }
       $product['articleList']['article'][$idx] = $article;
+    } // endforeach
+    if ( ! isset($product['sortOrderGroupList'])) {
+      $product['sortOrderGroupList'] = array();
+    }
+    if ( ! isset($product['sortOrderGroupList']['sortOrderGroup']) and ! empty($product['sortOrderGroupList'])) {
+      $product['sortOrderGroupList'] = array('sortOrderGroup' => $product['sortOrderGroupList']);
+    }
+    if (isset($product['sortOrderGroupList']['sortOrderGroup'])) {
+      foreach ($product['sortOrderGroupList']['sortOrderGroup'] as $idx => $sortOrderGroup) {
+        if ( ! isset($sortOrderGroup['groupNumber'])) {
+          $sortOrderGroup['groupNumber'] = 0;
+        }
+        if ( ! isset($sortOrderGroup['sortOrder'])) {
+          $sortOrderGroup['sortOrder'] = 0;
+        }
+        $product['sortOrderGroupList']['sortOrderGroup'][$idx] = $sortOrderGroup;
+      } // endforeach
     }
     if ( ! array_key_exists('sortOrderGroupList', $product)) {
       $product['sortOrderGroupList'] = array();
