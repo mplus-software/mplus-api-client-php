@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '0.9.11';
+  const CLIENT_VERSION  = '0.9.12';
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 9;
@@ -2692,27 +2692,28 @@ class MplusQAPIDataParser
       if ( ! isset($article['customFieldList'])) {
         $article['customFieldList'] = array();
       }
+      if ( ! empty($article['customFieldList'])) {
+        if ( ! isset($article['customFieldList']['customField'])) {
+          $article['customFieldList'] = array(
+            'customField' => $article['customFieldList']
+            );
+          foreach ($article['customFieldList']['customField'] as $cf_idx => $customField) {
+            if ( ! isset($customField['dataType'])) {
+              $article['customFieldList']['customField'][$cf_idx]['dataType'] = 'DATA-TYPE-UNKNOWN';
+            }
+            if (isset($customField['dateValue'])) {
+              $article['customFieldList']['customField'][$cf_idx]['dateValue'] = $this->convertMplusDate(strtotime($customField['dateValue']));
+            }
+            if (isset($customField['dateTimeValue'])) {
+              $article['customFieldList']['customField'][$cf_idx]['dateTimeValue'] = $this->convertMplusDateTime(strtotime($customField['dateTimeValue']));
+            }
+          }
+        }
+      }
       if ( ! isset($article['imageList']['image']) and ! empty($article['imageList'])) {
         $article['imageList'] = array('image' => $article['imageList']);
-      }
+      }  
       $product['articleList']['article'][$idx] = $article;
-    } // endforeach
-    if ( ! isset($product['sortOrderGroupList'])) {
-      $product['sortOrderGroupList'] = array();
-    }
-    if ( ! isset($product['sortOrderGroupList']['sortOrderGroup']) and ! empty($product['sortOrderGroupList'])) {
-      $product['sortOrderGroupList'] = array('sortOrderGroup' => $product['sortOrderGroupList']);
-    }
-    if (isset($product['sortOrderGroupList']['sortOrderGroup'])) {
-      foreach ($product['sortOrderGroupList']['sortOrderGroup'] as $idx => $sortOrderGroup) {
-        if ( ! isset($sortOrderGroup['groupNumber'])) {
-          $sortOrderGroup['groupNumber'] = 0;
-        }
-        if ( ! isset($sortOrderGroup['sortOrder'])) {
-          $sortOrderGroup['sortOrder'] = 0;
-        }
-        $product['sortOrderGroupList']['sortOrderGroup'][$idx] = $sortOrderGroup;
-      } // endforeach
     }
     if ( ! array_key_exists('sortOrderGroupList', $product)) {
       $product['sortOrderGroupList'] = array();
@@ -2781,6 +2782,9 @@ class MplusQAPIDataParser
       $order['financialDate'] = time();
     }
     $order['financialDate'] = $this->convertMplusDate($order['financialDate']);
+    if (array_key_exists('deliveryDate', $order)) {
+      $order['deliveryDate'] = $this->convertMplusDate($order['deliveryDate']);
+    }
     if ( ! isset($order['financialBranchNumber'])) {
       if (isset($order['entryBranchNumber'])) {
         $order['financialBranchNumber'] = $order['entryBranchNumber'];
@@ -3218,9 +3222,12 @@ if ( ! function_exists('arrayToObject')) {
       * Using __FUNCTION__ (Magic constant)
       * for recursive call
       */
-      if (isset($d['articleNumbers']) or isset($d['groupNumbers']) or isset($d['imageIds']) or isset($d['journalFilter']) or isset($d['turnoverGroup'])) {
+      if (isset($d['articleNumbers']) or isset($d['groupNumbers']) or isset($d['imageIds']) or isset($d['journalFilter']) or isset($d['turnoverGroup']) or isset($d['customField'])) {
         if ( ! is_null($leave_as_array)) {
           $global_leave_as_array = null;
+        }
+        if (isset($d['customFieldList'])) {
+          $d['customFieldList'] = (object)$d['customFieldList'];
         }
         return (object) $d;
       }
