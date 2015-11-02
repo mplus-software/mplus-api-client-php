@@ -68,7 +68,9 @@ class MplusQAPIclient
       throw new MplusQAPIException('MplusQAPIException needs the JSON PHP extension.');
     }
 
-    if ( ! is_nulL($params)) {
+    $this->parser = new MplusQAPIDataParser();
+
+    if ( ! is_null($params)) {
       $this->setApiServer($params['apiServer']);
       $this->setApiPort($params['apiPort']);
       $this->setApiPath($params['apiPath']);
@@ -77,8 +79,6 @@ class MplusQAPIclient
       $this->setApiSecret($params['apiSecret']);
       $this->initClient();
     }
-
-    $this->parser = new MplusQAPIDataParser();
   }
 
   /**
