@@ -2,15 +2,15 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '0.9.12';
+  const CLIENT_VERSION  = '1.0.0';
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 9;
   var $MIN_API_VERSION_REVIS = 9;
 
-  var $MAX_API_VERSION_MAJOR = 0;
-  var $MAX_API_VERSION_MINOR = 9;
-  var $MAX_API_VERSION_REVIS = 9;
+  var $MAX_API_VERSION_MAJOR = 1;
+  var $MAX_API_VERSION_MINOR = 0;
+  var $MAX_API_VERSION_REVIS = 0;
 
   var $debug = false;
 
@@ -2784,6 +2784,12 @@ class MplusQAPIDataParser
     $order['financialDate'] = $this->convertMplusDate($order['financialDate']);
     if (array_key_exists('deliveryDate', $order)) {
       $order['deliveryDate'] = $this->convertMplusDate($order['deliveryDate']);
+    }
+    if (array_key_exists('deliveryPeriodBegin', $order)) {
+      $order['deliveryPeriodBegin'] = $this->convertMplusDateTime($order['deliveryPeriodBegin']);
+    }
+    if (array_key_exists('deliveryPeriodEnd', $order)) {
+      $order['deliveryPeriodEnd'] = $this->convertMplusDateTime($order['deliveryPeriodEnd']);
     }
     if ( ! isset($order['financialBranchNumber'])) {
       if (isset($order['entryBranchNumber'])) {
