@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.0.0';
+  const CLIENT_VERSION  = '1.0.1';
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 9;
@@ -379,7 +379,6 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getButtonLayout($this->parser->convertTerminal($terminal));
-      print_r($result);exit;
       return $this->parser->parseButtonLayout($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -394,8 +393,6 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getArticlesInLayout($this->parser->convertTerminal($terminal));
-      print_r($this->getLastResponse());exit;
-      print_r($result);exit;
       return $this->parser->parseArticlesInLayout($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -431,6 +428,34 @@ class MplusQAPIclient
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
   } // END getVatGroupList()
+
+  //----------------------------------------------------------------------------
+
+  public function getPriceGroupList()
+  {
+    try {
+      $result = $this->client->getPriceGroupList();
+      return $this->parser->parsePriceGroupList($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getPriceGroupList()
+
+  //----------------------------------------------------------------------------
+
+  public function getSalesPriceList()
+  {
+    try {
+      $result = $this->client->getSalesPriceList();
+      return $this->parser->parseSalesPriceList($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getSalesPriceList()
 
   //----------------------------------------------------------------------------
 
@@ -1188,6 +1213,32 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function parseButtonLayout($soapButtonLayout)
+  {
+    if (isset($soapButtonLayout->return)) {
+      $soapButtonLayout = $soapButtonLayout->return;
+      $buttonLayout = objectToArray($soapButtonLayout);
+      return $buttonLayout;
+    } else {
+      return false;
+    }
+  } // END parseButtonLayout()
+
+  //----------------------------------------------------------------------------
+
+  public function parseArticlesInLayout($soapArticlesInLayout)
+  {
+    if (isset($soapArticlesInLayout->return)) {
+      $soapArticlesInLayout = $soapArticlesInLayout->return;
+      $articlesInLayout = objectToArray($soapArticlesInLayout);
+      return $articlesInLayout;
+    } else {
+      return false;
+    }
+  } // END parseArticlesInLayout()
+
+  //----------------------------------------------------------------------------
+
   public function parseVatGroupList($soapVatGroupList) 
   {
     if (isset($soapVatGroupList->vatGroup)) {
@@ -1200,6 +1251,36 @@ class MplusQAPIDataParser
     }
     return $vatGroups;
   } // END parseVatGroupList()
+
+  //----------------------------------------------------------------------------
+
+  public function parsePriceGroupList($soapPriceGroupList) 
+  {
+    if (isset($soapPriceGroupList->priceGroup)) {
+      $soapPriceGroupList = $soapPriceGroupList->priceGroup;
+    }
+    $priceGroups = array();
+    foreach ($soapPriceGroupList as $soapPriceGroup) {
+      $priceGroup = objectToArray($soapPriceGroup);
+      $priceGroups[] = $priceGroup;
+    }
+    return $priceGroups;
+  } // END parsePriceGroupList()
+
+  //----------------------------------------------------------------------------
+
+  public function parseSalesPriceList($soapSalesPriceList) 
+  {
+    if (isset($soapSalesPriceList->salesPrice)) {
+      $soapSalesPriceList = $soapSalesPriceList->salesPrice;
+    }
+    $salesPrices = array();
+    foreach ($soapSalesPriceList as $soapSalesPrice) {
+      $salesPrice = objectToArray($soapSalesPrice);
+      $salesPrices[] = $salesPrice;
+    }
+    return $salesPrices;
+  } // END parseSalesPriceList()
 
   //----------------------------------------------------------------------------
 
