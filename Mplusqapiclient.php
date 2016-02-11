@@ -975,7 +975,7 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->queueBranchOrder($this->parser->convertOrder($order));
-      return $this->parser->parseSaveOrderResult($result);
+      return $this->parser->parseQueueBranchOrderResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
     } catch (Exception $e) {
@@ -2090,6 +2090,24 @@ class MplusQAPIDataParser
       return false;
     }
   } // END parseSaveOrderResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseQueueBranchOrderResult($soapQueueBranchOrderResult)
+  {
+    if (isset($soapQueueBranchOrderResult->result) and $soapQueueBranchOrderResult->result == 'QUEUE-BRANCH-ORDER-RESULT-OK') {
+      if (isset($soapQueueBranchOrderResult->info)) {
+        return objectToArray($soapQueueBranchOrderResult->info);
+      } else {
+        return true;
+      }
+    } else {
+      if ( ! empty($soapQueueBranchOrderResult->errorMessage)) {
+        $this->lastErrorMessage = $soapQueueBranchOrderResult->errorMessage;
+      }
+      return false;
+    }
+  } // END parseQueueBranchOrderResult()
 
   //----------------------------------------------------------------------------
 
