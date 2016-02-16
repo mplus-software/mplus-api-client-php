@@ -869,21 +869,6 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getPriceGroupList()
-  {
-    try {
-      $result = $this->client->getPriceGroupList();
-      i($result);
-      return $this->parser->parseGetPriceGroupListResult($result);
-    } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
-    } catch (Exception $e) {
-      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
-    }
-  } // END getPriceGroupList()
-
-  //----------------------------------------------------------------------------
-
   public function getTurnoverGroups()
   {
     try {
