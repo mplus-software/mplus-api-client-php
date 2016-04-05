@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.0.3';
+  const CLIENT_VERSION  = '1.0.4';
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 9;
@@ -13,6 +13,8 @@ class MplusQAPIclient
   var $MAX_API_VERSION_REVIS = 0;
 
   var $debug = false;
+
+  var $parser = null;
 
    /**
    * @var string
@@ -46,6 +48,18 @@ class MplusQAPIclient
    * @var
    */
   private $skipApiVersionCheck = false;
+  /**
+   * @var
+   */
+  private $skipFingerprintCheck = false;
+  /**
+   * @var
+   */
+  private $convertToTimestamps = true;
+  /**
+   * @var
+   */
+  private $connection_timeout = 30;
   
   /**
    * @param string $apiServer The api server
@@ -69,6 +83,7 @@ class MplusQAPIclient
     }
 
     $this->parser = new MplusQAPIDataParser();
+    $this->parser->setConvertToTimestamps($this->convertToTimestamps);
 
     if ( ! is_null($params)) {
       $this->setApiServer($params['apiServer']);
@@ -152,6 +167,46 @@ class MplusQAPIclient
   //----------------------------------------------------------------------------
 
   /**
+   * @param $skipFingerprintCheck
+   */
+  public function skipFingerprintCheck($skipFingerprintCheck)
+  {
+    $this->skipFingerprintCheck = $skipFingerprintCheck;
+  } // END skipFingerprintCheck()
+
+  //----------------------------------------------------------------------------
+
+  /**
+   * @param $setConvertToTimestamps
+   */
+  public function setConvertToTimestamps($convertToTimestamps)
+  {
+    $this->convertToTimestamps = $convertToTimestamps;
+    if ( ! is_null($this->parser)) {
+      $this->parser->setConvertToTimestamps($this->convertToTimestamps);
+    }
+  } // END setConvertToTimestamps()
+
+  //----------------------------------------------------------------------------
+
+  /**
+   * @param $connection_timeout
+   */
+  public function setConnectionTimeout($connection_timeout)
+  {
+    $connection_timeout = (int)$connection_timeout;
+    if ($connection_timeout < 10) {
+      $connection_timeout = 10;
+    }
+    if ($connection_timeout > 600) {
+      $connection_timeout = 600;
+    }
+    $this->connection_timeout = $connection_timeout;
+  } // END setConnectionTimeout()
+
+  //----------------------------------------------------------------------------
+
+  /**
    * @param $debug
    */
   public function setDebug($debug)
@@ -198,15 +253,19 @@ class MplusQAPIclient
       'exceptions' => true, 
       'features' => SOAP_SINGLE_ELEMENT_ARRAYS,
       'cache_wsdl' => WSDL_CACHE_NONE,
+      'connection_timeout' => $this->connection_timeout,
       );
 
-    if ($require_fingerprint_check and ! $this->checkFingerprint($location)) {
+    if ( ! $this->skipFingerprintCheck and $require_fingerprint_check and ! $this->checkFingerprint($location)) {
       throw new MplusQAPIException('Fingerprint of SSL certificate doesn\'t match.');
     }
 
     $wsdl_url = $location.'?wsdl';
     try {
       $this->client = @new SoapClient($wsdl_url, $options);
+      if (false === $this->client or is_null($this->client)) {
+        throw new MplusQAPIException('Unable to load SoapClient.');
+      }
     } catch (SoapFault $exception) {
       throw new MplusQAPIException($exception->getMessage());
     }
@@ -215,6 +274,7 @@ class MplusQAPIclient
       $this->checkApiVersion();
     }
 
+    return true;
   } // END initClient()
 
   //----------------------------------------------------------------------------
@@ -529,6 +589,34 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function findEmployee($employee)
+  {
+    try {
+      $result = $this->client->findEmployee($this->parser->convertEmployee($employee));
+      return $this->parser->parseFindEmployeeResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END findEmployee()
+
+  //----------------------------------------------------------------------------
+
+  public function getEmployee($employeeNumber)
+  {
+    try {      
+      $result = $this->client->getEmployee($this->parser->convertGeneric('employeeNumber', $employeeNumber));
+      return $this->parser->parseEmployee($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getEmployees()
+
+  //----------------------------------------------------------------------------
+
   public function getEmployees($employeeNumbers = array())
   {
     try {
@@ -540,6 +628,34 @@ class MplusQAPIclient
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
   } // END getEmployees()
+
+  //----------------------------------------------------------------------------
+
+  public function createEmployee($employee)
+  {
+    try {
+      $result = $this->client->createEmployee($this->parser->convertEmployee($employee));
+      return $this->parser->parseCreateEmployeeResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END createEmployee()
+
+  //----------------------------------------------------------------------------
+
+  public function updateEmployee($employee)
+  {
+    try {
+      $result = $this->client->updateEmployee($this->parser->convertEmployee($employee));
+      return $this->parser->parseUpdateEmployeeResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END updateEmployee()
 
   //----------------------------------------------------------------------------
 
@@ -855,10 +971,10 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getCashCountList($fromFinancialDate, $throughFinancialDate)
+  public function getCashCountList($fromFinancialDate, $throughFinancialDate, $sinceCashCountNumber=null)
   {
     try {
-      $result = $this->client->getCashCountList($this->parser->convertGetCashCountListRequest($fromFinancialDate, $throughFinancialDate));
+      $result = $this->client->getCashCountList($this->parser->convertGetCashCountListRequest($fromFinancialDate, $throughFinancialDate, $sinceCashCountNumber));
       return $this->parser->parseGetCashCountListResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -1172,6 +1288,15 @@ class MplusQAPIDataParser
 
   var $lastErrorMessage = null;
 
+  var $convertToTimestamps = false;
+
+  //----------------------------------------------------------------------------
+
+  public function setConvertToTimestamps($convertToTimestamps)
+  {
+    $this->convertToTimestamps = $convertToTimestamps;
+  } // END setConvertToTimestamps()
+
   //----------------------------------------------------------------------------
 
   public function getLastErrorMessage()
@@ -1416,6 +1541,9 @@ class MplusQAPIDataParser
         if (isset($relation['changeTimestamp'])) {
           $relation['changeTimestamp'] = $this->parseMplusDateTime($relation['changeTimestamp']);
         }
+        if (isset($relation['createTimestamp'])) {
+          $relation['createTimestamp'] = $this->parseMplusDateTime($relation['createTimestamp']);
+        }
         if (isset($relation['imageList'])) {
           $relation['imageList'] = $this->parseImageList(isset($relation['imageList'])?$relation['imageList']:array());
         } else {
@@ -1474,6 +1602,26 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function parseEmployee($soapEmployee) 
+  {
+    if (isset($soapEmployee->result) and $soapEmployee->result == 'GET-EMPLOYEE-RESULT-OK') {
+      if (isset($soapEmployee->employee)) {
+        $soapEmployee = $soapEmployee->employee;
+        $employee = objectToArray($soapEmployee);
+        if (isset($employee['changeTimestamp'])) {
+          $employee['changeTimestamp'] = $this->parseMplusDateTime($employee['changeTimestamp']);
+        }
+        if (isset($employee['createTimestamp'])) {
+          $employee['createTimestamp'] = $this->parseMplusDateTime($employee['createTimestamp']);
+        }
+        return $employee;
+      }
+    }
+    return false;
+  } // END parseEmployee()
+
+  //----------------------------------------------------------------------------
+
   public function parseEmployees($soapEmployees) 
   {
     if (isset($soapEmployees->employeeList)) {
@@ -1482,6 +1630,15 @@ class MplusQAPIDataParser
       if (isset($soapEmployees->employee)) {
         $soapEmployees = $soapEmployees->employee;
         $employees = objectToArray($soapEmployees);
+        foreach ($employees as $idx => $employee) {
+          if (isset($employee['changeTimestamp'])) {
+            $employee['changeTimestamp'] = $this->parseMplusDateTime($employee['changeTimestamp']);
+          }
+          if (isset($employee['createTimestamp'])) {
+            $employee['createTimestamp'] = $this->parseMplusDateTime($employee['createTimestamp']);
+          }
+          $employees[$idx] = $employee;
+        }
       }
       return $employees;
     }
@@ -1855,6 +2012,13 @@ class MplusQAPIDataParser
     if (isset($soapGetTurnoverGroupsResult->turnoverGroupList->turnoverGroup)) {
       $soapTurnoverGroups = $soapGetTurnoverGroupsResult->turnoverGroupList->turnoverGroup;
       $turnoverGroups = objectToArray($soapTurnoverGroups);
+      foreach ($turnoverGroups as $idx => $turnoverGroup) {
+        if (isset($turnoverGroup['branchAccountNumberList'])) {
+          if (isset($turnoverGroup['branchAccountNumberList']['branchAccountNumber'])) {
+            $turnoverGroups[$idx]['branchAccountNumberList'] = $turnoverGroup['branchAccountNumberList']['branchAccountNumber'];
+          }
+        }
+      } // endforeach ($turnoverGroups)
     }
     return $turnoverGroups;
   } // END parseGetTurnoverGroupsResult()
@@ -1886,6 +2050,13 @@ class MplusQAPIDataParser
     if (isset($soapGetBranchesResult->branches->branch)) {
       $soapBranches = $soapGetBranchesResult->branches->branch;
       $branches = objectToArray($soapBranches);
+      foreach ($branches as $idx => $branch) {
+        if (isset($branch['workplaces'])) {
+          if (isset($branch['workplaces']['workplace'])) {
+            $branches[$idx]['workplaces'] = $branch['workplaces']['workplace'];
+          }
+        }
+      }
     }
     return $branches;
   } // END parseGetBranchesResult()
@@ -1957,6 +2128,17 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function parseFindEmployeeResult($soapFindEmployeeResult) {
+    if (isset($soapFindEmployeeResult->result) and $soapFindEmployeeResult->result == 'FIND-EMPLOYEE-RESULT-OK') {
+      if (isset($soapFindEmployeeResult->employee)) {
+        return objectToArray($soapFindEmployeeResult->employee);
+      }
+    }
+    return false;
+  } // END parseFindEmployeeResult()
+
+  //----------------------------------------------------------------------------
+
   public function parseFindRelationResult($soapFindRelationResult) {
     if (isset($soapFindRelationResult->result) and $soapFindRelationResult->result == 'FIND-RELATION-RESULT-OK') {
       if (isset($soapFindRelationResult->relation)) {
@@ -1975,6 +2157,9 @@ class MplusQAPIDataParser
         $array = objectToArray($soapGetRelationResult->relation);
         if (isset($array['changeTimestamp'])) {
           $array['changeTimestamp'] = $this->parseMplusDateTime($array['changeTimestamp']);
+        }
+        if (isset($array['createTimestamp'])) {
+          $array['createTimestamp'] = $this->parseMplusDateTime($array['createTimestamp']);
         }
         return $array;
       }
@@ -2197,6 +2382,48 @@ class MplusQAPIDataParser
     }
     return $result;
   } // END parseUpdateRelationResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseCreateEmployeeResult($soapCreateEmployeeResult) {
+    $result = false;
+    if (isset($soapCreateEmployeeResult->result) and $soapCreateEmployeeResult->result == 'CREATE-EMPLOYEE-RESULT-OK') {
+      $result = true;
+      if (isset($soapCreateEmployeeResult->employeeNumber) or isset($soapCreateEmployeeResult->changeTimestamp) or isset($soapCreateEmployeeResult->syncMarker)) {
+        $result = array();
+      }
+      if (isset($soapCreateEmployeeResult->employeeNumber)) {
+        $result['employeeNumber'] = $soapCreateEmployeeResult->employeeNumber;
+      }
+      if (isset($soapCreateEmployeeResult->changeTimestamp)) {
+        $result['changeTimestamp'] = $this->parseMplusDateTime(objectToArray($soapCreateEmployeeResult->changeTimestamp));
+      }
+      if (isset($soapCreateEmployeeResult->syncMarker)) {
+        $result['syncMarker'] = $soapCreateEmployeeResult->syncMarker;
+      }
+    }
+    return $result;
+  } // END parseCreateEmployeeResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseUpdateEmployeeResult($soapUpdateEmployeeResult) {
+    $result = false;
+    if (isset($soapUpdateEmployeeResult->result) and $soapUpdateEmployeeResult->result == 'UPDATE-EMPLOYEE-RESULT-OK') {
+      $result = true;
+      if (isset($soapUpdateEmployeeResult->changeTimestamp) or isset($soapUpdateEmployeeResult->syncMarker)) {
+        $result = array();
+      }
+      if (isset($soapUpdateEmployeeResult->changeTimestamp)) {
+        $result['changeTimestamp'] = $this->parseMplusDateTime(objectToArray($soapUpdateEmployeeResult->changeTimestamp));
+      }
+      if (isset($soapUpdateEmployeeResult->syncMarker)) {
+        $result['syncMarker'] = $soapUpdateEmployeeResult->syncMarker;
+      }
+      return $result;
+    }
+    return $result;
+  } // END parseUpdateEmployeeResult()
 
   //----------------------------------------------------------------------------
 
@@ -2564,13 +2791,15 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertGetCashCountListRequest($fromFinancialDate, $throughFinancialDate)
+  public function convertGetCashCountListRequest($fromFinancialDate, $throughFinancialDate, $sinceCashCountNumber)
   {
     $fromFinancialDate = is_null($fromFinancialDate) ? null : $this->convertMplusDate($fromFinancialDate);
     $throughFinancialDate = is_null($throughFinancialDate) ? null : $this->convertMplusDate($throughFinancialDate);
+    $sinceCashCountNumber = is_null($sinceCashCountNumber) ? null : $this->convertYearNumber($sinceCashCountNumber);
     $object = arrayToObject(array('request'=>array(
       'fromFinancialDate'=>$fromFinancialDate,
       'throughFinancialDate'=>$throughFinancialDate,
+      'sinceCashCountNumber'=>$sinceCashCountNumber,
       )));
     return $object;
   } // END convertGetCashCountListRequest()
@@ -2781,9 +3010,58 @@ class MplusQAPIDataParser
   //----------------------------------------------------------------------------
 
   public function convertRelation($relation) {
+    if ( ! isset($relation['customFieldList'])) {
+      $relation['customFieldList'] = array();
+    }
+    if ( ! empty($relation['customFieldList'])) {
+      if ( ! isset($relation['customFieldList']['customField'])) {
+        $relation['customFieldList'] = array(
+          'customField' => $relation['customFieldList']
+          );
+        foreach ($relation['customFieldList']['customField'] as $cf_idx => $customField) {
+          if ( ! isset($customField['dataType'])) {
+            $relation['customFieldList']['customField'][$cf_idx]['dataType'] = 'DATA-TYPE-UNKNOWN';
+          }
+          if (isset($customField['dateValue'])) {
+            $relation['customFieldList']['customField'][$cf_idx]['dateValue'] = $this->convertMplusDate(strtotime($customField['dateValue']));
+          }
+          if (isset($customField['dateTimeValue'])) {
+            $relation['customFieldList']['customField'][$cf_idx]['dateTimeValue'] = $this->convertMplusDateTime(strtotime($customField['dateTimeValue']));
+          }
+        }
+      }
+    } // endif ( ! empty($relation['customFieldList']))
     $object = arrayToObject(array('relation'=>$relation));
     return $object;
   } // END convertRelation()
+
+  //----------------------------------------------------------------------------
+
+  public function convertEmployee($employee) {
+    if ( ! isset($employee['customFieldList'])) {
+      $employee['customFieldList'] = array();
+    }
+    if ( ! empty($employee['customFieldList'])) {
+      if ( ! isset($employee['customFieldList']['customField'])) {
+        $employee['customFieldList'] = array(
+          'customField' => $employee['customFieldList']
+          );
+        foreach ($employee['customFieldList']['customField'] as $cf_idx => $customField) {
+          if ( ! isset($customField['dataType'])) {
+            $employee['customFieldList']['customField'][$cf_idx]['dataType'] = 'DATA-TYPE-UNKNOWN';
+          }
+          if (isset($customField['dateValue'])) {
+            $employee['customFieldList']['customField'][$cf_idx]['dateValue'] = $this->convertMplusDate(strtotime($customField['dateValue']));
+          }
+          if (isset($customField['dateTimeValue'])) {
+            $employee['customFieldList']['customField'][$cf_idx]['dateTimeValue'] = $this->convertMplusDateTime(strtotime($customField['dateTimeValue']));
+          }
+        }
+      }
+    } // endif ( ! empty($employee['customFieldList']))
+    $object = arrayToObject(array('employee'=>$employee));
+    return $object;
+  } // END convertEmployee()
 
   //----------------------------------------------------------------------------
 
@@ -2890,7 +3168,7 @@ class MplusQAPIDataParser
             }
           }
         }
-      }
+      } // endif ( ! empty($article['customFieldList']))
       if ( ! isset($article['imageList']['image']) and ! empty($article['imageList'])) {
         $article['imageList'] = array('image' => $article['imageList']);
       }  
@@ -3220,7 +3498,11 @@ class MplusQAPIDataParser
     if ($mplus_date['day'] == 0 || $mplus_date['mon'] == 0 || $mplus_date['year'] == 0) {
       return null;
     } else {
-      return mktime(0, 0, 0, $mplus_date['mon'], $mplus_date['day'], $mplus_date['year']);
+      if ($this->convertToTimestamps) {
+        return mktime(0, 0, 0, $mplus_date['mon'], $mplus_date['day'], $mplus_date['year']);
+      } else {
+        return sprintf('%d-%d-%d', $mplus_date['year'], $mplus_date['mon'], $mplus_date['day']);
+      }
     }
   } // END parseMplusDate()
 
@@ -3231,7 +3513,15 @@ class MplusQAPIDataParser
     if ($mplus_date_time['day'] == 0 || $mplus_date_time['mon'] == 0 || $mplus_date_time['year'] == 0) {
       return null;
     } else {
-      return mktime($mplus_date_time['hour'], $mplus_date_time['min'], $mplus_date_time['sec'], $mplus_date_time['mon'], $mplus_date_time['day'], $mplus_date_time['year']);
+      if ($this->convertToTimestamps) {
+        return mktime($mplus_date_time['hour'], $mplus_date_time['min'], $mplus_date_time['sec'], $mplus_date_time['mon'], $mplus_date_time['day'], $mplus_date_time['year']);
+      } else {
+        if ($mplus_date_time['sec'] != 0) {
+          return sprintf('%d-%d-%d %s:%s:%s', $mplus_date_time['year'], $mplus_date_time['mon'], $mplus_date_time['day'], str_pad($mplus_date_time['hour'], 2, '0', STR_PAD_LEFT), str_pad($mplus_date_time['min'], 2, '0', STR_PAD_LEFT), str_pad($mplus_date_time['sec'], 2, '0', STR_PAD_LEFT));
+        } else {
+          return sprintf('%d-%d-%d %s:%s', $mplus_date_time['year'], $mplus_date_time['mon'], $mplus_date_time['day'], str_pad($mplus_date_time['hour'], 2, '0', STR_PAD_LEFT), str_pad($mplus_date_time['min'], 2, '0', STR_PAD_LEFT));
+        }
+      }
     }
   } // END parseMplusDateTime()
 
@@ -3239,6 +3529,15 @@ class MplusQAPIDataParser
 
   public function convertYearNumber($year_number)
   {
+    if (is_array($year_number) and count($year_number) >= 2) {
+      $year_number = array_values($year_number);
+      return array('year'=>(int)$year_number[0],'number'=>(int)$year_number[1]);
+    } else {
+      $parts = explode('.', $year_number);
+      if (count($parts) >= 2) {
+        return array('year'=>(int)$parts[0], 'number'=>(int)$parts[1]);
+      }
+    }
     return $year_number;
   } // END convertYearNumber()
 
