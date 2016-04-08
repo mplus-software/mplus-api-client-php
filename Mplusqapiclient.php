@@ -885,11 +885,11 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getInvoices($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers = null, $employeeNumbers = null, $relationNumbers = null, $articleNumbers = null, $articleTurnoverGroups = null, $articlePluNumbers = null, $articleBarcodes = null, $supplierRelationNumbers = null)
+  public function getInvoices($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers = null, $employeeNumbers = null, $relationNumbers = null, $articleNumbers = null, $articleTurnoverGroups = null, $articlePluNumbers = null, $articleBarcodes = null, $supplierRelationNumbers = null, $finalizeInvoices = null)
   {
     try {
       // i($this->parser->convertGetInvoicesRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $supplierRelationNumbers));
-      $result = $this->client->getInvoices($this->parser->convertGetInvoicesRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $supplierRelationNumbers));
+      $result = $this->client->getInvoices($this->parser->convertGetInvoicesRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $supplierRelationNumbers, $finalizeInvoices));
       // i($this->client->__getLastRequest());
       return $this->parser->parseGetInvoicesResult($result);
     } catch (SoapFault $e) {
@@ -1251,10 +1251,10 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function sendMessage($branchNumber, $terminalNumber, $text)
+  public function sendMessage($branchNumber, $terminalNumber, $text, $sender=null, $messageType=null)
   {
     try {
-      $result = $this->client->sendMessage($this->parser->convertSendMessageRequest($branchNumber, $terminalNumber, $text));
+      $result = $this->client->sendMessage($this->parser->convertSendMessageRequest($branchNumber, $terminalNumber, $text, $sender, $messageType));
       return $this->parser->parseSendMessageResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -2327,7 +2327,11 @@ class MplusQAPIDataParser
 
   public function parseSendMessageResult($soapSendMessageResult) {
     if (isset($soapSendMessageResult->response)) {
-      return strtolower($soapSendMessageResult->response) == 'true';
+      if (is_bool($soapSendMessageResult->response)) {
+        return $soapSendMessageResult->response;
+      } else {
+        return strtolower($soapSendMessageResult->response) == 'true';
+      }
     }
     return false;
   } // END parseSendMessageResult()
@@ -2648,7 +2652,7 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertGetInvoicesRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $supplierRelationNumbers)
+  public function convertGetInvoicesRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $supplierRelationNumbers, $finalizeInvoices)
   {
     $fromFinancialDate = is_null($fromFinancialDate)?null:$this->convertMplusDate($fromFinancialDate);
     $throughFinancialDate = is_null($throughFinancialDate)?null:$this->convertMplusDate($throughFinancialDate);
@@ -2692,6 +2696,10 @@ class MplusQAPIDataParser
         $supplierRelationNumbers = array($supplierRelationNumbers);
       }
       $request['supplierRelationNumbers'] = array_values($supplierRelationNumbers);
+    }
+
+    if ( ! is_null($finalizeInvoices) and is_bool($finalizeInvoices)) {
+      $request['finalizeInvoices'] = $finalizeInvoices;
     }
     
     $object = arrayToObject(array('request'=>$request));
@@ -2962,12 +2970,22 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertSendMessageRequest($branchNumber, $terminalNumber, $text)
+  public function convertSendMessageRequest($branchNumber, $terminalNumber, $text, $sender, $messageType)
   {
-    $object = arrayToObject(array('request'=>array(
-      'branchNumber'=>$branchNumber,
-      'terminalNumber'=>$terminalNumber,
-      'text'=>$text)));
+    $request = array('text'=>$text);
+    if ( ! is_null($branchNumber) and ! empty($branchNumber)) {
+      $request['branchNumber'] = $branchNumber;
+    }
+    if ( ! is_null($branchNumber) and ! empty($branchNumber) and ! is_null($terminalNumber) and ! empty($terminalNumber)) {
+      $request['terminalNumber'] = $terminalNumber;
+    }
+    if ( ! is_null($sender) and ! empty($sender)) {
+      $request['sender'] = $sender;
+    }
+    if ( ! is_null($messageType) and ! empty($messageType)) {
+      $request['messageType'] = $this->convertMessageType($messageType);
+    }
+    $object = arrayToObject(array('request'=>$request));
     return $object;
   } // END convertSendMessageRequest()
 
@@ -2980,6 +2998,20 @@ class MplusQAPIDataParser
       'encryptionKey'=>$encryptionKey)));
     return $object;
   } // END convertEncryptStringRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertMessageType($messageType)
+  {
+    $messageType = strtoupper($messageType);
+    if (in_array($messageType, array('MESSAGE-TYPE-WARNING', 'WARNING'))) {
+      return 'MESSAGE-TYPE-WARNING';
+    } elseif (in_array($messageType, array('MESSAGE-TYPE-OK', 'OK'))) {
+      return 'MESSAGE-TYPE-OK';
+    } else {
+      return 'MESSAGE-TYPE-INFO';
+    }
+  } // END convertMessageType()
 
   //----------------------------------------------------------------------------
 
