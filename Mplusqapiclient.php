@@ -435,6 +435,20 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function getCustomFieldLists()
+  {
+    try {
+      $result = $this->client->getCustomFieldLists();
+      return $this->parser->parseCustomFieldLists($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getCustomFieldLists()
+
+  //----------------------------------------------------------------------------
+
   public function getAvailableTerminalList()
   {
     try {
@@ -617,10 +631,10 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getEmployees($employeeNumbers = array())
+  public function getEmployees($employeeNumbers = array(), $syncMarker = null)
   {
     try {
-      $result = $this->client->getEmployees($this->parser->convertGetEmployeesRequest($employeeNumbers));
+      $result = $this->client->getEmployees($this->parser->convertGetEmployeesRequest($employeeNumbers, $syncMarker));
       return $this->parser->parseEmployees($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -932,6 +946,7 @@ class MplusQAPIclient
   public function getJournals($fromFinancialDate, $throughFinancialDate, $branchNumbers, $journalFilterList = array())
   {
     try {
+      // i($this->parser->convertGetJournalsRequest($fromFinancialDate, $throughFinancialDate, $branchNumbers, $journalFilterList));
       $result = $this->client->getJournals($this->parser->convertGetJournalsRequest($fromFinancialDate, $throughFinancialDate, $branchNumbers, $journalFilterList));
       return $this->parser->parseGetJournalsResult($result);
     } catch (SoapFault $e) {
@@ -1195,6 +1210,20 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function getWordAliases($locale='nl_NL')
+  {
+    try {
+      $result = $this->client->getWordAliases($this->parser->convertGetWordAliasesRequest($locale));
+      return $this->parser->parseWordAliases($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getVatGroupList()
+
+  //----------------------------------------------------------------------------
+
   public function getTableOrder($terminal, $branchNumber, $tableNumber)
   {
     try {
@@ -1345,6 +1374,41 @@ class MplusQAPIDataParser
     }
     return $currentSyncMarkers;
   } // END parseCurrentSyncMarkers()
+
+  //----------------------------------------------------------------------------
+
+  public function parseCustomFieldLists($soapCustomFieldLists)
+  {
+    $customFieldLists = false;
+    if (isset($soapCustomFieldLists->articleCustomFieldList)) {
+      if ( ! is_array($customFieldLists)) { $customFieldLists = array(); }
+      $soapArticleCustomFieldList = $soapCustomFieldLists->articleCustomFieldList;
+      if (isset($soapArticleCustomFieldList->customField)) {
+        $soapArticleCustomFieldList = $soapArticleCustomFieldList->customField;
+        $articleCustomFieldList = objectToArray($soapArticleCustomFieldList);
+        $customFieldLists['articleCustomFieldList'] = $articleCustomFieldList;
+      }
+    }
+    if (isset($soapCustomFieldLists->employeeCustomFieldList)) {
+      if ( ! is_array($customFieldLists)) { $customFieldLists = array(); }
+      $soapEmployeeCustomFieldList = $soapCustomFieldLists->employeeCustomFieldList;
+      if (isset($soapEmployeeCustomFieldList->customField)) {
+        $soapEmployeeCustomFieldList = $soapEmployeeCustomFieldList->customField;
+        $employeeCustomFieldList = objectToArray($soapEmployeeCustomFieldList);
+        $customFieldLists['employeeCustomFieldList'] = $employeeCustomFieldList;
+      }
+    }
+    if (isset($soapCustomFieldLists->relationCustomFieldList)) {
+      if ( ! is_array($customFieldLists)) { $customFieldLists = array(); }
+      $soapRelationCustomFieldList = $soapCustomFieldLists->relationCustomFieldList;
+      if (isset($soapRelationCustomFieldList->customField)) {
+        $soapRelationCustomFieldList = $soapRelationCustomFieldList->customField;
+        $relationCustomFieldList = objectToArray($soapRelationCustomFieldList);
+        $customFieldLists['relationCustomFieldList'] = $relationCustomFieldList;
+      }
+    }
+    return $customFieldLists;
+  } // END parseCustomFieldLists()
 
   //----------------------------------------------------------------------------
 
@@ -2559,14 +2623,18 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertGetEmployeesRequest($employeeNumbers)
+  public function convertGetEmployeesRequest($employeeNumbers, $syncMarker)
   {
     if ( ! is_array($employeeNumbers)) {
       $employeeNumbers = array($employeeNumbers);
     }
-    $object = arrayToObject(array('request'=>array(
+    $array = array('request'=>array(
       'employeeNumbers'=>empty($employeeNumbers)?null:array_values($employeeNumbers),
-      )));
+      ));
+    if ( ! is_null($syncMarker)) {
+      $array['request']['syncMarker'] = (int)$syncMarker;
+    }
+    $object = arrayToObject($array);
     return $object;
   } // END convertGetEmployeesRequest()
 
@@ -2765,12 +2833,15 @@ class MplusQAPIDataParser
     if ( ! array_key_exists('journalFilter', $journalFilterList)) {
       $journalFilterList = array('journalFilter'=>$journalFilterList);
     }
-    $object = arrayToObject(array('request'=>array(
+    $request = array(
       'fromFinancialDate'=>$fromFinancialDate,
       'throughFinancialDate'=>$throughFinancialDate,
-      'branchNumbers'=>empty($branchNumbers)?null:array_values($branchNumbers),
       'journalFilterList'=>empty($journalFilterList)?null:$journalFilterList,
-      )));
+      );
+    if ( ! is_null($branchNumbers) and is_array($branchNumbers) and ! empty($branchNumbers)) {
+      $request['branchNumbers'] = array_values($branchNumbers);
+    }
+    $object = arrayToObject(array('request'=>$request));
     return $object;
   } // END convertGetJournalsRequest()
 
@@ -3572,6 +3643,17 @@ class MplusQAPIDataParser
     }
     return $year_number;
   } // END convertYearNumber()
+
+  //----------------------------------------------------------------------------
+
+  public function convertGetWordAliasesRequest($locale)
+  {
+    $array = array('request'=>array(
+      'locale'=>$locale,
+      ));
+    $object = arrayToObject($array);
+    return $object;
+  } // END convertGetWordAliasesRequest()
 
   //----------------------------------------------------------------------------
 
