@@ -916,7 +916,7 @@ class MplusQAPIclient
   public function getInvoices($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers = null, $employeeNumbers = null, $relationNumbers = null, $articleNumbers = null, $articleTurnoverGroups = null, $articlePluNumbers = null, $articleBarcodes = null, $supplierRelationNumbers = null, $finalizeInvoices = null)
   {
     try {
-      // i($this->parser->convertGetInvoicesRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $supplierRelationNumbers));
+      // i($this->parser->convertGetInvoicesRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $supplierRelationNumbers, $finalizeInvoices));
       $result = $this->client->getInvoices($this->parser->convertGetInvoicesRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $supplierRelationNumbers, $finalizeInvoices));
       // i($this->client->__getLastRequest());
       return $this->parser->parseGetInvoicesResult($result);
@@ -1897,8 +1897,9 @@ class MplusQAPIDataParser
       $soapOrderCategories = $soapOrderCategories->orderCategory;
       $orderCategories = objectToArray($soapOrderCategories);
       return $orderCategories;
+    } else {
+      return array();
     }
-    return false;
   } // END parseOrderCategories()
   
   //----------------------------------------------------------------------------
@@ -2766,8 +2767,8 @@ class MplusQAPIDataParser
       'relationNumbers'=>empty($relationNumbers)?null:array_values($relationNumbers),
       'articleNumbers'=>empty($articleNumbers)?null:array_values($articleNumbers),
       'articleTurnoverGroups'=>empty($articleTurnoverGroups)?null:array_values($articleTurnoverGroups),
-      'articlePluNumbers'=>empty($articlePluNumbers)?null:array_values($articlePluNumbers),
-      'articleBarcodes'=>empty($articleBarcodes)?null:array_values($articleBarcodes),
+      'articlePluNumbers'=>empty($articlePluNumbers)?null:$this->convertPluNumbers(array_values($articlePluNumbers)),
+      'articleBarcodes'=>empty($articleBarcodes)?null:$this->convertBarcodes(array_values($articleBarcodes)),
       );
 
     if ( ! is_null($supplierRelationNumbers)) {
@@ -2819,8 +2820,8 @@ class MplusQAPIDataParser
       'relationNumbers'=>empty($relationNumbers)?null:array_values($relationNumbers),
       'articleNumbers'=>empty($articleNumbers)?null:array_values($articleNumbers),
       'articleTurnoverGroups'=>empty($articleTurnoverGroups)?null:array_values($articleTurnoverGroups),
-      'articlePluNumbers'=>empty($articlePluNumbers)?null:array_values($articlePluNumbers),
-      'articleBarcodes'=>empty($articleBarcodes)?null:array_values($articleBarcodes),
+      'articlePluNumbers'=>empty($articlePluNumbers)?null:$this->convertPluNumbers(array_values($articlePluNumbers)),
+      'articleBarcodes'=>empty($articleBarcodes)?null:$this->convertBarcodes(array_values($articleBarcodes)),
       );
 
     if ( ! is_null($supplierRelationNumbers)) {
@@ -3036,6 +3037,25 @@ class MplusQAPIDataParser
     }
     return $object;
   } // END convertPluNumbers()
+
+  //----------------------------------------------------------------------------
+
+  public function convertBarcodes($barcodes)
+  {
+    $text = array();
+    foreach (array_values($barcodes) as $barcode) {
+      $text[] = array(
+        'text' => $barcode,
+        );
+    }
+    if (count($text) > 0) {
+      $object = arrayToObject(array('text'=>$text));
+    }
+    else {
+      $object = arrayToObject(array());
+    }
+    return $object;
+  } // END convertBarcodes()
 
   //----------------------------------------------------------------------------
 
@@ -3941,7 +3961,12 @@ if ( ! function_exists('arrayToObject')) {
       * Using __FUNCTION__ (Magic constant)
       * for recursive call
       */
-      if (isset($d['articleNumbers']) or isset($d['groupNumbers']) or isset($d['imageIds']) or isset($d['journalFilter']) or isset($d['turnoverGroup']) or isset($d['customField']) or isset($d['relationNumbers']) or isset($d['supplierRelationNumbers'])) {
+      if (isset($d['articleNumbers']) or isset($d['groupNumbers']) 
+          or isset($d['imageIds']) or isset($d['journalFilter']) 
+          or isset($d['turnoverGroup']) or isset($d['customField']) 
+          or isset($d['relationNumbers']) or isset($d['supplierRelationNumbers'])
+          or isset($d['articleTurnoverGroups']) or isset($d['branchNumbers'])
+          or isset($d['employeeNumbers']) or isset($d['employeeNumbers'])) {
         if ( ! is_null($leave_as_array)) {
           $global_leave_as_array = null;
         }
