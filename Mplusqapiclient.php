@@ -1000,10 +1000,10 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getCashCountList($fromFinancialDate, $throughFinancialDate, $sinceCashCountNumber=null)
+  public function getCashCountList($fromFinancialDate, $throughFinancialDate, $sinceCashCount=null)
   {
     try {
-      $result = $this->client->getCashCountList($this->parser->convertGetCashCountListRequest($fromFinancialDate, $throughFinancialDate, $sinceCashCountNumber));
+      $result = $this->client->getCashCountList($this->parser->convertGetCashCountListRequest($fromFinancialDate, $throughFinancialDate, $sinceCashCount));
       return $this->parser->parseGetCashCountListResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -2944,15 +2944,15 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertGetCashCountListRequest($fromFinancialDate, $throughFinancialDate, $sinceCashCountNumber)
+  public function convertGetCashCountListRequest($fromFinancialDate, $throughFinancialDate, $sinceCashCount)
   {
     $fromFinancialDate = is_null($fromFinancialDate) ? null : $this->convertMplusDate($fromFinancialDate, 'fromFinancialDate');
     $throughFinancialDate = is_null($throughFinancialDate) ? null : $this->convertMplusDate($throughFinancialDate, 'throughFinancialDate');
-    $sinceCashCountNumber = is_null($sinceCashCountNumber) ? null : $this->convertYearNumber($sinceCashCountNumber);
+    $sinceCashCount = is_null($sinceCashCount) ? null : $this->convertWorkplaceYearNumber($sinceCashCount);
     $object = arrayToObject(array('request'=>array(
       'fromFinancialDate'=>$fromFinancialDate,
       'throughFinancialDate'=>$throughFinancialDate,
-      'sinceCashCountNumber'=>$sinceCashCountNumber,
+      'sinceCashCount'=>$sinceCashCount,
       )));
     return $object;
   } // END convertGetCashCountListRequest()
@@ -3760,6 +3760,30 @@ class MplusQAPIDataParser
     }
     return $year_number;
   } // END convertYearNumber()
+
+  //----------------------------------------------------------------------------
+
+  public function convertWorkplaceYearNumber($workplace_year_number)
+  {
+    if (is_array($workplace_year_number) and count($workplace_year_number) >= 4) {
+      $workplace_year_number = array_values($workplace_year_number);
+      return array(
+        'branchNumber'=>(int)$workplace_year_number[0],
+        'workplaceNumber'=>(int)$workplace_year_number[1],
+        'year'=>(int)$workplace_year_number[2],
+        'number'=>(int)$workplace_year_number[3]);
+    } else {
+      $parts = explode('.', $workplace_year_number);
+      if (count($parts) >= 4) {
+        return array(
+          'branchNumber'=>(int)$parts[0],
+          'workplaceNumber'=>(int)$parts[1],
+          'year'=>(int)$parts[2],
+          'number'=>(int)$parts[3]);
+      }
+    }
+    return $workplace_year_number;
+  } // END convertWorkplaceYearNumber()
 
   //----------------------------------------------------------------------------
 
