@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.1.0';
+  const CLIENT_VERSION  = '1.1.1';
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 9;
@@ -757,6 +757,20 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function getStockHistory($branchNumber, $articleNumbers = array(), $sinceStockId = null, $fromFinancialDateTime = null, $throughFinancialDateTime = null)
+  {
+    try {
+      $result = $this->client->getStockHistory($this->parser->convertGetStockHistoryRequest($branchNumber, $articleNumbers, $sinceStockId, $fromFinancialDateTime, $throughFinancialDateTime));
+      return $this->parser->parseStockHistory($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getStockHistory()
+
+  //----------------------------------------------------------------------------
+
   public function updateStock($branchNumber, $articleNumber, $amountChanged)
   {
     try {
@@ -768,6 +782,21 @@ class MplusQAPIclient
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
   } // END updateStock()
+
+  //----------------------------------------------------------------------------
+
+  public function setStock($branchNumber, $articleNumber, $amount)
+  {
+    try {
+      $result = $this->client->setStock($this->parser->convertSetStockRequest($branchNumber, $articleNumber, $amount));
+      i($result);
+      return $this->parser->parseSetStockResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END setStock()
 
   //----------------------------------------------------------------------------
 
@@ -1841,6 +1870,27 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function parseStockHistory($soapStockHistory) {
+    if (isset($soapStockHistory->articleStockHistory)) {
+      $soapArticleStockHistory = $soapStockHistory->articleStockHistory;
+      if ( ! is_array($soapArticleStockHistory)) {
+        $soapArticleStockHistory = array($soapArticleStockHistory);
+      }
+      $articleStockHistory = array();
+      foreach ($soapArticleStockHistory as $history) {
+        $history = objectToArray($history);
+        if (isset($history['timestamp'])) {
+          $history['timestamp'] = $this->parseMplusDateTime($history['timestamp']);
+        }
+        $articleStockHistory[] = $history;
+      }
+      return $articleStockHistory;
+    }
+    return false;
+  } // END parseStockHistory()
+
+  //----------------------------------------------------------------------------
+
   public function parseShifts($soapShifts) {
     if (isset($soapShifts->shiftList)) {
       $soapShifts = $soapShifts->shiftList;
@@ -2428,11 +2478,30 @@ class MplusQAPIDataParser
   public function parseUpdateStockResult($soapUpdateStockResult)
   {
     if (isset($soapUpdateStockResult->result) and $soapUpdateStockResult->result == 'UPDATE-STOCK-RESULT-OK') {
-      return true;
+      if (isset($soapUpdateStockResult->stockId) and ! empty($soapUpdateStockResult->stockId)) {
+        return $soapUpdateStockResult->stockId;
+      } else {
+        return true;
+      }
     } else {
       return false;
     }
   } // END parseUpdateStockResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseSetStockResult($soapSetStockResult)
+  {
+    if (isset($soapSetStockResult->result) and $soapSetStockResult->result == 'SET-STOCK-RESULT-OK') {
+      if (isset($soapSetStockResult->stockId) and ! empty($soapSetStockResult->stockId)) {
+        return $soapSetStockResult->stockId;
+      } else {
+        return true;
+      }
+    } else {
+      return false;
+    }
+  } // END parseSetStockResult()
 
   //----------------------------------------------------------------------------
 
@@ -3121,16 +3190,62 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function convertGetStockHistoryRequest($branchNumber, $articleNumbers, $sinceStockId, $fromFinancialDateTime, $throughFinancialDateTime)
+  {
+    if ( ! is_array($articleNumbers)) {
+      $articleNumbers = array($articleNumbers);
+    }
+    $array = array('request'=>array(
+      'branchNumber'=>$branchNumber,
+      'articleNumbers'=>array('articleNumbers'=>$articleNumbers)));
+    if ( ! is_null($sinceStockId) and ! empty($sinceStockId)) {
+      $array['request']['sinceStockId'] = $sinceStockId;
+    }
+    if ( ! is_null($fromFinancialDateTime) and ! empty($fromFinancialDateTime)) {
+      $fromFinancialDateTime = $this->convertMplusDateTime($fromFinancialDateTime, 'fromFinancialDateTime');
+      $array['request']['fromFinancialDateTime'] = $fromFinancialDateTime;
+    }
+    if ( ! is_null($throughFinancialDateTime) and ! empty($throughFinancialDateTime)) {
+      $throughFinancialDateTime = $this->convertMplusDateTime($throughFinancialDateTime, 'throughFinancialDateTime');
+      $array['request']['throughFinancialDateTime'] = $throughFinancialDateTime;
+    }
+    $object = arrayToObject($array);
+    if (empty($articleNumbers)) {
+      $object->request->articleNumbers = new stdClass();
+      $object->request->articleNumbers->articleNumbers = array();
+    }
+    return $object;
+  } // END convertGetStockHistoryRequest()
+  
+  //----------------------------------------------------------------------------
+
   public function convertUpdateStockRequest($branchNumber, $articleNumber, $amountChanged)
   {
+    list($amountChanged, $decimalPlaces) = get_quantity_and_decimal_places($amountChanged);
     $array = array('request'=>array(
       'branchNumber'=>$branchNumber,
       'articleNumber'=>$articleNumber,
       'amountChanged'=>$amountChanged,
+      'decimalPlaces'=>$decimalPlaces,
       ));
     $object = arrayToObject($array);
     return $object;
   } // END convertUpdateStockRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertSetStockRequest($branchNumber, $articleNumber, $amount)
+  {
+    list($amount, $decimalPlaces) = get_quantity_and_decimal_places($amount);
+    $array = array('request'=>array(
+      'branchNumber'=>$branchNumber,
+      'articleNumber'=>$articleNumber,
+      'amount'=>$amount,
+      'decimalPlaces'=>$decimalPlaces,
+      ));
+    $object = arrayToObject($array);
+    return $object;
+  } // END convertSetStockRequest()
 
   //----------------------------------------------------------------------------
 
