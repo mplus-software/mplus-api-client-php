@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.1.1';
+  const CLIENT_VERSION  = '1.1.2';
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 9;
@@ -575,10 +575,10 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getProducts($articleNumbers = array(), $groupNumbers = array(), $pluNumbers = array(), $changedSinceTimestamp = null, $changedSinceBranchNumber = null, $syncMarker = null)
+  public function getProducts($articleNumbers = array(), $groupNumbers = array(), $pluNumbers = array(), $changedSinceTimestamp = null, $changedSinceBranchNumber = null, $syncMarker = null, $onlyWebshop = null, $onlyActive = null)
   {
     try {
-      $result = $this->client->getProducts($this->parser->convertGetProductsRequest($articleNumbers, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker));
+      $result = $this->client->getProducts($this->parser->convertGetProductsRequest($articleNumbers, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker, $onlyWebshop, $onlyActive));
       return $this->parser->parseProducts($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -2680,7 +2680,7 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertGetProductsRequest($articleNumbers, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker)
+  public function convertGetProductsRequest($articleNumbers, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker, $onlyWebshop, $onlyActive)
   {
     if ( ! is_array($articleNumbers)) {
       if (is_null($articleNumbers)) {
@@ -2714,6 +2714,12 @@ class MplusQAPIDataParser
     }
     if ( ! is_null($syncMarker)) {
       $array['request']['syncMarker'] = (int)$syncMarker;
+    }
+    if ( ! is_null($onlyWebshop) and is_bool($onlyWebshop)) {
+      $array['request']['onlyWebshop'] = $onlyWebshop;
+    }
+    if ( ! is_null($onlyActive) and is_bool($onlyActive)) {
+      $array['request']['onlyActive'] = $onlyActive;
     }
     $object = arrayToObject($array);
     return $object;
