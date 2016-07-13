@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.1.2';
+  const CLIENT_VERSION  = '1.1.3';
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 9;
@@ -3522,6 +3522,12 @@ class MplusQAPIDataParser
     } 
     if ( ! isset($terminal['uniqueDeviceIdentifier'])) {
       $terminal['uniqueDeviceIdentifier'] = md5($_SERVER['REMOTE_ADDR']);
+    }
+    if ( ! array_key_exists('terminalSoftwareName', $terminal) or empty($terminal['terminalSoftwareName'])) {
+      $terminal['terminalSoftwareName'] = 'Mplus PHP API Client';
+    }
+    if ( ! array_key_exists('terminalSoftwareVersion', $terminal) or empty($terminal['terminalSoftwareVersion'])) {
+      $terminal['terminalSoftwareVersion'] = MplusQAPIclient::CLIENT_VERSION;
     }
     $object = arrayToObject(array('terminal'=>$terminal));
     return $object;
