@@ -75,11 +75,14 @@ class MplusQAPIclient
   {
     if( ! function_exists('curl_init'))
     {
-      throw new MplusQAPIException('MplusQAPIException needs the CURL PHP extension.');
+      throw new MplusQAPIException('MplusQAPIClient needs the CURL PHP extension.');
     }
     if( ! function_exists('json_decode'))
     {
-      throw new MplusQAPIException('MplusQAPIException needs the JSON PHP extension.');
+      throw new MplusQAPIException('MplusQAPIClient needs the JSON PHP extension.');
+    }
+    if (PHP_INT_MAX <= 2147483647) {
+      throw new MplusQAPIException('MplusQAPIClient needs to run in a 64-bit system.');
     }
 
     $this->parser = new MplusQAPIDataParser();
@@ -421,6 +424,35 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function getTerminalSettings($terminal)
+  {
+    try {
+      $result = $this->client->getTerminalSettings($this->parser->convertTerminal($terminal));
+      return $this->parser->parseTerminalSettings($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getTerminalSettings()
+
+  //----------------------------------------------------------------------------
+
+  public function getMaxTableNumber($terminal)
+  {
+    try {
+      $result = $this->client->getMaxTableNumber($this->parser->convertTerminal($terminal));
+      return $this->parser->parseMaxTableNumber($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getMaxTableNumber()
+
+
+  //----------------------------------------------------------------------------
+
   public function getCurrentSyncMarkers()
   {
     try {
@@ -519,6 +551,48 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function getTableList($terminal)
+  {
+    try {
+      $result = $this->client->getTableList($this->parser->convertTerminal($terminal));
+      return $this->parser->parseTableList($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getTableList()
+
+  //----------------------------------------------------------------------------
+
+  public function getAvailablePaymentMethods($terminal)
+  {
+    try {
+      $result = $this->client->getAvailablePaymentMethods($this->parser->convertTerminal($terminal));
+      return $this->parser->parseAvailablePaymentMethods($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getAvailablePaymentMethods()
+
+  //----------------------------------------------------------------------------
+
+  public function getCourseList($terminal)
+  {
+    try {
+      $result = $this->client->getCourseList($this->parser->convertTerminal($terminal));
+      return $this->parser->parseCourseList($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getCourseList()
+
+  //----------------------------------------------------------------------------
+
   public function getVatGroupList()
   {
     try {
@@ -575,10 +649,24 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getProducts($articleNumbers = array(), $groupNumbers = array(), $pluNumbers = array(), $changedSinceTimestamp = null, $changedSinceBranchNumber = null, $syncMarker = null, $onlyWebshop = null, $onlyActive = null)
+  public function getPaymentMethods()
   {
     try {
-      $result = $this->client->getProducts($this->parser->convertGetProductsRequest($articleNumbers, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker, $onlyWebshop, $onlyActive));
+      $result = $this->client->getPaymentMethods();
+      return $this->parser->parseGetPaymentMethodsResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getDeliveryMethods()
+
+  //----------------------------------------------------------------------------
+
+  public function getProducts($articleNumbers = array(), $groupNumbers = array(), $pluNumbers = array(), $changedSinceTimestamp = null, $changedSinceBranchNumber = null, $syncMarker = null, $onlyWebshop = null, $onlyActive = null, $syncMarkerLimit = null)
+  {
+    try {
+      $result = $this->client->getProducts($this->parser->convertGetProductsRequest($articleNumbers, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker, $onlyWebshop, $onlyActive, $syncMarkerLimit));
       return $this->parser->parseProducts($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -589,10 +677,10 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getRelations($relationNumbers = array(), $syncMarker = null, $categoryId = null)
+  public function getRelations($relationNumbers = array(), $syncMarker = null, $categoryId = null, $syncMarkerLimit = null)
   {
     try {
-      $result = $this->client->getRelations($this->parser->convertGetRelationsRequest($relationNumbers, $syncMarker, $categoryId));
+      $result = $this->client->getRelations($this->parser->convertGetRelationsRequest($relationNumbers, $syncMarker, $categoryId, $syncMarkerLimit));
       return $this->parser->parseRelations($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -645,10 +733,10 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getEmployees($employeeNumbers = array(), $syncMarker = null)
+  public function getEmployees($employeeNumbers = array(), $syncMarker = null, $syncMarkerLimit = null)
   {
     try {
-      $result = $this->client->getEmployees($this->parser->convertGetEmployeesRequest($employeeNumbers, $syncMarker));
+      $result = $this->client->getEmployees($this->parser->convertGetEmployeesRequest($employeeNumbers, $syncMarker, $syncMarkerLimit));
       return $this->parser->parseEmployees($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -884,10 +972,10 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getOrders($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers = null, $employeeNumbers = null, $relationNumbers = null, $articleNumbers = null, $articleTurnoverGroups = null, $articlePluNumbers = null, $articleBarcodes = null)
+  public function getOrders($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers = null, $employeeNumbers = null, $relationNumbers = null, $articleNumbers = null, $articleTurnoverGroups = null, $articlePluNumbers = null, $articleBarcodes = null, $syncMarkerLimit = null)
   {
     try {
-      $result = $this->client->getOrders($this->parser->convertGetOrdersRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes));
+      $result = $this->client->getOrders($this->parser->convertGetOrdersRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit));
       return $this->parser->parseGetOrdersResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -1263,7 +1351,7 @@ class MplusQAPIclient
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
-  } // END getVatGroupList()
+  } // END getWordAliases()
 
   //----------------------------------------------------------------------------
 
@@ -1299,8 +1387,7 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getTableOrderCourseList($this->parser->convertGetTableOrderCourseListRequest($terminal, $branchNumber, $tableNumber));
-      i($result);
-      return $this->parser->parseGetTableOrderResult($result);
+      return $this->parser->parseGetTableOrderCourseListResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
     } catch (Exception $e) {
@@ -1418,6 +1505,24 @@ class MplusQAPIDataParser
     }
     return $databaseVersion;
   } // END parseDatabaseVersion()
+
+  //----------------------------------------------------------------------------
+
+  public function parseTerminalSettings($soapTerminalSettings)
+  {
+    return objectToArray($soapTerminalSettings);
+  } // END parseTerminalSettings()
+
+  //----------------------------------------------------------------------------
+
+  public function parseMaxTableNumber($soapMaxTableNumber)
+  {
+    $maxTableNumber = false;
+    if (isset($soapMaxTableNumber->maxTableNumber)) {
+      $maxTableNumber = $soapMaxTableNumber->maxTableNumber;
+    }
+    return $maxTableNumber;
+  } // END parseMaxTableNumber()
 
   //----------------------------------------------------------------------------
 
@@ -1541,6 +1646,48 @@ class MplusQAPIDataParser
     }
     return $active_employees;
   } // END parseActiveEmployeeList()
+
+  //----------------------------------------------------------------------------
+
+  public function parseTableList($soapTableList) 
+  {
+    if (isset($soapTableList->table)) {
+      $soapTableList = $soapTableList->table;
+    }
+    $table_list = array();
+    foreach ($soapTableList as $soapTable) {
+      $table_list[] = objectToArray($soapTable);
+    }
+    return $table_list;
+  } // END parseTableList()
+
+  //----------------------------------------------------------------------------
+
+  public function parseAvailablePaymentMethods($soapAvailablePaymentMethods) 
+  {
+    if (isset($soapAvailablePaymentMethods->paymentMethodList->paymentMethod)) {
+      $soapAvailablePaymentMethods = $soapAvailablePaymentMethods->paymentMethodList->paymentMethod;
+    }
+    $available_payment_methods = array();
+    foreach ($soapAvailablePaymentMethods as $soapAvailablePaymentMethod) {
+      $available_payment_methods[] = objectToArray($soapAvailablePaymentMethod);
+    }
+    return $available_payment_methods;
+  } // END parseAvailablePaymentMethods()
+
+  //----------------------------------------------------------------------------
+
+  public function parseCourseList($soapCourseList) 
+  {
+    if (isset($soapCourseList->course)) {
+      $soapCourseList = $soapCourseList->course;
+    }
+    $course_list = array();
+    foreach ($soapCourseList as $soapCourse) {
+      $course_list[] = objectToArray($soapCourse);
+    }
+    return $course_list;
+  } // END parseCourseList()
 
   //----------------------------------------------------------------------------
 
@@ -2186,6 +2333,20 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function parseWordAliases($soapWordAliases)
+  {
+    $word_aliases = array();
+    if (isset($soapWordAliases->wordAliasList->wordAlias)) {
+      $soapWordAliases = $soapWordAliases->wordAliasList->wordAlias;
+      foreach ($soapWordAliases as $soapWordAlias) {
+        $word_aliases[] = objectToArray($soapWordAlias);
+      }
+    }
+    return $word_aliases;
+  } // END parseWordAliases()
+
+  //----------------------------------------------------------------------------
+
   public function parseGetTurnoverGroupsResult($soapGetTurnoverGroupsResult) {
     $turnoverGroups = array();
     if (isset($soapGetTurnoverGroupsResult->turnoverGroupList->turnoverGroup)) {
@@ -2221,6 +2382,17 @@ class MplusQAPIDataParser
     }
     return $deliveryMethods;
   } // END parseGetDeliveryMethodsResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseGetPaymentMethodsResult($soapGetPaymentMethodsResult) {
+    $paymentMethods = array();
+    if (isset($soapGetPaymentMethodsResult->paymentMethodList->paymentMethod)) {
+      $soapPaymentMethods = $soapGetPaymentMethodsResult->paymentMethodList->paymentMethod;
+      $paymentMethods = objectToArray($soapPaymentMethods);
+    }
+    return $paymentMethods;
+  } // END parseGetPaymentMethodsResult()
 
   //----------------------------------------------------------------------------
 
@@ -2278,6 +2450,24 @@ class MplusQAPIDataParser
     }
     return false;
   } // END parseGetTableOrderResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseGetTableOrderCourseListResult($soapTableOrderCourseList) {    
+    if (isset($soapTableOrderCourseList->result)) {
+      if ($soapTableOrderCourseList->result == 'GET-TABLE-ORDER-COURSE-LIST-OK') {
+        $course_list = array();
+        if (isset($soapTableOrderCourseList->courseList->course)) {
+          $soapTableOrderCourseList = $soapTableOrderCourseList->courseList->course;
+          foreach ($soapTableOrderCourseList as $soapTableOrderCourse) {
+            $course_list[] = objectToArray($soapTableOrderCourse);
+          }
+        }
+        return $course_list;
+      }
+    }
+    return false;
+  } // END parseGetTableOrderCourseListResult()
 
   //----------------------------------------------------------------------------
 
@@ -2680,7 +2870,7 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertGetProductsRequest($articleNumbers, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker, $onlyWebshop, $onlyActive)
+  public function convertGetProductsRequest($articleNumbers, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker, $onlyWebshop, $onlyActive, $syncMarkerLimit)
   {
     if ( ! is_array($articleNumbers)) {
       if (is_null($articleNumbers)) {
@@ -2714,6 +2904,9 @@ class MplusQAPIDataParser
     }
     if ( ! is_null($syncMarker)) {
       $array['request']['syncMarker'] = (int)$syncMarker;
+      if ( ! is_null($syncMarkerLimit) && $syncMarkerLimit > 0) {
+        $array['request']['syncMarkerLimit'] = (int)$syncMarkerLimit;
+      }
     }
     if ( ! is_null($onlyWebshop) and is_bool($onlyWebshop)) {
       $array['request']['onlyWebshop'] = $onlyWebshop;
@@ -2727,7 +2920,7 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertGetRelationsRequest($relationNumbers, $syncMarker, $categoryId)
+  public function convertGetRelationsRequest($relationNumbers, $syncMarker, $categoryId, $syncMarkerLimit)
   {
     if ( ! is_array($relationNumbers)) {
       $relationNumbers = array($relationNumbers);
@@ -2740,6 +2933,9 @@ class MplusQAPIDataParser
     }
     if ( ! is_null($syncMarker)) {
       $array['request']['syncMarker'] = (int)$syncMarker;
+      if ( ! is_null($syncMarkerLimit) and $syncMarkerLimit > 0) {
+        $array['request']['syncMarkerLimit'] = (int)$syncMarkerLimit;
+      }
     }
     $object = arrayToObject($array);
     return $object;
@@ -2763,7 +2959,7 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertGetEmployeesRequest($employeeNumbers, $syncMarker)
+  public function convertGetEmployeesRequest($employeeNumbers, $syncMarker, $syncMarkerLimit)
   {
     if ( ! is_array($employeeNumbers)) {
       $employeeNumbers = array($employeeNumbers);
@@ -2773,6 +2969,9 @@ class MplusQAPIDataParser
       ));
     if ( ! is_null($syncMarker)) {
       $array['request']['syncMarker'] = (int)$syncMarker;
+      if ( ! is_null($syncMarkerLimit) and $syncMarkerLimit > 0) {
+        $array['request']['syncMarkerLimit'] = (int)$syncMarkerLimit;
+      }
     }
     $object = arrayToObject($array);
     return $object;
@@ -2917,7 +3116,7 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertGetOrdersRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes)
+  public function convertGetOrdersRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit)
   {
     $fromFinancialDate = is_null($fromFinancialDate)?null:$this->convertMplusDate($fromFinancialDate, 'fromFinancialDate');
     $throughFinancialDate = is_null($throughFinancialDate)?null:$this->convertMplusDate($throughFinancialDate, 'throughFinancialDate');
@@ -2942,19 +3141,28 @@ class MplusQAPIDataParser
     if ( ! is_array($articleBarcodes) and ! is_null($articleBarcodes)) {
       $articleBarcodes = array($articleBarcodes);
     }
-    
-    $object = arrayToObject(array('request'=>array(
-      'syncMarker'=>$syncMarker,
-      'fromFinancialDate'=>$fromFinancialDate,
-      'throughFinancialDate'=>$throughFinancialDate,
-      'branchNumbers'=>empty($branchNumbers)?null:array_values($branchNumbers),
-      'employeeNumbers'=>empty($employeeNumbers)?null:array_values($employeeNumbers),
-      'relationNumbers'=>empty($relationNumbers)?null:array_values($relationNumbers),
-      'articleNumbers'=>empty($articleNumbers)?null:array_values($articleNumbers),
-      'articleTurnoverGroups'=>empty($articleTurnoverGroups)?null:array_values($articleTurnoverGroups),
-      'articlePluNumbers'=>empty($articlePluNumbers)?null:array_values($articlePluNumbers),
-      'articleBarcodes'=>empty($articleBarcodes)?null:array_values($articleBarcodes),
-      )));
+
+    $array = array();
+    if ( ! is_null($syncMarker)) {
+      $array['syncMarker'] = (int)$syncMarker;
+      if ( ! is_null($syncMarkerLimit) and $syncMarkerLimit > 0) {
+        $array['syncMarkerLimit'] = (int)$syncMarkerLimit;
+      }
+    }
+    if ( ! is_null($fromFinancialDate)) {
+      $array['fromFinancialDate'] = $fromFinancialDate;
+    }
+    if ( ! is_null($throughFinancialDate)) {
+      $array['throughFinancialDate'] = $throughFinancialDate;
+    }
+    $array['branchNumbers'] = empty($branchNumbers)?null:array_values($branchNumbers);
+    $array['employeeNumbers'] = empty($employeeNumbers)?null:array_values($employeeNumbers);
+    $array['relationNumbers'] = empty($relationNumbers)?null:array_values($relationNumbers);
+    $array['articleNumbers'] = empty($articleNumbers)?null:array_values($articleNumbers);
+    $array['articleTurnoverGroups'] = empty($articleTurnoverGroups)?null:array_values($articleTurnoverGroups);
+    $array['articlePluNumbers'] = empty($articlePluNumbers)?null:array_values($articlePluNumbers);
+    $array['articleBarcodes'] = empty($articleBarcodes)?null:array_values($articleBarcodes);
+    $object = arrayToObject(array('request'=>$array));
     return $object;
   } // END convertGetOrdersRequest()
 
@@ -4070,6 +4278,24 @@ if ( ! function_exists('get_quantity_and_decimal_places')) {
     $quantity = (int)($orig_input * pow(10, $decimalPlaces));
     return array($quantity, $decimalPlaces);
   } // END get_quantity_and_decimal_places()
+}
+
+//----------------------------------------------------------------------------
+
+if ( ! function_exists('from_quantity_and_decimal_places')) {
+  function from_quantity_and_decimal_places($quantity, $decimalPlaces)
+  {
+    if (is_null($decimalPlaces)) {
+      $decimalPlaces = 0;
+    }
+    if ( ! is_numeric($quantity) and ! is_numeric($decimalPlaces)) {
+      return 0;
+    }
+    $output = (float)$quantity;
+    $decimalPlaces = (float)$decimalPlaces;
+    $output = $output / pow(10, $decimalPlaces);
+    return $output;
+  } // END from_quantity_and_decimal_places()
 }
 
 //------------------------------------------------------------------------------
