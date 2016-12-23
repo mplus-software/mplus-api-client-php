@@ -83,7 +83,7 @@ class MplusQAPIclient
       throw new MplusQAPIException('MplusQAPIClient needs the JSON PHP extension.');
     }
     if (PHP_INT_MAX <= 2147483647) {
-      throw new MplusQAPIException('MplusQAPIClient needs to run in a 64-bit system.');
+      throw new MplusQAPIException(sprintf('Your PHP_INT_MAX is %d. MplusQAPIClient needs to run in a 64-bit system.', PHP_INT_MAX));
     }
 
     $this->parser = new MplusQAPIDataParser();
@@ -247,9 +247,6 @@ class MplusQAPIclient
       $location_with_credentials .= 'secret='.urlencode($this->apiSecret);
     }
 
-    // increase max. wait time for API reply to 10 minutes
-    ini_set('default_socket_timeout', 600);
-
     $options = array(
       'location' => $location_with_credentials,
       'uri' => 'urn:mplusqapi',
@@ -270,6 +267,7 @@ class MplusQAPIclient
       if (false === $this->client or is_null($this->client)) {
         throw new MplusQAPIException('Unable to load SoapClient.');
       }
+      $this->getApiVersion();
     } catch (SoapFault $exception) {
       throw new MplusQAPIException($exception->getMessage());
     }
@@ -277,6 +275,9 @@ class MplusQAPIclient
     if ( ! $this->skipApiVersionCheck) {
       $this->checkApiVersion();
     }
+
+    // increase max. wait time for API reply to 10 minutes
+    ini_set('default_socket_timeout', 600);
 
     return true;
   } // END initClient()
