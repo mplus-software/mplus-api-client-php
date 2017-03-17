@@ -108,6 +108,11 @@ class MplusQAPIclient
     $this->apiServer = $apiServer;
   } // END setApiServer()
 
+  public function getApiServer()
+  {
+    return $this->apiServer;
+  } // END getApiServer()
+
   //----------------------------------------------------------------------------
 
   /**
@@ -118,6 +123,11 @@ class MplusQAPIclient
     $this->apiPort = $apiPort;
   } // END setApiPort()
 
+  public function getApiPort()
+  {
+    return $this->apiPort;
+  } // END getApiPort()
+
   //----------------------------------------------------------------------------
 
   /**
@@ -126,7 +136,12 @@ class MplusQAPIclient
   public function setApiPath($apiPath)
   {
     $this->apiPath = $apiPath;
-  } // END setApiPort()
+  } // END setApiPath()
+
+  public function getApiPath()
+  {
+    return $this->apiPath;
+  } // END getApiPath()
 
   //----------------------------------------------------------------------------
 
@@ -136,7 +151,12 @@ class MplusQAPIclient
   public function setApiFingerprint($apiFingerprint)
   {
     $this->apiFingerprint = trim(strtolower(str_replace(' ', '', $apiFingerprint)));
-  } // END setApiPort()
+  } // END setApiFingerprint()
+
+  public function getApiFingerprint()
+  {
+    return $this->apiFingerprint;
+  } // END getApiFingerprint()
 
   //----------------------------------------------------------------------------
 
@@ -146,7 +166,12 @@ class MplusQAPIclient
   public function setApiIdent($apiIdent)
   {
     $this->apiIdent = $apiIdent;
-  } // END setApiPort()
+  } // END setApiIdent()
+
+  public function getApiIdent()
+  {
+    return $this->apiIdent;
+  } // END getApiIdent()
 
   //----------------------------------------------------------------------------
 
@@ -156,7 +181,12 @@ class MplusQAPIclient
   public function setApiSecret($apiSecret)
   {
     $this->apiSecret = $apiSecret;
-  } // END setApiPort()
+  } // END setApiSecret()
+
+  public function getApiSecret()
+  {
+    return $this->apiSecret;
+  } // END getApiSecret()
 
   //----------------------------------------------------------------------------
 
@@ -168,6 +198,11 @@ class MplusQAPIclient
     $this->skipApiVersionCheck = $skipApiVersionCheck;
   } // END skipApiVersionCheck()
 
+  public function getSkipApiVersionCheck()
+  {
+    return $this->skipApiVersionCheck;
+  } // END getSkipApiVersionCheck()
+
   //----------------------------------------------------------------------------
 
   /**
@@ -177,6 +212,11 @@ class MplusQAPIclient
   {
     $this->skipFingerprintCheck = $skipFingerprintCheck;
   } // END skipFingerprintCheck()
+
+  public function getSkipFingerprintCheck()
+  {
+    return $this->skipFingerprintCheck;
+  } // END getSkipFingerprintCheck()
 
   //----------------------------------------------------------------------------
 
@@ -190,6 +230,11 @@ class MplusQAPIclient
       $this->parser->setConvertToTimestamps($this->convertToTimestamps);
     }
   } // END setConvertToTimestamps()
+
+  public function getConvertToTimestamps()
+  {
+    return $this->convertToTimestamps;
+  } // END getConvertToTimestamps()
 
   //----------------------------------------------------------------------------
 
@@ -208,6 +253,11 @@ class MplusQAPIclient
     $this->connection_timeout = $connection_timeout;
   } // END setConnectionTimeout()
 
+  public function getConnectionTimeout()
+  {
+    return $this->connection_timeout;
+  } // END getConnectionTimeout()
+
   //----------------------------------------------------------------------------
 
   /**
@@ -217,6 +267,11 @@ class MplusQAPIclient
   {
     $this->debug = $debug;
   } // END setDebug()
+
+  public function getDebug()
+  {
+    return $this->debug;
+  } // END getDebug()
 
   //----------------------------------------------------------------------------
 
@@ -665,6 +720,20 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function getPaymentMethodsV2($accountNumber=null)
+  {
+    try {
+      $result = $this->client->getPaymentMethodsV2($this->parser->convertGetPaymentMethodsV2Request($accountNumber));
+      return $this->parser->parseGetPaymentMethodsResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getDeliveryMethods()
+
+  //----------------------------------------------------------------------------
+
   public function getProducts($articleNumbers = array(), $groupNumbers = array(), $pluNumbers = array(), $changedSinceTimestamp = null, $changedSinceBranchNumber = null, $syncMarker = null, $onlyWebshop = null, $onlyActive = null, $syncMarkerLimit = null)
   {
     try {
@@ -879,7 +948,6 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->setStock($this->parser->convertSetStockRequest($branchNumber, $articleNumber, $amount));
-      i($result);
       return $this->parser->parseSetStockResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -985,6 +1053,20 @@ class MplusQAPIclient
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
   } // END getOrders()
+
+  //----------------------------------------------------------------------------
+
+  public function getOrderChanges($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers = null, $employeeNumbers = null, $relationNumbers = null, $articleNumbers = null, $articleTurnoverGroups = null, $articlePluNumbers = null, $articleBarcodes = null, $syncMarkerLimit = null, $orderTypeList = null)
+  {
+    try {
+      $result = $this->client->getOrderChanges($this->parser->convertGetOrdersRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit, $orderTypeList));
+      return $this->parser->parseGetOrderChangesResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getOrderChanges()
 
   //----------------------------------------------------------------------------
 
@@ -1158,6 +1240,20 @@ class MplusQAPIclient
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
   } // END updateTurnoverGroups()
+
+  //----------------------------------------------------------------------------
+
+  public function getAllergens()
+  {
+    try {
+      $result = $this->client->getAllergens();
+      return $this->parser->parseGetAllergensResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getAllergens()
 
   //----------------------------------------------------------------------------
 
@@ -1711,6 +1807,32 @@ class MplusQAPIDataParser
     if (isset($soapArticlesInLayout->return)) {
       $soapArticlesInLayout = $soapArticlesInLayout->return;
       $articlesInLayout = objectToArray($soapArticlesInLayout);
+      foreach ($articlesInLayout as $idx => $article) {
+        if (isset($article['allergenList']['allergen'])) {
+          $article['allergenList'] = $article['allergenList']['allergen'];
+          $articlesInLayout[$idx] = $article;
+        }
+        if (isset($article['preparationMethods']['preparationMethod'])) {
+          $article['preparationMethods'] = $article['preparationMethods']['preparationMethod'];
+          $articlesInLayout[$idx] = $article;
+        }
+        foreach ($article['preparationMethods'] as $idx2 => $preparationMethod) {
+          if (isset($preparationMethod['allergenList']['allergen'])) {
+            $preparationMethod['allergenList'] = $preparationMethod['allergenList']['allergen'];
+            $articlesInLayout[$idx]['preparationMethods'][$idx2] = $preparationMethod;
+          }
+        }
+        if (isset($article['componentArticles']['componentArticle'])) {
+          $article['componentArticles'] = $article['componentArticles']['componentArticle'];
+          $articlesInLayout[$idx] = $article;
+        }
+        foreach ($article['componentArticles'] as $idx2 => $componentArticle) {
+          if (isset($componentArticle['allergenList']['allergen'])) {
+            $componentArticle['allergenList'] = $componentArticle['allergenList']['allergen'];
+            $articlesInLayout[$idx]['componentArticles'][$idx2] = $componentArticle;
+          }
+        }
+      }
       return $articlesInLayout;
     } else {
       return false;
@@ -1811,6 +1933,23 @@ class MplusQAPIDataParser
           foreach ($product['articleList'] as $idx => $article) {
             $orig_article = $article;
             $article['imageList'] = $this->parseImageList(isset($article['imageList'])?$article['imageList']:array());
+            if (isset($article['allergenList']['allergen'])) {
+              $article['allergenList'] = $article['allergenList']['allergen'];
+            }
+            if (isset($article['preparationMethodList']['preparationMethod'])) {
+              $article['preparationMethodList'] = $article['preparationMethodList']['preparationMethod'];
+            }
+            if (isset($article['preparationMethodList'])) {
+              foreach ($article['preparationMethodList'] as $idx2 => $preparationMethod) {
+                if (isset($preparationMethod['allergenList']['allergen'])) {
+                  $preparationMethod['allergenList'] = $preparationMethod['allergenList']['allergen'];
+                  $article['preparationMethodList'][$idx2] = $preparationMethod;
+                }
+              }
+            }
+            if (isset($article['customFieldList']['customField'])) {
+              $article['customFieldList'] = $article['customFieldList']['customField'];
+            }
             $product['articleList'][$idx] = $article;
           }
         }
@@ -2148,6 +2287,11 @@ class MplusQAPIDataParser
             $invoice['lineList'] = $invoice['lineList']['line'];
           }
         }
+        if (isset($invoice['paymentList'])) {
+          if (isset($invoice['paymentList']['payment'])) {
+            $invoice['paymentList'] = $invoice['paymentList']['payment'];
+          }
+        }
         return $invoice;
       }
     }
@@ -2241,7 +2385,8 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function parseGetOrdersResult($soapOrdersResult) {
+  public function parseGetOrdersResult($soapOrdersResult)
+  {
     $orders = array();
     if (isset($soapOrdersResult->orderList->order)) {
       $soapOrders = $soapOrdersResult->orderList->order;
@@ -2266,6 +2411,29 @@ class MplusQAPIDataParser
     }
     return $orders;
   } // END parseGetOrdersResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseGetOrderChangesResult($soapOrderChangesResult)
+  {
+    $order_changes = array();
+    if (isset($soapOrderChangesResult->orderChangeList->orderChange)) {
+      $soapOrderChanges = $soapOrderChangesResult->orderChangeList->orderChange;
+      $order_changes = objectToArray($soapOrderChanges);
+      foreach ($order_changes as $key => $order_change) {
+        if (isset($order_change['lineChangeList']['lineChange'])) {
+          $order_change['lineChangeList'] = $order_change['lineChangeList']['lineChange'];
+        } else {
+          $order_change['lineChangeList'] = array();
+        }
+        foreach ($order_change['lineChangeList'] as $line_change_key => $line_change) {
+          $order_change['lineChangeList'][$line_change_key] = $line_change;
+        }
+        $order_changes[$key] = $order_change;
+      }
+    }
+    return $order_changes;
+  } // END parseGetOrderChangesResult()
 
   //----------------------------------------------------------------------------
 
@@ -2395,6 +2563,17 @@ class MplusQAPIDataParser
     }
     return $paymentMethods;
   } // END parseGetPaymentMethodsResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseGetAllergensResult($soapGetAllergensResult) {
+    $allergens = array();
+    if (isset($soapGetAllergensResult->allergens->allergen)) {
+      $soapAllergens = $soapGetAllergensResult->allergens->allergen;
+      $allergens = objectToArray($soapAllergens);
+    }
+    return $allergens;
+  } // END parseGetAllergensResult()
 
   //----------------------------------------------------------------------------
 
@@ -2675,6 +2854,9 @@ class MplusQAPIDataParser
       } else {
         return true;
       }
+    } elseif (isset($soapUpdateStockResult->result) and $soapUpdateStockResult->result == 'UPDATE-STOCK-RESULT-NO-STOCK-ARTICLE') {
+      $this->lastErrorMessage = $soapUpdateStockResult->result;
+      return false;
     } else {
       return false;
     }
@@ -2690,6 +2872,9 @@ class MplusQAPIDataParser
       } else {
         return true;
       }
+    } elseif (isset($soapSetStockResult->result) and $soapSetStockResult->result == 'SET-STOCK-RESULT-NO-STOCK-ARTICLE') {
+      $this->lastErrorMessage = $soapSetStockResult->result;
+      return false;
     } else {
       return false;
     }
@@ -2869,6 +3054,18 @@ class MplusQAPIDataParser
     }
     return $result;
   } // END parseUpdateProductResult()
+
+  //----------------------------------------------------------------------------
+
+  public function convertGetPaymentMethodsV2Request($accountNumber)
+  {
+    $array = array('request'=>array());
+    if ( ! is_null($accountNumber) and strlen($accountNumber) > 0) {
+      $array['request']['accountNumber'] = $accountNumber;
+    }
+    $object = arrayToObject($array);
+    return $object;
+  } // END convertGetPaymentMethodsV2Request()
 
   //----------------------------------------------------------------------------
 
@@ -3118,7 +3315,7 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertGetOrdersRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit)
+  public function convertGetOrdersRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit, $orderTypeList=null)
   {
     $fromFinancialDate = is_null($fromFinancialDate)?null:$this->convertMplusDate($fromFinancialDate, 'fromFinancialDate');
     $throughFinancialDate = is_null($throughFinancialDate)?null:$this->convertMplusDate($throughFinancialDate, 'throughFinancialDate');
@@ -3164,6 +3361,15 @@ class MplusQAPIDataParser
     $array['articleTurnoverGroups'] = empty($articleTurnoverGroups)?null:array_values($articleTurnoverGroups);
     $array['articlePluNumbers'] = empty($articlePluNumbers)?null:array_values($articlePluNumbers);
     $array['articleBarcodes'] = empty($articleBarcodes)?null:array_values($articleBarcodes);
+    if ( ! is_null($orderTypeList)) {
+      if ( ! is_array($orderTypeList) and ! is_null($orderTypeList)) {
+        $orderTypeList = array($orderTypeList);
+      }
+      if ( ! array_key_exists('orderType', $orderTypeList)) {
+        $orderTypeList = array('orderType'=>$orderTypeList);
+      }
+      $array['orderTypeList'] = $orderTypeList;
+    }
     $object = arrayToObject(array('request'=>$array));
     return $object;
   } // END convertGetOrdersRequest()
@@ -3537,14 +3743,9 @@ class MplusQAPIDataParser
   //----------------------------------------------------------------------------
 
   public function convertRelation($relation) {
-    if ( ! isset($relation['customFieldList'])) {
-      $relation['customFieldList'] = array();
-    }
-    if ( ! empty($relation['customFieldList'])) {
+    if (isset($relation['customFieldList']) and ! empty($relation['customFieldList'])) {
       if ( ! isset($relation['customFieldList']['customField'])) {
-        $relation['customFieldList'] = array(
-          'customField' => $relation['customFieldList']
-          );
+        $relation['customFieldList'] = array('customField' => $relation['customFieldList']);
         foreach ($relation['customFieldList']['customField'] as $cf_idx => $customField) {
           if ( ! isset($customField['dataType'])) {
             $relation['customFieldList']['customField'][$cf_idx]['dataType'] = 'DATA-TYPE-UNKNOWN';
@@ -3557,7 +3758,7 @@ class MplusQAPIDataParser
           }
         }
       }
-    } // endif ( ! empty($relation['customFieldList']))
+    }
     $object = arrayToObject(array('relation'=>$relation));
     return $object;
   } // END convertRelation()
@@ -3565,14 +3766,9 @@ class MplusQAPIDataParser
   //----------------------------------------------------------------------------
 
   public function convertEmployee($employee) {
-    if ( ! isset($employee['customFieldList'])) {
-      $employee['customFieldList'] = array();
-    }
-    if ( ! empty($employee['customFieldList'])) {
+    if (isset($employee['customFieldList']) and ! empty($employee['customFieldList'])) {
       if ( ! isset($employee['customFieldList']['customField'])) {
-        $employee['customFieldList'] = array(
-          'customField' => $employee['customFieldList']
-          );
+        $employee['customFieldList'] = array('customField' => $employee['customFieldList']);
         foreach ($employee['customFieldList']['customField'] as $cf_idx => $customField) {
           if ( ! isset($customField['dataType'])) {
             $employee['customFieldList']['customField'][$cf_idx]['dataType'] = 'DATA-TYPE-UNKNOWN';
@@ -3585,7 +3781,7 @@ class MplusQAPIDataParser
           }
         }
       }
-    } // endif ( ! empty($employee['customFieldList']))
+    }
     $object = arrayToObject(array('employee'=>$employee));
     return $object;
   } // END convertEmployee()
@@ -3602,87 +3798,13 @@ class MplusQAPIDataParser
 
   public function convertProduct($product)
   {
-    if ( ! isset($product['productNumber'])) {
-      $product['productNumber'] = 0;
-    }
-    if ( ! isset($product['syncMarker'])) {
-      $product['syncMarker'] = 0;
-    }
-    if ( ! isset($product['description'])) {
-      $product['description'] = '';
-    }
-    if ( ! isset($product['extraText'])) {
-      $product['extraText'] = '';
-    }
-    if ( ! isset($product['articleList'])) {
-      $product['articleList'] = array();
-    }
-    if ( ! isset($product['articleList']['article'])) {
+    if (isset($product['articleList']) and ! isset($product['articleList']['article'])) {
       $product['articleList'] = array('article' => $product['articleList']);
-    }
-    foreach ($product['articleList']['article'] as $idx => $article) {
-      if ( ! isset($article['articleNumber'])) {
-        $article['articleNumber'] = 0;
-      }
-      if ( ! isset($article['pluNumber'])) {
-        $article['pluNumber'] = 0;
-      }
-      if ( ! isset($article['syncMarker'])) {
-        $article['syncMarker'] = 0;
-      }
-      if ( ! isset($article['description'])) {
-        $article['description'] = '';
-      }
-      if ( ! isset($article['colour'])) {
-        $article['colour'] = '';
-      }
-      if ( ! isset($article['size'])) {
-        $article['size'] = '';
-      }
-      if ( ! isset($article['invoiceText'])) {
-        $article['invoiceText'] = '';
-      }
-      if ( ! isset($article['receiptText'])) {
-        $article['receiptText'] = '';
-      }
-      if ( ! isset($article['displayText'])) {
-        $article['displayText'] = '';
-      }
-      if ( ! isset($article['barcode'])) {
-        $article['barcode'] = '';
-      }
-      if ( ! isset($article['turnoverGroup'])) {
-        $article['turnoverGroup'] = 0;
-      }
-      if ( ! isset($article['vatCode'])) {
-        $article['vatCode'] = 0;
-      }
-      if ( ! isset($article['vatPercentage'])) {
-        $article['vatPercentage'] = 0;
-      }
-      if ( ! isset($article['purchasePrice'])) {
-        $article['purchasePrice'] = 0;
-      }
-      if ( ! isset($article['priceIncl'])) {
-        $article['priceIncl'] = 0;
-      }
-      if ( ! isset($article['priceExcl'])) {
-        $article['priceExcl'] = 0;
-      }
-      if ( ! isset($article['webshop'])) {
-        $article['webshop'] = false;
-      }
-      if ( ! isset($article['imageList'])) {
-        $article['imageList'] = array();
-      }
-      if ( ! isset($article['customFieldList'])) {
-        $article['customFieldList'] = array();
-      }
-      if ( ! empty($article['customFieldList'])) {
-        if ( ! isset($article['customFieldList']['customField'])) {
-          $article['customFieldList'] = array(
-            'customField' => $article['customFieldList']
-            );
+      foreach ($product['articleList']['article'] as $idx => $article) {
+        if (isset($article['customFieldList']) and ! empty($article['customFieldList'])) {
+          if ( ! isset($article['customFieldList']['customField'])) {
+            $article['customFieldList'] = array('customField' => $article['customFieldList']);
+          }
           foreach ($article['customFieldList']['customField'] as $cf_idx => $customField) {
             if ( ! isset($customField['dataType'])) {
               $article['customFieldList']['customField'][$cf_idx]['dataType'] = 'DATA-TYPE-UNKNOWN';
@@ -3695,16 +3817,23 @@ class MplusQAPIDataParser
             }
           }
         }
-      } // endif ( ! empty($article['customFieldList']))
-      if ( ! isset($article['imageList']['image']) and ! empty($article['imageList'])) {
-        $article['imageList'] = array('image' => $article['imageList']);
-      }  
-      $product['articleList']['article'][$idx] = $article;
+        if (isset($article['imageList']) and ! isset($article['imageList']['image']) and ! empty($article['imageList'])) {
+          $article['imageList'] = array('image' => $article['imageList']);
+        }
+        if (isset($article['allergenList']) and ! empty($article['allergenList'])) {
+          if ( ! isset($article['allergenList']['allergen'])) {
+            $article['allergenList'] = array('allergen' => $article['allergenList']);
+          }
+          foreach ($article['allergenList']['allergen'] as $al_idx => $allergen) {
+            if ( ! isset($allergen['description'])) {
+              $article['allergenList']['allergen'][$al_idx]['description'] = '';
+            }
+          }
+        }
+        $product['articleList']['article'][$idx] = $article;
+      }
     }
-    if ( ! array_key_exists('sortOrderGroupList', $product)) {
-      $product['sortOrderGroupList'] = array();
-    }
-    if ( ! array_key_exists('sortOrderGroup', $product['sortOrderGroupList']) and ! empty($product['sortOrderGroupList'])) {
+    if (array_key_exists('sortOrderGroupList', $product) and ! array_key_exists('sortOrderGroup', $product['sortOrderGroupList']) and ! empty($product['sortOrderGroupList'])) {
       $product['sortOrderGroupList'] = array('sortOrderGroup' => $product['sortOrderGroupList']);
     }
     $object = arrayToObject(array('product'=>$product));
@@ -4342,15 +4471,21 @@ if ( ! function_exists('arrayToObject')) {
       */
       if (isset($d['articleNumbers']) or isset($d['groupNumbers']) 
           or isset($d['imageIds']) or isset($d['journalFilter']) 
-          or isset($d['turnoverGroup']) or isset($d['customField']) 
+          or isset($d['turnoverGroup']) or isset($d['customField'])          
+          or isset($d['description']) or isset($d['receiptText'])
+          or isset($d['invoiceText']) or isset($d['displayText'])
           or isset($d['relationNumbers']) or isset($d['supplierRelationNumbers'])
           or isset($d['articleTurnoverGroups']) or isset($d['branchNumbers'])
-          or isset($d['employeeNumbers']) or isset($d['employeeNumbers'])) {
+          or isset($d['employeeNumbers']) or isset($d['employeeNumbers'])
+          or isset($d['allergen']) or isset($d['orderType'])) {
         if ( ! is_null($leave_as_array)) {
           $global_leave_as_array = null;
         }
         if (isset($d['customFieldList'])) {
           $d['customFieldList'] = (object)$d['customFieldList'];
+        }
+        if (isset($d['allergenList'])) {
+          $d['allergenList'] = (object)$d['allergenList'];
         }
         return (object) $d;
       }
@@ -4367,6 +4502,21 @@ if ( ! function_exists('arrayToObject')) {
         return array_map(__FUNCTION__, $d);
       }
       elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['articleNumber'])) {
+        return array_map(__FUNCTION__, $d);
+      }
+      elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['description'])) {
+        return array_map(__FUNCTION__, $d);
+      }
+      elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['receiptText'])) {
+        return array_map(__FUNCTION__, $d);
+      }
+      elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['purchasePrice'])) {
+        return array_map(__FUNCTION__, $d);
+      }
+      elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['priceIncl'])) {
+        return array_map(__FUNCTION__, $d);
+      }
+      elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['priceExcl'])) {
         return array_map(__FUNCTION__, $d);
       }
       elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['groupNumber'])) {
