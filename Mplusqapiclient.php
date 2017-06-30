@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.3.0';
+  const CLIENT_VERSION  = '1.3.2';
   
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -11,7 +11,7 @@ class MplusQAPIclient
 
   var $MAX_API_VERSION_MAJOR = 1;
   var $MAX_API_VERSION_MINOR = 0;
-  var $MAX_API_VERSION_REVIS = 1;
+  var $MAX_API_VERSION_REVIS = 0;
 
   var $debug = false;
 
@@ -45,6 +45,10 @@ class MplusQAPIclient
    * @var 
    */
   private $client = null;
+  /**
+   * @var
+   */
+  private $apiVersionBenchmark = null;
   /**
    * @var
    */
@@ -318,11 +322,16 @@ class MplusQAPIclient
 
     $wsdl_url = $location.'?wsdl';
     try {
+      if (false === get_headers($wsdl_url)) {
+        throw new MplusQAPIException(sprintf('Cannot find API WSDL @ %s', $wsdl_url));
+      }
       $this->client = @new SoapClient($wsdl_url, $options);
       if (false === $this->client or is_null($this->client)) {
         throw new MplusQAPIException('Unable to load SoapClient.');
       }
-      $this->getApiVersion();
+      if (false !== ($apiVersion = $this->getApiVersion())) {
+        $this->apiVersionBenchmark = $this->createApiVersionBenchmark($apiVersion);
+      }
     } catch (SoapFault $exception) {
       throw new MplusQAPIException($exception->getMessage());
     }
@@ -336,6 +345,48 @@ class MplusQAPIclient
 
     return true;
   } // END initClient()
+
+  //----------------------------------------------------------------------------
+
+  public function createApiVersionBenchmark($apiVersion)
+  {
+    if (is_array($apiVersion)) {
+      if (array_key_exists('majorNumber', $apiVersion) and array_key_exists('minorNumber', $apiVersion) and array_key_exists('revisionNumber', $apiVersion)) {
+        return ($apiVersion['majorNumber']*1000000)+($apiVersion['minorNumber']*1000)+($apiVersion['revisionNumber']);
+      } else {
+        return false;
+      }
+    }
+    if (1 === preg_match('/^([0-9]+)\.([0-9]+)\.([0-9]+)$/', $apiVersion, $matches)) {
+      return ($matches[1]*1000000)+($matches[2]*1000)+($matches[3]);
+    } else {
+      return false;
+    }
+  } // END createApiVersionBenchmark()
+
+  //----------------------------------------------------------------------------
+
+  public function isApiVersionLowerThan($apiVersion)
+  {
+    if ( ! is_null($this->apiVersionBenchmark) and false !== $this->apiVersionBenchmark) {
+      if (false !== ($apiVersionBenchmark = $this->createApiVersionBenchmark($apiVersion))) {
+        return $this->apiVersionBenchmark < $apiVersionBenchmark;
+      }
+    }
+    throw new MplusQAPIException('Can\'t check API version compatibility.');
+  } // END isApiVersionLowerThan()
+
+  //----------------------------------------------------------------------------
+
+  public function isApiVersionGreaterThan($apiVersion)
+  {
+    if ( ! is_null($this->apiVersionBenchmark) and false !== $this->apiVersionBenchmark) {
+      if (false !== ($apiVersionBenchmark = $this->createApiVersionBenchmark($apiVersion))) {
+        return $this->apiVersionBenchmark > $apiVersionBenchmark;
+      }
+    }
+    throw new MplusQAPIException('Can\'t check API version compatibility.');
+  } // END isApiVersionGreaterThan()
 
   //----------------------------------------------------------------------------
 
@@ -453,13 +504,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getApiVersion()
+  public function getApiVersion($attempts=0)
   {
     try {
       $result = $this->client->getApiVersion();
       return $this->parser->parseApiVersion($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getApiVersion($attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -467,13 +524,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getDatabaseVersion()
+  public function getDatabaseVersion($attempts=0)
   {
     try {
       $result = $this->client->getDatabaseVersion();
       return $this->parser->parseDatabaseVersion($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getDatabaseVersion($attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -481,13 +544,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getTerminalSettings($terminal)
+  public function getTerminalSettings($terminal, $attempts=0)
   {
     try {
       $result = $this->client->getTerminalSettings($this->parser->convertTerminal($terminal));
       return $this->parser->parseTerminalSettings($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getTerminalSettings($terminal, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -495,13 +564,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getMaxTableNumber($terminal)
+  public function getMaxTableNumber($terminal, $attempts=0)
   {
     try {
       $result = $this->client->getMaxTableNumber($this->parser->convertTerminal($terminal));
       return $this->parser->parseMaxTableNumber($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getMaxTableNumber($terminal, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -510,13 +585,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getCurrentSyncMarkers()
+  public function getCurrentSyncMarkers($attempts=0)
   {
     try {
       $result = $this->client->getCurrentSyncMarkers();
       return $this->parser->parseCurrentSyncMarkers($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getCurrentSyncMarkers($attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -524,13 +605,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getCustomFieldLists()
+  public function getCustomFieldLists($attempts=0)
   {
     try {
       $result = $this->client->getCustomFieldLists();
       return $this->parser->parseCustomFieldLists($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getCustomFieldLists($attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -538,13 +625,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getCardCategories()
+  public function getCardCategories($attempts=0)
   {
     try {
       $result = $this->client->getCardCategories();
       return $this->parser->parseCardCategories($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getCardCategories($attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -552,13 +645,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getAvailableTerminalList()
+  public function getAvailableTerminalList($attempts=0)
   {
     try {
       $result = $this->client->getAvailableTerminalList();
       return $this->parser->parseTerminalList($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getAvailableTerminalList($attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -566,13 +665,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getButtonLayout($terminal)
+  public function getButtonLayout($terminal, $attempts=0)
   {
     try {
       $result = $this->client->getButtonLayout($this->parser->convertTerminal($terminal));
       return $this->parser->parseButtonLayout($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getButtonLayout($terminal, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -580,13 +685,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getArticlesInLayout($terminal)
+  public function getArticlesInLayout($terminal, $attempts=0)
   {
     try {
       $result = $this->client->getArticlesInLayout($this->parser->convertTerminal($terminal));
       return $this->parser->parseArticlesInLayout($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getArticlesInLayout($terminal, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -594,13 +705,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getActiveEmployeeList($terminal)
+  public function getActiveEmployeeList($terminal, $attempts=0)
   {
     try {
       $result = $this->client->getActiveEmployeeList($this->parser->convertTerminal($terminal));
       return $this->parser->parseActiveEmployeeList($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getActiveEmployeeList($terminal, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -608,13 +725,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getTableList($terminal)
+  public function getTableList($terminal, $attempts=0)
   {
     try {
       $result = $this->client->getTableList($this->parser->convertTerminal($terminal));
       return $this->parser->parseTableList($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getTableList($terminal, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -622,13 +745,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getAvailablePaymentMethods($terminal)
+  public function getAvailablePaymentMethods($terminal, $attempts=0)
   {
     try {
       $result = $this->client->getAvailablePaymentMethods($this->parser->convertTerminal($terminal));
       return $this->parser->parseAvailablePaymentMethods($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getAvailablePaymentMethods($terminal, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -636,13 +765,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getCourseList($terminal)
+  public function getCourseList($terminal, $attempts=0)
   {
     try {
       $result = $this->client->getCourseList($this->parser->convertTerminal($terminal));
       return $this->parser->parseCourseList($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getCourseList($terminal, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -650,13 +785,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getVatGroupList()
+  public function getVatGroupList($attempts=0)
   {
     try {
       $result = $this->client->getVatGroupList();
       return $this->parser->parseVatGroupList($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getVatGroupList($attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -664,13 +805,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getPriceGroupList()
+  public function getPriceGroupList($attempts=0)
   {
     try {
       $result = $this->client->getPriceGroupList();
       return $this->parser->parsePriceGroupList($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getPriceGroupList($attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -678,13 +825,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getSalesPriceList()
+  public function getSalesPriceList($attempts=0)
   {
     try {
       $result = $this->client->getSalesPriceList();
       return $this->parser->parseSalesPriceList($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getSalesPriceList($attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -692,13 +845,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getDeliveryMethods()
+  public function getDeliveryMethods($attempts=0)
   {
     try {
       $result = $this->client->getDeliveryMethods();
       return $this->parser->parseGetDeliveryMethodsResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getDeliveryMethods($attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -706,13 +865,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getPaymentMethods()
+  public function getPaymentMethods($attempts=0)
   {
     try {
       $result = $this->client->getPaymentMethods();
       return $this->parser->parseGetPaymentMethodsResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getPaymentMethods($attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -734,13 +899,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getProducts($articleNumbers = array(), $groupNumbers = array(), $pluNumbers = array(), $changedSinceTimestamp = null, $changedSinceBranchNumber = null, $syncMarker = null, $onlyWebshop = null, $onlyActive = null, $syncMarkerLimit = null)
+  public function getProducts($articleNumbers = array(), $groupNumbers = array(), $pluNumbers = array(), $changedSinceTimestamp = null, $changedSinceBranchNumber = null, $syncMarker = null, $onlyWebshop = null, $onlyActive = null, $syncMarkerLimit = null, $attempts = 0)
   {
     try {
       $result = $this->client->getProducts($this->parser->convertGetProductsRequest($articleNumbers, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker, $onlyWebshop, $onlyActive, $syncMarkerLimit));
       return $this->parser->parseProducts($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getProducts($articleNumbers, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker, $onlyWebshop, $onlyActive, $syncMarkerLimit, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -748,13 +919,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getRelations($relationNumbers = array(), $syncMarker = null, $categoryId = null, $syncMarkerLimit = null)
+  public function getRelations($relationNumbers=array(), $syncMarker=null, $categoryId=null, $syncMarkerLimit=null, $attempts=0)
   {
     try {
       $result = $this->client->getRelations($this->parser->convertGetRelationsRequest($relationNumbers, $syncMarker, $categoryId, $syncMarkerLimit));
       return $this->parser->parseRelations($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getRelations($relationNumbers, $syncMarker, $categoryId, $syncMarkerLimit, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -762,13 +939,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
   
-  public function getImages($imageIds = array(), $includeImageData = true, $includeThumbData = true)
+  public function getImages($imageIds=array(), $includeImageData=true, $includeThumbData=true, $attempts=0)
   {
     try {
       $result = $this->client->getImages($this->parser->convertGetImagesRequest($imageIds, $includeImageData, $includeThumbData));
       return $this->parser->parseImages($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getImages($imageIds, $includeImageData, $includeThumbData, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -776,13 +959,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function findEmployee($employee)
+  public function findEmployee($employee, $attempts=0)
   {
     try {
       $result = $this->client->findEmployee($this->parser->convertEmployee($employee));
       return $this->parser->parseFindEmployeeResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->findEmployee($employee, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -790,13 +979,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getEmployee($employeeNumber)
+  public function getEmployee($employeeNumber, $attempts=0)
   {
     try {      
       $result = $this->client->getEmployee($this->parser->convertGeneric('employeeNumber', $employeeNumber));
       return $this->parser->parseEmployee($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getEmployee($employeeNumber, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -804,13 +999,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getEmployees($employeeNumbers = array(), $syncMarker = null, $syncMarkerLimit = null)
+  public function getEmployees($employeeNumbers=array(), $syncMarker=null, $syncMarkerLimit=null, $attempts=0)
   {
     try {
       $result = $this->client->getEmployees($this->parser->convertGetEmployeesRequest($employeeNumbers, $syncMarker, $syncMarkerLimit));
       return $this->parser->parseEmployees($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getEmployees($employeeNumbers, $syncMarker, $syncMarkerLimit, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -874,13 +1075,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getArticleGroups($groupNumbers = array())
+  public function getArticleGroups($groupNumbers=array(), $attempts=0)
   {
     try {
       $result = $this->client->getArticleGroups($this->parser->convertGetArticleGroupsRequest($groupNumbers));
       return $this->parser->parseArticleGroups($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getArticleGroups($groupNumbers, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -902,13 +1109,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getStock($branchNumber, $articleNumbers = array(), $stockId = null)
+  public function getStock($branchNumber, $articleNumbers=array(), $stockId=null, $attempts=0)
   {
     try {
       $result = $this->client->getStock($this->parser->convertGetStockRequest($branchNumber, $articleNumbers, $stockId));
       return $this->parser->parseStock($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getStock($branchNumber, $articleNumbers, $stockId, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -916,13 +1129,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getStockHistory($branchNumber, $articleNumbers = array(), $sinceStockId = null, $fromFinancialDateTime = null, $throughFinancialDateTime = null)
+  public function getStockHistory($branchNumber, $articleNumbers=array(), $sinceStockId=null, $fromFinancialDateTime=null, $throughFinancialDateTime=null, $attempts=0)
   {
     try {
       $result = $this->client->getStockHistory($this->parser->convertGetStockHistoryRequest($branchNumber, $articleNumbers, $sinceStockId, $fromFinancialDateTime, $throughFinancialDateTime));
       return $this->parser->parseStockHistory($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getStockHistory($branchNumber, $articleNumbers, $sinceStockId, $fromFinancialDateTime, $throughFinancialDateTime, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -958,13 +1177,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getShifts($fromFinancialDate, $throughFinancialDate, $branchNumbers = array(), $employeeNumbers = array())
+  public function getShifts($fromFinancialDate, $throughFinancialDate, $branchNumbers=array(), $employeeNumbers=array(), $attempts=0)
   {
     try {
       $result = $this->client->getShifts($this->parser->convertGetShiftsRequest($fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers));
       return $this->parser->parseShifts($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getShifts($fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -972,13 +1197,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function findOrder($extOrderId)
+  public function findOrder($extOrderId, $attempts=0)
   {
     try {
       $result = $this->client->findOrder($this->parser->convertExtOrderId($extOrderId));
       return $this->parser->parseOrderResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->findOrder($extOrderId, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -1028,13 +1259,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getOrder($orderId)
+  public function getOrder($orderId, $attempts=0)
   {
     try {
       $result = $this->client->getOrder($this->parser->convertOrderId($orderId));
       return $this->parser->parseOrderResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getOrder($orderId, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -1042,13 +1279,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getOrders($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers = null, $employeeNumbers = null, $relationNumbers = null, $articleNumbers = null, $articleTurnoverGroups = null, $articlePluNumbers = null, $articleBarcodes = null, $syncMarkerLimit = null)
+  public function getOrders($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers=null, $employeeNumbers=null, $relationNumbers=null, $articleNumbers=null, $articleTurnoverGroups=null, $articlePluNumbers=null, $articleBarcodes=null, $syncMarkerLimit=null, $attempts=0)
   {
     try {
       $result = $this->client->getOrders($this->parser->convertGetOrdersRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit));
       return $this->parser->parseGetOrdersResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getOrders($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -1070,13 +1313,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getOrderCategories()
+  public function getOrderCategories($attempts=0)
   {
     try {
       $result = $this->client->getOrderCategories();
       return $this->parser->parseOrderCategories($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getOrderCategories($attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -1084,15 +1333,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getReceipts($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers = null, $employeeNumbers = null, $relationNumbers = null, $articleNumbers = null, $articleTurnoverGroups = null, $articlePluNumbers = null, $articleBarcodes = null, $supplierRelationNumbers = null)
+  public function getReceipts($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers=null, $employeeNumbers=null, $relationNumbers=null, $articleNumbers=null, $articleTurnoverGroups=null, $articlePluNumbers=null, $articleBarcodes=null, $supplierRelationNumbers=null, $attempts=0)
   {
     try {
-      // i($this->parser->convertGetReceiptsRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $supplierRelationNumbers));
       $result = $this->client->getReceipts($this->parser->convertGetReceiptsRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $supplierRelationNumbers));
-      // i($this->client->__getLastRequest());
       return $this->parser->parseGetReceiptsResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getReceipts($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $supplierRelationNumbers, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -1100,13 +1353,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getReceiptsByOrder($orderId)
+  public function getReceiptsByOrder($orderId, $attempts=0)
   {
     try {
       $result = $this->client->getReceiptsByOrder($this->parser->convertOrderId($orderId));
       return $this->parser->parseReceiptsByOrderResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getReceiptsByOrder($orderId, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -1114,15 +1373,39 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getInvoices($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers = null, $employeeNumbers = null, $relationNumbers = null, $articleNumbers = null, $articleTurnoverGroups = null, $articlePluNumbers = null, $articleBarcodes = null, $supplierRelationNumbers = null, $finalizeInvoices = null)
+  public function getReceiptsByCashCount($cashCountId, $attempts=0)
   {
     try {
-      // i($this->parser->convertGetInvoicesRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $supplierRelationNumbers, $finalizeInvoices));
+      $result = $this->client->getReceiptsByCashCount($this->parser->convertGetReceiptsByCashCountRequest($cashCountId));
+      return $this->parser->parseReceiptsByCashCountResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getReceiptsByCashCount($orderId, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getReceiptsByCashCount()
+
+  //----------------------------------------------------------------------------
+
+  public function getInvoices($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers=null, $employeeNumbers=null, $relationNumbers=null, $articleNumbers=null, $articleTurnoverGroups=null, $articlePluNumbers=null, $articleBarcodes=null, $supplierRelationNumbers=null, $finalizeInvoices=null, $attempts=0)
+  {
+    try {
       $result = $this->client->getInvoices($this->parser->convertGetInvoicesRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $supplierRelationNumbers, $finalizeInvoices));
-      // i($this->client->__getLastRequest());
       return $this->parser->parseGetInvoicesResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getInvoices($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $supplierRelationNumbers, $finalizeInvoices, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -1130,13 +1413,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getInvoice($invoiceId)
+  public function getInvoice($invoiceId, $attempts=0)
   {
     try {
       $result = $this->client->getInvoice($this->parser->convertInvoiceId($invoiceId));
       return $this->parser->parseInvoiceResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getInvoice($invoiceId, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -1144,13 +1433,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function findInvoice($extInvoiceId)
+  public function findInvoice($extInvoiceId, $attempts=0)
   {
     try {
       $result = $this->client->findInvoice($this->parser->convertExtInvoiceId($extInvoiceId));
       return $this->parser->parseInvoiceResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->findInvoice($extInvoiceId, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -1158,14 +1453,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getJournals($fromFinancialDate, $throughFinancialDate, $branchNumbers, $journalFilterList = array(), $reference = null)
+  public function getJournals($fromFinancialDate, $throughFinancialDate, $branchNumbers, $journalFilterList=array(), $reference=null, $attempts=0)
   {
     try {
-      // i($this->parser->convertGetJournalsRequest($fromFinancialDate, $throughFinancialDate, $branchNumbers, $journalFilterList));
       $result = $this->client->getJournals($this->parser->convertGetJournalsRequest($fromFinancialDate, $throughFinancialDate, $branchNumbers, $journalFilterList, $reference));
       return $this->parser->parseGetJournalsResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getJournals($fromFinancialDate, $throughFinancialDate, $branchNumbers, $journalFilterList, $reference, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -1173,13 +1473,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getFinancialJournal($fromFinancialDate, $throughFinancialDate, $reference=null)
+  public function getFinancialJournal($fromFinancialDate, $throughFinancialDate, $reference=null, $attempts=0)
   {
     try {
       $result = $this->client->getFinancialJournal($this->parser->convertGetFinancialJournalRequest($fromFinancialDate, $throughFinancialDate, $reference));
       return $this->parser->parseGetFinancialJournalResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getFinancialJournal($fromFinancialDate, $throughFinancialDate, $reference, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -1187,13 +1493,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getFinancialJournalByCashCount($cashCountId, $reference=null)
+  public function getFinancialJournalByCashCount($cashCountId, $reference=null, $attempts=0)
   {
     try {
       $result = $this->client->getFinancialJournalByCashCount($this->parser->convertGetFinancialJournalByCashCountRequest($cashCountId, $reference));
       return $this->parser->parseGetFinancialJournalResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getFinancialJournalByCashCount($cashCountId, $reference, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -1201,13 +1513,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getCashCountList($fromFinancialDate, $throughFinancialDate, $sinceCashCount=null)
+  public function getCashCountList($fromFinancialDate, $throughFinancialDate, $sinceCashCount=null, $attempts=0)
   {
     try {
       $result = $this->client->getCashCountList($this->parser->convertGetCashCountListRequest($fromFinancialDate, $throughFinancialDate, $sinceCashCount));
       return $this->parser->parseGetCashCountListResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getCashCountList($fromFinancialDate, $throughFinancialDate, $sinceCashCount, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -1215,13 +1533,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getTurnoverGroups()
+  public function getTurnoverGroups($attempts=0)
   {
     try {
       $result = $this->client->getTurnoverGroups();
       return $this->parser->parseGetTurnoverGroupsResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getTurnoverGroups($attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -1257,13 +1581,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getBranches()
+  public function getBranches($attempts=0)
   {
     try {
       $result = $this->client->getBranches();
       return $this->parser->parseGetBranchesResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getBranches($attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -1361,13 +1691,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function findRelation($relation)
+  public function findRelation($relation, $attempts=0)
   {
     try {
       $result = $this->client->findRelation($this->parser->convertRelation($relation));
       return $this->parser->parseFindRelationResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->findRelation($relation, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -1397,13 +1733,19 @@ class MplusQAPIclient
     }
   } // END updateRelation()
 
-  public function getRelation($relationNumber)
+  public function getRelation($relationNumber, $attempts=0)
   {
     try {
       $result = $this->client->getRelation($this->parser->convertGeneric('relationNumber', $relationNumber));
       return $this->parser->parseGetRelationResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->findRelation($relation, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -1439,13 +1781,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getWordAliases($locale='nl_NL')
+  public function getWordAliases($locale='nl_NL', $attempts=0)
   {
     try {
       $result = $this->client->getWordAliases($this->parser->convertGetWordAliasesRequest($locale));
       return $this->parser->parseWordAliases($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getWordAliases($locale, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -1453,13 +1801,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getTableOrder($terminal, $branchNumber, $tableNumber)
+  public function getTableOrder($terminal, $branchNumber, $tableNumber, $attempts=0)
   {
     try {
       $result = $this->client->getTableOrder($this->parser->convertGetTableOrderRequest($terminal, $branchNumber, $tableNumber));
       return $this->parser->parseGetTableOrderResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getTableOrder($terminal, $branchNumber, $tableNumber, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -1467,13 +1821,39 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function findTableOrder($terminal, $extOrderId)
+  public function getTableOrderV2($terminal, $tableNumber, $claimTable=null, $attempts=0)
+  {
+    try {
+      $result = $this->client->getTableOrderV2($this->parser->convertGetTableOrderV2Request($terminal, $tableNumber, $claimTable));
+      return $this->parser->parseGetTableOrderResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getTableOrderV2($terminal, $branchNumber, $tableNumber, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getTableOrderV2()
+
+  //----------------------------------------------------------------------------
+
+  public function findTableOrder($terminal, $extOrderId, $attempts=0)
   {
     try {
       $result = $this->client->findTableOrder($this->parser->convertFindTableOrderRequest($terminal, $extOrderId));
       return $this->parser->parseGetTableOrderResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->findTableOrder($terminal, $extOrderId, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -1481,13 +1861,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getTableOrderCourseList($terminal, $branchNumber, $tableNumber)
+  public function getTableOrderCourseList($terminal, $branchNumber, $tableNumber, $attempts=0)
   {
     try {
       $result = $this->client->getTableOrderCourseList($this->parser->convertGetTableOrderCourseListRequest($terminal, $branchNumber, $tableNumber));
       return $this->parser->parseGetTableOrderCourseListResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getTableOrderCourseList($terminal, $branchNumber, $tableNumber, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -1526,10 +1912,15 @@ class MplusQAPIclient
   public function sendMessage($branchNumber, $terminalNumber, $text, $sender=null, $messageType=null)
   {
     try {
-      $result = $this->client->sendMessage($this->parser->convertSendMessageRequest($branchNumber, $terminalNumber, $text, $sender, $messageType));
+      $forceBranchTerminalNumber = $this->isApiVersionLowerThan('1.0.0');
+      $result = $this->client->sendMessage($this->parser->convertSendMessageRequest($branchNumber, $terminalNumber, $text, $sender, $messageType, $forceBranchTerminalNumber));
       return $this->parser->parseSendMessageResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      if (false !== stripos($e->getMessage(), "object has no 'branchNumber' property") and ! $forceBranchTerminalNumber) {
+        return $this->sendMessage($branchNumber, $terminalNumber, $text, $sender, $messageType, true);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -2354,6 +2745,37 @@ class MplusQAPIDataParser
     }
     return false;
   } // END parseReceiptsByOrderResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseReceiptsByCashCountResult($soapReceiptsByCashCountResult) {
+    if (isset($soapReceiptsByCashCountResult->result) and $soapReceiptsByCashCountResult->result == 'GET-RECEIPTS-BY-CASH-COUNT-RESULT-OK') {
+      $receipts = array();
+      if (isset($soapReceiptsByCashCountResult->receiptList->receipt)) {
+        $soapReceipts = $soapReceiptsByCashCountResult->receiptList->receipt;
+        $receipts = objectToArray($soapReceipts);
+        foreach ($receipts as $key => $receipt) {
+          if (isset($receipt['lineList']['line'])) {
+            $receipt['lineList'] = $receipt['lineList']['line'];
+          } else {
+            $receipt['lineList'] = array();
+          }
+          foreach ($receipt['lineList'] as $line_key => $line) {
+            if (isset($line['preparationList']['line'])) {
+              $line['preparationList'] = $line['preparationList']['line'];
+            }
+            $receipt['lineList'][$line_key] = $line;
+          }
+          if (isset($receipt['paymentList']['payment'])) {
+            $receipt['paymentList'] = $receipt['paymentList']['payment'];
+          }
+          $receipts[$key] = $receipt;
+        }
+      }
+      return $receipts;
+    }
+    return false;
+  } // END parseReceiptsByCashCountResult()
 
   //----------------------------------------------------------------------------
 
@@ -3258,6 +3680,13 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function convertGetReceiptsByCashCountRequest($cashCountId) {
+    $object = arrayToObject(array('request'=>array('cashCountId'=>$cashCountId)));
+    return $object;
+  } // END convertGetReceiptsByCashCountRequest()
+
+  //----------------------------------------------------------------------------
+
   public function convertGetInvoicesRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $supplierRelationNumbers, $finalizeInvoices)
   {
     $fromFinancialDate = is_null($fromFinancialDate)?null:$this->convertMplusDate($fromFinancialDate, 'fromFinancialDate');
@@ -3671,14 +4100,14 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertSendMessageRequest($branchNumber, $terminalNumber, $text, $sender, $messageType)
+  public function convertSendMessageRequest($branchNumber, $terminalNumber, $text, $sender, $messageType, $forceBranchTerminalNumber=false)
   {
     $request = array('text'=>$text);
-    if ( ! is_null($branchNumber) and ! empty($branchNumber)) {
-      $request['branchNumber'] = $branchNumber;
+    if ($forceBranchTerminalNumber or ( ! is_null($branchNumber) and ! empty($branchNumber))) {
+      $request['branchNumber'] = (int)$branchNumber;
     }
-    if ( ! is_null($branchNumber) and ! empty($branchNumber) and ! is_null($terminalNumber) and ! empty($terminalNumber)) {
-      $request['terminalNumber'] = $terminalNumber;
+    if ($forceBranchTerminalNumber or ( ! is_null($branchNumber) and ! empty($branchNumber) and ! is_null($terminalNumber) and ! empty($terminalNumber))) {
+      $request['terminalNumber'] = (int)$terminalNumber;
     }
     if ( ! is_null($sender) and ! empty($sender)) {
       $request['sender'] = $sender;
@@ -4276,6 +4705,24 @@ class MplusQAPIDataParser
       ));
     return $object;
   } // END convertGetTableOrderRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertGetTableOrderV2Request($terminal, $branchNumber, $tableNumber, $claimTable)
+  {
+    $terminal = $this->convertTerminal($terminal);
+    $branchNumber = $this->convertBranchNumber($branchNumber);
+    $tableNumber = $this->convertTableNumber($tableNumber);
+    $array = array(
+      'terminal'=>$terminal->terminal,
+      'request'=>array('tableNumber'=>$tableNumber->tableNumber),
+      );
+    if ( ! is_null($claimTable)) {
+      $array['request']['claimTable'] = $claimTable;
+    }
+    $object = arrayToObject($array);
+    return $object;
+  } // END convertGetTableOrderV2Request()
 
   //----------------------------------------------------------------------------
 
