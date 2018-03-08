@@ -5912,6 +5912,11 @@ class MplusQAPIDataParser
 
   public function convertMplusDate($timestamp, $field_name)
   {
+    // Convert DateTime object to timestamp
+    if ($timestamp instanceof \DateTime) {
+      $timestamp = $timestamp->getTimestamp();
+    }
+    
     if (is_array($timestamp)) {
       // Probably already properly converted
       return $timestamp;
@@ -5935,6 +5940,11 @@ class MplusQAPIDataParser
 
   public function convertMplusDateTime($timestamp, $field_name)
   {
+    // Convert DateTime object to timestamp
+    if ($timestamp instanceof \DateTime) {
+      $timestamp = $timestamp->getTimestamp();
+    }
+    
     if (is_array($timestamp)) {
       // Probably already properly converted
       return $timestamp;
