@@ -1474,7 +1474,27 @@ class MplusQAPIclient
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
-  } // END payOrder()
+  } // END deliverOrder()
+
+  //----------------------------------------------------------------------------
+
+  public function deliverOrderV2($order, $attempts=0)
+  {
+    try {
+      $result = $this->client->deliverOrderV2($this->parser->convertDeliverOrderV2Request($order));
+      return $this->parser->parseDeliverOrderV2Result($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->deliverOrderV2($order, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END deliverOrderV2()
 
   //----------------------------------------------------------------------------
 
@@ -1528,6 +1548,26 @@ class MplusQAPIclient
       if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
         sleep(1);
         return $this->getOrder($orderId, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getOrder()
+
+  //----------------------------------------------------------------------------
+
+  public function getPackingSlipsByOrder($orderId, $attempts=0)
+  {
+    try {
+      $result = $this->client->getPackingSlipsByOrder($this->parser->convertGetPackingSlipsByOrderRequest($orderId));
+      return $this->parser->parseGetPackingSlipsByOrderResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getPackingSlipsByOrder($orderId, $attempts+1);
       } else {
         throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
       }
@@ -3302,6 +3342,19 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function parseDeliverOrderV2Result($soapPayOrderV2Result) {
+    if (isset($soapPayOrderV2Result->result) and $soapPayOrderV2Result->result == 'DELIVER-ORDER-V2-RESULT-OK') {
+      if (isset($soapPayOrderV2Result->packingSlipId)) {
+        return $soapPayOrderV2Result->packingSlipId;
+      } else {
+        return true;
+      }
+    }
+    return false;
+  } // END parseDeliverOrderV2Result()
+
+  //----------------------------------------------------------------------------
+
   public function parseInvoiceResult($soapInvoiceResult) {
     if (isset($soapInvoiceResult->result) and $soapInvoiceResult->result == 'GET-INVOICE-RESULT-OK') {
       if (isset($soapInvoiceResult->invoice)) {
@@ -3501,6 +3554,32 @@ class MplusQAPIDataParser
     }
     return $orders;
   } // END parseGetOrdersResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseGetPackingSlipsByOrderResult($soapPackingSlipsByOrdersResult)
+  {
+    $packing_slips = array();
+    if (isset($soapPackingSlipsByOrdersResult->packingSlipList->packingSlip)) {
+      $soapPackingSlips = $soapPackingSlipsByOrdersResult->packingSlipList->packingSlip;
+      $packing_slips = objectToArray($soapPackingSlips);
+      foreach ($packing_slips as $key => $packing_slip) {
+        if (isset($packing_slip['lineList']['line'])) {
+          $packing_slip['lineList'] = $packing_slip['lineList']['line'];
+        } else {
+          $packing_slip['lineList'] = array();
+        }
+        foreach ($packing_slip['lineList'] as $line_key => $line) {
+          if (isset($line['preparationList']['line'])) {
+            $line['preparationList'] = $line['preparationList']['line'];
+          }
+          $packing_slip['lineList'][$line_key] = $line;
+        }
+        $packing_slips[$key] = $packing_slip;
+      }
+    }
+    return $packing_slips;
+  } // END parseGetPackingSlipsByOrderResult()
 
   //----------------------------------------------------------------------------
 
@@ -4800,6 +4879,17 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function convertGetPackingSlipsByOrderRequest($orderId)
+  {
+    $array = array(
+      'orderId'=>$orderId,
+    );
+    $object = arrayToObject(array('request'=>$array));
+    return $object;
+  } // END convertGetPackingSlipsByOrderRequest()
+
+  //----------------------------------------------------------------------------
+
   public function convertGetPurchaseOrdersRequest($syncMarker, $fromOrderDate, $throughOrderDate, $fromDeliveryDate, $throughDeliveryDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit)
   {
     $fromOrderDate = is_null($fromOrderDate)?null:$this->convertMplusDate($fromOrderDate, 'fromOrderDate');
@@ -5032,6 +5122,17 @@ class MplusQAPIDataParser
     $object = arrayToObject($array);
     return $object;
   } // END convertDeliverOrderRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertDeliverOrderV2Request($order)
+  {
+    $array = array('request'=>array(
+      'order'=>$this->convertOrder($order, true),
+      ));
+    $object = arrayToObject($array);
+    return $object;
+  } // END convertDeliverOrderV2Request()
 
   //----------------------------------------------------------------------------
 
@@ -5529,7 +5630,7 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertOrder($order)
+  public function convertOrder($order, $as_array=false)
   {
     if ( ! isset($order['orderId']) or is_null($order['orderId'])) {
       $order['orderId'] = '';
@@ -5621,8 +5722,12 @@ class MplusQAPIDataParser
     if ( ! isset($order['invoiceIds'])) {
       $order['invoiceIds'] = array();
     }
+    if ($as_array) {
+      return $order;
+    } else {
     $object = arrayToObject(array('order'=>$order));
     return $object;
+    }
   } // END convertOrder()
 
   //----------------------------------------------------------------------------
