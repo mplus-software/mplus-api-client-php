@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.5.0';
+  const CLIENT_VERSION  = '1.6.0';
   
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -3329,26 +3329,46 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function parseDeliverOrderResult($soapPayOrderResult) {
-    if (isset($soapPayOrderResult->result) and $soapPayOrderResult->result == 'DELIVER-ORDER-RESULT-OK') {
-      if (isset($soapPayOrderResult->packingSlipId)) {
-        return $soapPayOrderResult->packingSlipId;
+  public function parseDeliverOrderResult($soapDeliverOrderResult) {
+    if (isset($soapDeliverOrderResult->result)) {
+      if ($soapDeliverOrderResult->result == 'DELIVER-ORDER-RESULT-OK') {
+        if (isset($soapDeliverOrderResult->packingSlipId)) {
+          return $soapDeliverOrderResult->packingSlipId;
       } else {
         return true;
       }
+      } else {
+        if (isset($soapDeliverOrderResult->errorMessage) and ! empty($soapDeliverOrderResult->errorMessage)) {
+          throw new MplusQAPIException($soapDeliverOrderResult->result.' - '.$soapDeliverOrderResult->errorMessage);
+        } else {
+          throw new MplusQAPIException($soapDeliverOrderResult->result);
+        }
+      }
+    } elseif (isset($soapDeliverOrderResult->errorMessage) and ! empty($soapDeliverOrderResult->errorMessage)) {
+      throw new MplusQAPIException($soapDeliverOrderResult->errorMessage);
     }
     return false;
   } // END parseDeliverOrderResult()
 
   //----------------------------------------------------------------------------
 
-  public function parseDeliverOrderV2Result($soapPayOrderV2Result) {
-    if (isset($soapPayOrderV2Result->result) and $soapPayOrderV2Result->result == 'DELIVER-ORDER-V2-RESULT-OK') {
-      if (isset($soapPayOrderV2Result->packingSlipId)) {
-        return $soapPayOrderV2Result->packingSlipId;
+  public function parseDeliverOrderV2Result($soapDeliverOrderV2Result) {
+    if (isset($soapDeliverOrderV2Result->result)) {
+      if ($soapDeliverOrderV2Result->result == 'DELIVER-ORDER-V2-RESULT-OK') {
+        if (isset($soapDeliverOrderV2Result->packingSlipId)) {
+          return $soapDeliverOrderV2Result->packingSlipId;
       } else {
         return true;
       }
+      } else {
+        if (isset($soapDeliverOrderV2Result->errorMessage) and ! empty($soapDeliverOrderV2Result->errorMessage)) {
+          throw new MplusQAPIException($soapDeliverOrderV2Result->result.' - '.$soapDeliverOrderV2Result->errorMessage);
+        } else {
+          throw new MplusQAPIException($soapDeliverOrderV2Result->result);
+        }
+      }
+    } elseif (isset($soapDeliverOrderV2Result->errorMessage) and ! empty($soapDeliverOrderV2Result->errorMessage)) {
+      throw new MplusQAPIException($soapDeliverOrderV2Result->errorMessage);
     }
     return false;
   } // END parseDeliverOrderV2Result()
