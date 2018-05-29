@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.6.0';
+  const CLIENT_VERSION  = '1.7.0';
   
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -1096,6 +1096,26 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function getExchangeRateHistory($sinceStockId, $attempts=0)
+  {
+    try {
+      $result = $this->client->getExchangeRateHistory($this->parser->convertGetExchangeRateHistoryRequest($sinceStockId));
+      return $this->parser->parseGetExchangeRateHistoryResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getExchangeRateHistory($sinceStockId, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getExchangeRateHistory()
+
+  //----------------------------------------------------------------------------
+
   public function getProducts($articleNumbers = array(), $groupNumbers = array(), $pluNumbers = array(), $changedSinceTimestamp = null, $changedSinceBranchNumber = null, $syncMarker = null, $onlyWebshop = null, $onlyActive = null, $syncMarkerLimit = null, $attempts = 0)
   {
     try {
@@ -1478,16 +1498,16 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function deliverOrderV2($order, $attempts=0)
+  public function deliverOrderV2($orderDelivery, $attempts=0)
   {
     try {
-      $result = $this->client->deliverOrderV2($this->parser->convertDeliverOrderV2Request($order));
+      $result = $this->client->deliverOrderV2($this->parser->convertDeliverOrderV2Request($orderDelivery));
       return $this->parser->parseDeliverOrderV2Result($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
       if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
         sleep(1);
-        return $this->deliverOrderV2($order, $attempts+1);
+        return $this->deliverOrderV2($orderDelivery, $attempts+1);
       } else {
         throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
       }
@@ -1629,6 +1649,26 @@ class MplusQAPIclient
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
   } // END getOrderCategories()
+
+  //----------------------------------------------------------------------------
+
+  public function getInterbranchOrders($syncMarker, $syncMarkerLimit=null, $attempts=0)
+  {
+    try {
+      $result = $this->client->getInterbranchOrders($this->parser->convertGetInterbranchOrdersRequest($syncMarker, $syncMarkerLimit));
+      return $this->parser->parseGetInterbranchOrdersResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getInterbranchOrders($syncMarker, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getInterbranchOrders()
 
   //----------------------------------------------------------------------------
 
@@ -2100,7 +2140,7 @@ class MplusQAPIclient
   public function queueBranchOrder($order, $attempts=0)
   {
     try {
-      if (false !== ($result = $this->client->queueBranchOrder($this->parser->convertOrder($orderId)))) {
+      if (false !== ($result = $this->client->queueBranchOrder($this->parser->convertOrder($order)))) {
       return $this->parser->parseQueueBranchOrderResult($result);
       }
     } catch (SoapFault $e) {
@@ -2121,7 +2161,7 @@ class MplusQAPIclient
   public function cancelOrder($orderId, $attempts=0)
   {
     try {
-      if (false !== ($result = $this->client->cancelOrder($this->parser->convertOrder($orderId)))) {
+      if (false !== ($result = $this->client->cancelOrder($this->parser->convertOrderId($orderId)))) {
       return $this->parser->parseCancelOrderResult($result);
       }
     } catch (SoapFault $e) {
@@ -2964,6 +3004,14 @@ class MplusQAPIDataParser
             if (isset($article['customFieldList']['customField'])) {
               $article['customFieldList'] = $article['customFieldList']['customField'];
             }
+            if (isset($article['exchangeRateBuyPrice']) and isset($article['exchangeRateBuyPriceDecimalPlaces'])) {
+              $article['exchangeRateBuyPrice'] = from_quantity_and_decimal_places($article['exchangeRateBuyPrice'], $article['exchangeRateBuyPriceDecimalPlaces']);
+              unset($article['exchangeRateBuyPriceDecimalPlaces']);
+            }
+            if (isset($article['exchangeRateSellPrice']) and isset($article['exchangeRateSellPriceDecimalPlaces'])) {
+              $article['exchangeRateSellPrice'] = from_quantity_and_decimal_places($article['exchangeRateSellPrice'], $article['exchangeRateSellPriceDecimalPlaces']);
+              unset($article['exchangeRateSellPriceDecimalPlaces']);
+            }
             $product['articleList'][$idx] = $article;
           }
         }
@@ -3248,7 +3296,8 @@ class MplusQAPIDataParser
 
   public function parseOrderResult($soapOrderResult)
   {
-    if (isset($soapOrderResult->result) and $soapOrderResult->result == 'GET-ORDER-RESULT-OK') {
+    if (isset($soapOrderResult->result)) {
+      if ($soapOrderResult->result == 'GET-ORDER-RESULT-OK') {
       if (isset($soapOrderResult->order)) {
         $soapOrder = $soapOrderResult->order;
         $order = objectToArray($soapOrder);
@@ -3264,8 +3313,12 @@ class MplusQAPIDataParser
         }
         return $order;
       }
+      } else {
+        throw new MplusQAPIException($soapOrderResult->result);
+      }
+    } else {
+      throw new MplusQAPIException('No valid order result');
     }
-    return false;
   } // END parseOrderResult()
 
   //----------------------------------------------------------------------------
@@ -3577,6 +3630,32 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function parseGetInterbranchOrdersResult($soapInterbranchOrdersResult)
+  {
+    $interbranch_orders = array();
+    if (isset($soapInterbranchOrdersResult->interbranchOrderList->interbranchOrder)) {
+      $soapInterbranchOrders = $soapInterbranchOrdersResult->interbranchOrderList->interbranchOrder;
+      $interbranch_orders = objectToArray($soapInterbranchOrders);
+      foreach ($interbranch_orders as $key => $interbranch_order) {
+        /*if (isset($interbranch_order['lineList']['line'])) {
+          $interbranch_order['lineList'] = $interbranch_order['lineList']['line'];
+        } else {
+          $interbranch_order['lineList'] = array();
+        }
+        foreach ($interbranch_order['lineList'] as $line_key => $line) {
+          if (isset($line['preparationList']['line'])) {
+            $line['preparationList'] = $line['preparationList']['line'];
+          }
+          $interbranch_order['lineList'][$line_key] = $line;
+        }*/
+        $interbranch_orders[$key] = $interbranch_order;
+      }
+    }
+    return $interbranch_orders;
+  } // END parseGetInterbranchOrdersResult()
+
+  //----------------------------------------------------------------------------
+
   public function parseGetPackingSlipsByOrderResult($soapPackingSlipsByOrdersResult)
   {
     $packing_slips = array();
@@ -3774,6 +3853,33 @@ class MplusQAPIDataParser
     }
     return $retailSpaceRentals;
   } // END parseGetRetailSpaceRentalsResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseGetExchangeRateHistoryResult($soapGetExchangeRateHistoryResult) {
+    $exchangeRateHistory = array();
+    if (isset($soapGetExchangeRateHistoryResult->exchangeRateHistoryList->exchangeRateHistory)) {
+      $soapExchangeRateHistory = $soapGetExchangeRateHistoryResult->exchangeRateHistoryList->exchangeRateHistory;
+      $exchangeRateHistory = objectToArray($soapExchangeRateHistory);
+      foreach ($exchangeRateHistory as $idx => $erh) {
+        $erh['timestamp'] = $this->parseMplusDateTime($erh['timestamp']);
+        if (isset($erh['buyPriceOld'])) {
+          $erh['buyPriceOld'] = from_quantity_and_decimal_places($erh['buyPriceOld'], isset($erh['buyPriceDecimalPlacesOld'])?$erh['buyPriceDecimalPlacesOld']:0);
+        }
+        if (isset($erh['buyPriceNew'])) {
+          $erh['buyPriceNew'] = from_quantity_and_decimal_places($erh['buyPriceNew'], isset($erh['buyPriceDecimalPlacesNew'])?$erh['buyPriceDecimalPlacesNew']:0);
+        }
+        if (isset($erh['sellPriceOld'])) {
+          $erh['sellPriceOld'] = from_quantity_and_decimal_places($erh['sellPriceOld'], isset($erh['sellPriceDecimalPlacesOld'])?$erh['sellPriceDecimalPlacesOld']:0);
+        }
+        if (isset($erh['sellPriceNew'])) {
+          $erh['sellPriceNew'] = from_quantity_and_decimal_places($erh['sellPriceNew'], isset($erh['sellPriceDecimalPlacesNew'])?$erh['sellPriceDecimalPlacesNew']:0);
+        }
+        $exchangeRateHistory[$idx] = $erh;
+      }
+    }
+    return $exchangeRateHistory;
+  } // END parseGetExchangeRateHistoryResult()
 
   //----------------------------------------------------------------------------
 
@@ -4899,6 +5005,21 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function convertGetInterbranchOrdersRequest($syncMarker, $syncMarkerLimit)
+  {
+    $array = array();
+    if ( ! is_null($syncMarker)) {
+      $array['syncMarker'] = (int)$syncMarker;
+      if ( ! is_null($syncMarkerLimit) and $syncMarkerLimit > 0) {
+        $array['syncMarkerLimit'] = (int)$syncMarkerLimit;
+      }
+    }
+    $object = arrayToObject(array('request'=>$array));
+    return $object;
+  } // END convertGetInterbranchOrdersRequest()
+
+  //----------------------------------------------------------------------------
+
   public function convertGetPackingSlipsByOrderRequest($orderId)
   {
     $array = array(
@@ -5145,10 +5266,10 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertDeliverOrderV2Request($order)
+  public function convertDeliverOrderV2Request($orderDelivery)
   {
     $array = array('request'=>array(
-      'order'=>$this->convertOrder($order, true),
+      'orderDelivery'=>$this->convertOrderDelivery($orderDelivery, true),
       ));
     $object = arrayToObject($array);
     return $object;
@@ -5325,6 +5446,18 @@ class MplusQAPIDataParser
     return $object;
   } // END convertGetStockHistoryRequest()
   
+  //----------------------------------------------------------------------------
+
+  public function convertGetExchangeRateHistoryRequest($sinceStockId)
+  {
+    $array = array('request'=>array());
+    if ( ! is_null($sinceStockId) and ! empty($sinceStockId)) {
+      $array['request']['sinceStockId'] = $sinceStockId;
+    }
+    $object = arrayToObject($array);
+    return $object;
+  } // END convertGetExchangeRateHistoryRequest()
+
   //----------------------------------------------------------------------------
 
   public function convertUpdateStockRequest($branchNumber, $articleNumber, $amountChanged)
@@ -5599,6 +5732,12 @@ class MplusQAPIDataParser
           // Andere indexing levert problemen op met PHP SOAP client
           $article['barcodeList']['barcode'] = array_values($article['barcodeList']['barcode']);
         }
+        if (isset($article['exchangeRateBuyPrice']) and ! isset($article['exchangeRateBuyPriceDecimalPlaces'])) {
+          list($article['exchangeRateBuyPrice'], $article['exchangeRateBuyPriceDecimalPlaces']) = get_quantity_and_decimal_places($article['exchangeRateBuyPrice']);
+        }
+        if (isset($article['exchangeRateSellPrice']) and ! isset($article['exchangeRateSellPriceDecimalPlaces'])) {
+          list($article['exchangeRateSellPrice'], $article['exchangeRateSellPriceDecimalPlaces']) = get_quantity_and_decimal_places($article['exchangeRateSellPrice']);
+        }
         $product['articleList']['article'][$idx] = $article;
       }
       // Hier even een array_values() om zeker te weten dat de array 0, 1, 2 geïndexeerd is
@@ -5749,6 +5888,22 @@ class MplusQAPIDataParser
     return $object;
     }
   } // END convertOrder()
+
+  //----------------------------------------------------------------------------
+
+  public function convertOrderDelivery($orderDelivery, $as_array=false)
+  {
+    if ( ! isset($orderDelivery['orderId']) or is_null($orderDelivery['orderId'])) {
+      $orderDelivery['orderId'] = '';
+    }
+    $orderDelivery['lineList'] = $this->convertOrderDeliveryLineList($orderDelivery['lineList']);
+    if ($as_array) {
+      return $orderDelivery;
+    } else {
+      $object = arrayToObject(array('orderDelivery'=>$orderDelivery));
+      return $object;
+    }
+  } // END convertOrderDelivery()
 
   //----------------------------------------------------------------------------
 
@@ -5990,6 +6145,17 @@ class MplusQAPIDataParser
     $object = arrayToObject($lineList);
     return $object;
   } // END convertLineList()
+
+  //----------------------------------------------------------------------------
+
+  public function convertOrderDeliveryLineList($orderDeliverylineList)
+  {
+    if ( ! isset($orderDeliverylineList['line']) and ! empty($orderDeliverylineList)) {
+      $orderDeliverylineList = array('line'=>$orderDeliverylineList);
+    }
+    $object = arrayToObject($orderDeliverylineList);
+    return $object;
+  } // END convertOrderDeliveryLineList()
 
   //----------------------------------------------------------------------------
 
@@ -6331,14 +6497,14 @@ if ( ! function_exists('get_quantity_and_decimal_places')) {
   function get_quantity_and_decimal_places($input)
   {
     $input = str_replace(',', '.', $input);
-    $input = round($input, 5);
+    $input = round($input, 6);
     $orig_input = $input;
     $decimalPlaces = -1;
     do {
       $int_part = (int)$input;
       $input -= $int_part;
       $input *= 10;
-      $input = round($input, 5);
+      $input = round($input, 6);
       $decimalPlaces++;
     } while ($input >= 0.0000001);
     $quantity = (int)($orig_input * pow(10, $decimalPlaces));
@@ -6461,6 +6627,9 @@ if ( ! function_exists('arrayToObject')) {
         return array_map(__FUNCTION__, $d);
       }
       elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['id'])) {
+        return array_map(__FUNCTION__, $d);
+      }
+      elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['lineId'])) {
         return array_map(__FUNCTION__, $d);
       }
       elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['group'])) {
