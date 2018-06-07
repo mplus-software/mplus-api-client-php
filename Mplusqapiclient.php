@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.7.0';
+  const CLIENT_VERSION  = '1.8.0';
   
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -2504,13 +2504,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function saveTableOrder($terminal, $order)
+  public function saveTableOrder($terminal, $order, $attempts=0)
   {
     try {
       $result = $this->client->saveTableOrder($this->parser->convertSaveTableOrder($terminal, $order));
       return $this->parser->parseSaveTableOrderResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->saveTableOrder($terminal, $order, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -2518,13 +2524,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function cancelTableOrder($terminal, $branchNumber, $tableNumber)
+  public function moveTableOrder($terminal, $order, $tableNumber, $attempts=0)
   {
     try {
-      $result = $this->client->cancelTableOrder($this->parser->convertGetTableOrderRequest($terminal, $branchNumber, $tableNumber));
-      return $this->parser->parseCancelOrderResult($result);
+      $result = $this->client->moveTableOrder($this->parser->convertMoveTableOrderRequest($terminal, $order, $tableNumber));
+      return $this->parser->parseMoveTableOrderResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->moveTableOrder($terminal, $order, $tableNumber, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -2532,17 +2544,39 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function sendMessage($branchNumber, $terminalNumber, $text, $sender=null, $messageType=null)
+  public function cancelTableOrder($terminal, $branchNumber, $tableNumber, $attempts=0)
+  {
+    try {
+      $result = $this->client->cancelTableOrder($this->parser->convertGetTableOrderRequest($terminal, $branchNumber, $tableNumber));
+      return $this->parser->parseCancelOrderResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->cancelTableOrder($terminal, $branchNumber, $tableNumber, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END cancelTableOrder()
+
+  //----------------------------------------------------------------------------
+
+  public function sendMessage($branchNumber, $terminalNumber, $text, $sender=null, $messageType=null, $attempts=0)
   {
     try {
       $forceBranchTerminalNumber = $this->isApiVersionLowerThan('1.0.0');
       $result = $this->client->sendMessage($this->parser->convertSendMessageRequest($branchNumber, $terminalNumber, $text, $sender, $messageType, $forceBranchTerminalNumber));
       return $this->parser->parseSendMessageResult($result);
     } catch (SoapFault $e) {
-      if (false !== stripos($e->getMessage(), "object has no 'branchNumber' property") and ! $forceBranchTerminalNumber) {
-        return $this->sendMessage($branchNumber, $terminalNumber, $text, $sender, $messageType, true);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->sendMessage($branchNumber, $terminalNumber, $text, $sender, $messageType, $attempts+1);
       } else {
-        throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
       }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
@@ -2551,13 +2585,19 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function encryptString($plainString, $encryptionKey)
+  public function encryptString($plainString, $encryptionKey, $attempts=0)
   {
     try {
       $result = $this->client->encryptString($this->parser->convertEncryptStringRequest($plainString, $encryptionKey));
       return $this->parser->parseEncryptStringResult($result);
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->encryptString($plainString, $encryptionKey, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -4152,6 +4192,8 @@ class MplusQAPIDataParser
   public function parseUpdateOrderResult($soapUpdateOrderResult) {
     if (isset($soapUpdateOrderResult->result) and $soapUpdateOrderResult->result == 'UPDATE-ORDER-RESULT-OK') {
       return true;
+    } else if (isset($soapUpdateOrderResult->result) and $soapUpdateOrderResult->result == 'UPDATE-ORDER-RESULT-FAILED' and $soapUpdateOrderResult->errorMessage == 'Order not saved because there were no changes in the order.') {
+      return true;
     } else {
       if ( ! empty($soapUpdateOrderResult->errorMessage)) {
         $this->lastErrorMessage = $soapUpdateOrderResult->errorMessage;
@@ -4209,6 +4251,21 @@ class MplusQAPIDataParser
       return false;
     }
   } // END parseQueueBranchOrderResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseMoveTableOrderResult($soapMoveTableOrderResult)
+  {
+    if (isset($soapMoveTableOrderResult->result) and $soapMoveTableOrderResult->result == 'MOVE-TABLE-ORDER-RESULT-OK') {
+      return true;
+    } else {
+      if (isset($soapMoveTableOrderResult->errorMessage)) {
+        return $soapMoveTableOrderResult->errorMessage;
+      } else {
+        return false;
+      }
+    }
+  } // END parseMoveTableOrderResult()
 
   //----------------------------------------------------------------------------
 
@@ -6418,6 +6475,20 @@ class MplusQAPIDataParser
       ));
     return $object;
   } // END convertSaveTableOrder()
+
+  //----------------------------------------------------------------------------
+
+  public function convertMoveTableOrderRequest($terminal, $order, $tableNumber)
+  {
+    $terminal = $this->convertTerminal($terminal);
+    $order = $this->convertOrder($order);
+    $object = arrayToObject(array(
+      'terminal'=>$terminal->terminal,
+      'order'=>$order->order,
+      'tableNumber'=>$tableNumber,
+      ));
+    return $object;
+  } // END convertMoveTableOrderRequest()
 
   //----------------------------------------------------------------------------
 
