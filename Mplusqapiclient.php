@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.8.1';
+  const CLIENT_VERSION  = '1.8.2';
   
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -4226,6 +4226,8 @@ class MplusQAPIDataParser
       } else {
         return true;
       }
+    } else if (isset($soapSaveOrderResult->result) and $soapSaveOrderResult->result == 'SAVE-ORDER-RESULT-FAILED' and $soapSaveOrderResult->errorMessage == 'Order not saved because there were no changes in the order.') {
+      return true;
     } else {
       if ( ! empty($soapSaveOrderResult->errorMessage)) {
         $this->lastErrorMessage = $soapSaveOrderResult->errorMessage;
