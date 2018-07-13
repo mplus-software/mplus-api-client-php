@@ -1661,7 +1661,7 @@ class MplusQAPIclient
       $msg = $e->getMessage();
       if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
         sleep(1);
-        return $this->getInterbranchOrders($syncMarker, $attempts+1);
+        return $this->getInterbranchOrders($syncMarker, $syncMarkerLimit, $attempts+1);
       } else {
         throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
       }
@@ -1669,6 +1669,186 @@ class MplusQAPIclient
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
   } // END getInterbranchOrders()
+
+  //----------------------------------------------------------------------------
+
+  public function getInterbranchShipments($syncMarker, $syncMarkerLimit=null, $attempts=0)
+  {
+    try {
+      $result = $this->client->getInterbranchShipments($this->parser->convertGetInterbranchShipmentsRequest($syncMarker, $syncMarkerLimit));
+      return $this->parser->parseGetInterbranchShipmentsResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getInterbranchShipments($syncMarker, $syncMarkerLimit, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function getInterbranchDeliveries($syncMarker, $syncMarkerLimit=null, $attempts=0)
+  {
+    try {
+      $result = $this->client->getInterbranchDeliveries($this->parser->convertGetInterbranchDeliveriesRequest($syncMarker, $syncMarkerLimit));
+      return $this->parser->parseGetInterbranchDeliveriesResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getInterbranchDeliveries($syncMarker, $syncMarkerLimit, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function createInterbranchOrder($orderRequest, $branchNumber, $workplaceNumber, $attempts=0)
+  {
+    try {
+      $result = $this->client->createInterbranchOrder($this->parser->convertCreateInterbranchOrderRequest($orderRequest, $branchNumber, $workplaceNumber));
+      return $this->parser->parseCreateInterbranchOrderResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->createInterbranchOrder($orderRequest, $branchNumber, $workplaceNumber, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function createInterbranchShipment($shipmentRequest, $branchNumber, $workplaceNumber, $attempts=0)
+  {
+    try {
+      $result = $this->client->createInterbranchShipment($this->parser->convertCreateInterbranchShipmentRequest($shipmentRequest, $branchNumber, $workplaceNumber));
+      return $this->parser->parseCreateInterbranchShipmentResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->createInterbranchShipment($shipmentRequest, $branchNumber, $workplaceNumber, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function createInterbranchDelivery($shipmentRequest, $branchNumber, $workplaceNumber, $attempts=0)
+  {
+    try {
+      $result = $this->client->createInterbranchDelivery($this->parser->convertCreateInterbranchDeliveryRequest($shipmentRequest, $branchNumber, $workplaceNumber));
+      return $this->parser->parseCreateInterbranchDeliveryResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->createInterbranchDelivery($shipmentRequest, $branchNumber, $workplaceNumber, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function claimInterbranchOrder($interbranchOrderNumber, $branchNumber, $workplaceNumber, $employeeNumber, $attempts=0)
+  {
+    try {
+      $result = $this->client->claimInterbranchOrder($this->parser->convertClaimInterbranchOrderRequest($interbranchOrderNumber, $branchNumber, $workplaceNumber, $employeeNumber));
+      return $this->parser->parseClaimInterbranchOrderResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->claimInterbranchOrder($interbranchOrderNumber, $branchNumber, $workplaceNumber, $employeeNumber, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function releaseInterbranchOrder($interbranchOrderNumber, $attempts=0)
+  {
+    try {
+      $result = $this->client->releaseInterbranchOrder($this->parser->convertReleaseInterbranchOrderRequest($interbranchOrderNumber));
+      return $this->parser->parseReleaseInterbranchOrderResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->releaseInterbranchOrder($interbranchOrderNumber, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function shipInterbranchOrder($interbranchOrderNumber, $branchNumber, $workplaceNumber, $employeeNumber, $attempts=0)
+  {
+    try {
+      $result = $this->client->shipInterbranchOrder($this->parser->convertShipInterbranchOrderRequest($interbranchOrderNumber, $branchNumber, $workplaceNumber, $employeeNumber));
+      return $this->parser->parseShipInterbranchOrderResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->shipInterbranchOrder($interbranchOrderNumber, $branchNumber, $workplaceNumber, $employeeNumber, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function deliverInterbranchShipment($interbranchShipmentNumber, $branchNumber, $workplaceNumber, $attempts=0)
+  {
+    try {
+      $result = $this->client->deliverInterbranchShipment($this->parser->convertDeliverInterbranchShipmentRequest($interbranchShipmentNumber, $branchNumber, $workplaceNumber));
+      return $this->parser->parseDeliverInterbranchShipmentResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->deliverInterbranchShipment($interbranchOrderNumber, $branchNumber, $workplaceNumber, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  }
 
   //----------------------------------------------------------------------------
 
@@ -3696,6 +3876,127 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function parseGetInterbranchShipmentsResult($in)
+  {
+    $interbranch_shipments = array();
+    if (isset($in->interbranchShipmentList->interbranchShipment)) {
+      $soapInterbranchShipments = $in->interbranchShipmentList->interbranchShipment;
+      $interbranch_shipments = objectToArray($soapInterbranchShipments);
+      foreach ($interbranch_shipments as $key => $interbranch_shipment) {
+        $interbranch_shipments[$key] = $interbranch_shipment;
+      }
+    }
+    return $interbranch_shipments;
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function parseGetInterbranchDeliveriesResult($in)
+  {
+    $interbranch_deliveries = array();
+    if (isset($in->interbranchDeliveryList->interbranchDelivery)) {
+      $soapInterbranchDeliveries = $in->interbranchDeliveryList->interbranchDelivery;
+      $interbranch_deliveries = objectToArray($soapInterbranchDeliveries);
+      foreach ($interbranch_deliveries as $key => $interbranch_delivery) {
+        $interbranch_deliveries[$key] = $interbranch_delivery;
+      }
+    }
+    return $interbranch_deliveries;
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function parseCreateInterbranchOrderResult($in)
+  {
+    $result = array(
+        'result' => $in->result,
+    );
+    if (isset($in->interbranchOrder)) {
+      $result['interbranchOrder'] = $in->interbranchOrder;
+    }
+    return $result;
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function parseCreateInterbranchShipmentResult($in)
+  {
+    $result = array(
+        'result' => $in->result,
+    );
+    if (isset($in->interbranchShipment)) {
+      $result['interbranchShipment'] = $in->interbranchShipment;
+    }
+    return $result;
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function parseCreateInterbranchDeliveryResult($in)
+  {
+    $result = array(
+        'result' => $in->result,
+    );
+    if (isset($in->interbranchDelivery)) {
+      $result['interbranchDelivery'] = $in->interbranchDelivery;
+    }
+    return $result;
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function parseClaimInterbranchOrderResult($in)
+  {
+    $result = array(
+        'result' => $in->result,
+    );
+    if (isset($in->interbranchOrder)) {
+      $result['interbranchOrder'] = $in->interbranchOrder;
+    }
+    return $result;
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function parseReleaseInterbranchOrderResult($in)
+  {
+    $result = array(
+        'result' => $in->result,
+    );
+    if (isset($in->interbranchOrder)) {
+      $result['interbranchOrder'] = $in->interbranchOrder;
+    }
+    return $result;
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function parseShipInterbranchOrderResult($in)
+  {
+    $result = array(
+        'result' => $in->result,
+    );
+    if (isset($in->interbranchShipment)) {
+      $result['interbranchShipment'] = $in->interbranchShipment;
+    }
+    return $result;
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function parseDeliverInterbranchShipmentResult($in)
+  {
+    $result = array(
+        'result' => $in->result,
+    );
+    if (isset($in->interbranchDelivery)) {
+      $result['interbranchDelivery'] = $in->interbranchDelivery;
+    }
+    return $result;
+  }
+
+  //----------------------------------------------------------------------------
+
   public function parseGetPackingSlipsByOrderResult($soapPackingSlipsByOrdersResult)
   {
     $packing_slips = array();
@@ -5074,6 +5375,127 @@ class MplusQAPIDataParser
     $object = arrayToObject(array('request'=>$array));
     return $object;
   } // END convertGetInterbranchOrdersRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertGetInterbranchShipmentsRequest($syncMarker, $syncMarkerLimit)
+  {
+    $array = array();
+    if ( ! is_null($syncMarker)) {
+      $array['syncMarker'] = (int)$syncMarker;
+      if ( ! is_null($syncMarkerLimit) and $syncMarkerLimit > 0) {
+        $array['syncMarkerLimit'] = (int)$syncMarkerLimit;
+      }
+    }
+    $object = arrayToObject(array('request'=>$array));
+    return $object;
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function convertGetInterbranchDeliveriesRequest($syncMarker, $syncMarkerLimit)
+  {
+    $array = array();
+    if ( ! is_null($syncMarker)) {
+      $array['syncMarker'] = (int)$syncMarker;
+      if ( ! is_null($syncMarkerLimit) and $syncMarkerLimit > 0) {
+        $array['syncMarkerLimit'] = (int)$syncMarkerLimit;
+      }
+    }
+    $object = arrayToObject(array('request'=>$array));
+    return $object;
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function convertCreateInterbranchOrderRequest($orderRequest, $branchNumber, $workplaceNumber)
+  {
+    $array = array(
+      'interbranchOrderRequest'=>$orderRequest,
+      'branchNumber'=>(int)$branchNumber,
+      'workplaceNumber'=>(int)$workplaceNumber,
+    );
+    $object = arrayToObject(array('request'=>$array));
+    return $object;
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function convertCreateInterbranchShipmentRequest($shipmentRequest, $branchNumber, $workplaceNumber)
+  {
+    $array = array(
+        'interbranchShipmentRequest'=>$shipmentRequest,
+        'branchNumber'=>(int)$branchNumber,
+        'workplaceNumber'=>(int)$workplaceNumber,
+    );
+    $object = arrayToObject(array('request'=>$array));
+    return $object;
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function convertCreateInterbranchDeliveryRequest($deliveryRequest, $branchNumber, $workplaceNumber)
+  {
+    $array = array(
+        'interbranchDeliveryRequest'=>$deliveryRequest,
+        'branchNumber'=>(int)$branchNumber,
+        'workplaceNumber'=>(int)$workplaceNumber,
+    );
+    $object = arrayToObject(array('request'=>$array));
+    return $object;
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function convertClaimInterbranchOrderRequest($interbranchOrderNumber, $branchNumber, $workplaceNumber, $employeeNumber)
+  {
+    $array = array(
+        'interbranchOrderNumber'=>$interbranchOrderNumber,
+        'branchNumber'=>(int)$branchNumber,
+        'workplaceNumber'=>(int)$workplaceNumber,
+        'employeeNumber'=>(int)$employeeNumber,
+    );
+    $object = arrayToObject(array('request'=>$array));
+    return $object;
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function convertReleaseInterbranchOrderRequest($interbranchOrderNumber)
+  {
+    $array = array(
+        'interbranchOrderNumber'=>$interbranchOrderNumber,
+    );
+    $object = arrayToObject(array('request'=>$array));
+    return $object;
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function convertShipInterbranchOrderRequest($interbranchOrderNumber, $branchNumber, $workplaceNumber, $employeeNumber)
+  {
+    $array = array(
+        'interbranchOrderNumber'=>$interbranchOrderNumber,
+        'branchNumber'=>(int)$branchNumber,
+        'workplaceNumber'=>(int)$workplaceNumber,
+        'employeeNumber'=>(int)$employeeNumber,
+    );
+    $object = arrayToObject(array('request'=>$array));
+    return $object;
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function convertDeliverInterbranchShipmentRequest($interbranchShipmentNumber, $branchNumber, $workplaceNumber)
+  {
+    $array = array(
+        'interbranchShipmentNumber'=>$interbranchShipmentNumber,
+        'branchNumber'=>(int)$branchNumber,
+        'workplaceNumber'=>(int)$workplaceNumber,
+    );
+    $object = arrayToObject(array('request'=>$array));
+    return $object;
+  }
 
   //----------------------------------------------------------------------------
 
