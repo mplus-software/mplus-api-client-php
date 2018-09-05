@@ -6557,7 +6557,7 @@ class MplusQAPIDataParser
 
 //------------------------------------------------------------------------------
 
-if ( ! class_exists('MplusQAPIException')) {
+if ( ! class_exists('MplusQAPIException', false)) {
   class MplusQAPIException extends Exception
   {
 
