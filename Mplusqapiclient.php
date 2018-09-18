@@ -346,10 +346,6 @@ class MplusQAPIclient
       'connection_timeout' => $this->connection_timeout,
       );
 
-    if ( ! $this->skipFingerprintCheck and $require_fingerprint_check and ! $this->checkFingerprint($location)) {
-      throw new MplusQAPIException('Fingerprint of SSL certificate doesn\'t match.');
-    }
-
     $wsdl_url = $location.'?wsdl';
     try {
       // Don't wait longer than 5 seconds for the headers
