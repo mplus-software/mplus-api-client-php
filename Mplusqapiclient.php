@@ -1470,6 +1470,34 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function payTableOrder($terminal, $order, $paymentList, $keepTableName = null, $releaseTable = null)
+  {
+    try {
+      $result = $this->client->payTableOrderV2($this->parser->convertPayTableOrderRequest($terminal, $order, $paymentList, $keepTableName, $releaseTable));
+      return $this->parser->parsePayTableOrderResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END payTableOrder()
+
+  //----------------------------------------------------------------------------
+
+  public function prepayTableOrder($terminal, $order, $paymentList, $prepayAmount, $releaseTable = null)
+  {
+    try {
+      $result = $this->client->prepayTableOrderV2($this->parser->convertPrepayTableOrderRequest($terminal, $order, $paymentList, $prepayAmount, $releaseTable));
+      return $this->parser->parsePrepayTableOrderResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END prepayTableOrder()
+
+  //----------------------------------------------------------------------------
+
   public function payInvoice($invoiceId, $paymentList)
   {
     try {
@@ -3422,6 +3450,32 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function parsePayTableOrderResult($soapPayTableOrderResult) {
+    if (isset($soapPayTableOrderResult->result) and $soapPayTableOrderResult->result == 'PAY-ORDER-RESULT-OK') {
+      if (isset($soapPayTableOrderResult->receiptId)) {
+        return $soapPayTableOrderResult->receiptId;
+      } else {
+        return true;
+      }
+    }
+    return false;
+  } // END parsePayTableOrderResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parsePrepayTableOrderResult($soapPrepayTableOrderResult) {
+    if (isset($soapPrepayTableOrderResult->result) and $soapPrepayTableOrderResult->result == 'PAY-ORDER-RESULT-OK') {
+      if (isset($soapPrepayTableOrderResult->receiptId)) {
+        return $soapPrepayTableOrderResult->receiptId;
+      } else {
+        return true;
+      }
+    }
+    return false;
+  } // END parsePrepayTableOrderResult()
+
+  //----------------------------------------------------------------------------
+
   public function parseDeliverOrderResult($soapDeliverOrderResult) {
     if (isset($soapDeliverOrderResult->result)) {
       if ($soapDeliverOrderResult->result == 'DELIVER-ORDER-RESULT-OK') {
@@ -5311,6 +5365,42 @@ class MplusQAPIDataParser
     $object = arrayToObject($array);
     return $object;
   } // END convertPayOrderRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertPayTableOrderRequest($terminal, $order, $paymentList, $keepTableName, $releaseTable)
+  {
+    $terminal = $this->convertTerminal($terminal);
+    $order = $this->convertOrder($order);
+    $array = array(
+      'terminal'=>$terminal->terminal,
+      'request'=>array(
+        'order'=>$order->order,
+        'paymentList'=>$this->convertPaymentList($paymentList),
+        'keepTableName'=>$keepTableName,
+        'releaseTable'=>$releaseTable,
+      ));
+    $object = arrayToObject($array);
+    return $object;
+  } // END convertPayTableOrderRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertPrepayTableOrderRequest($terminal, $order, $paymentList, $prepayAmount, $releaseTable)
+  {
+    $terminal = $this->convertTerminal($terminal);
+    $order = $this->convertOrder($order);
+    $array = array(
+      'terminal'=>$terminal->terminal,
+      'request'=>array(
+        'order'=>$order->order,
+        'paymentList'=>$this->convertPaymentList($paymentList),
+        'prepayAmount'=>$prepayAmount,
+        'releaseTable'=>$releaseTable,
+      ));
+    $object = arrayToObject($array);
+    return $object;
+  } // END convertPrepayTableOrderRequest()
 
   //----------------------------------------------------------------------------
 
