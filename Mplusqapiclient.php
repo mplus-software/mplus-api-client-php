@@ -348,9 +348,11 @@ class MplusQAPIclient
 
     $wsdl_url = $location.'?wsdl';
     try {
-      // Don't wait longer than 5 seconds for the headers
+      // Don't wait longer than 5 seconds for the headers.
+      // We call get_headers() here because we want a relatively fast check if the API is available at all
+      // , before we actually initialize the SoapClient and start running requests
       ini_set('default_socket_timeout', 5);
-      if (false === ($headers = @get_headers($wsdl_url))) {
+      if (false === @get_headers($wsdl_url)) {
         throw new MplusQAPIException(sprintf('Cannot find API WSDL @ %s', $wsdl_url));
       }
       $this->client = @new SoapClient($wsdl_url, $options);
