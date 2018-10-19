@@ -2595,6 +2595,27 @@ class MplusQAPIclient
   } // END adjustPoints()
 
   //----------------------------------------------------------------------------
+  
+  public function getRelationPoints($relationNumbers=array(), $syncMarker=null, $syncMarkerLimit=null)
+  {
+    try {
+      $result = $this->client->getRelationPoints(
+              $this->parser->convertGetRelationPointsRequest($relationNumbers, $syncMarker, $syncMarkerLimit));
+      return $this->parser->parseRelationPoints($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getRelations($relationNumbers, $syncMarker, $categoryId, $syncMarkerLimit, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }     
+  }
+
+  //----------------------------------------------------------------------------
 
   public function registerTerminal($terminal, $forceRegistration)
   {
@@ -4505,6 +4526,13 @@ class MplusQAPIDataParser
     return false;
   } // END parseAdjustPointsResult()
 
+  //----------------------------------------------------------------------------
+  
+  public function parseRelationPoints($soapRelationPoints)
+  {
+    return objectToArray($soapRelationPoints->relationPointsLst);
+  }  
+  
   //----------------------------------------------------------------------------
 
   public function parseRegisterTerminalResult($soapRegisterTerminalResult)
@@ -7038,6 +7066,26 @@ class MplusQAPIDataParser
     return $object;
   } // END convertAdjustPointsRequest()
 
+  //----------------------------------------------------------------------------
+  
+  public function convertGetRelationPointsRequest($relationNumbers, $syncMarker, $syncMarkerLimit)
+  {
+    if ( ! is_array($relationNumbers)) {
+      $relationNumbers = array($relationNumbers);
+    }
+    $array = array('request'=>array(
+      'relationNumbers'=>empty($relationNumbers) ? null : array_values($relationNumbers),
+      ));
+    if ( ! is_null($syncMarker)) {
+      $array['request']['syncMarker'] = (int)$syncMarker;
+      if ( ! is_null($syncMarkerLimit) and $syncMarkerLimit > 0) {
+        $array['request']['syncMarkerLimit'] = (int)$syncMarkerLimit;
+      }
+    }
+    $object = arrayToObject($array);
+    return $object;
+  }  
+  
   //----------------------------------------------------------------------------
 
   public function convertRegisterTerminalRequest($terminal, $forceRegistration)
