@@ -2258,6 +2258,26 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function getPurchaseOrdersV2($syncMarker, $fromOrderDate, $throughOrderDate, $fromDeliveryDate=null, $throughDeliveryDate=null, $branchNumbers=null, $employeeNumbers=null, $relationNumbers=null, $articleNumbers=null, $articleTurnoverGroups=null, $articlePluNumbers=null, $articleBarcodes=null, $syncMarkerLimit=null, $attempts=0)
+  {
+    try {
+      $result = $this->client->getPurchaseOrdersV2($this->parser->convertGetPurchaseOrdersRequest($syncMarker, $fromOrderDate, $throughOrderDate, $fromDeliveryDate, $throughDeliveryDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit));
+      return $this->parser->parseGetPurchaseOrdersResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getPurchaseOrdersV2($syncMarker, $fromFinancialDate, $throughFinancialDate, $fromDeliveryDate, $throughDeliveryDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getPurchaseOrders()
+
+  //----------------------------------------------------------------------------
+
   public function getPurchaseDeliveries($syncMarker, $fromDeliveryDate=null, $throughDeliveryDate=null, $branchNumbers=null, $employeeNumbers=null, $relationNumbers=null, $articleNumbers=null, $articleTurnoverGroups=null, $articlePluNumbers=null, $articleBarcodes=null, $syncMarkerLimit=null, $attempts=0)
   {
     try {
@@ -2275,6 +2295,26 @@ class MplusQAPIclient
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
   } // END getPurchaseDeliveries()
+
+  //----------------------------------------------------------------------------
+
+  public function getPurchaseDeliveriesV2($syncMarker, $fromDeliveryDate=null, $throughDeliveryDate=null, $branchNumbers=null, $employeeNumbers=null, $relationNumbers=null, $articleNumbers=null, $articleTurnoverGroups=null, $articlePluNumbers=null, $articleBarcodes=null, $syncMarkerLimit=null, $attempts=0)
+  {
+    try {
+      $result = $this->client->getPurchaseDeliveriesV2($this->parser->convertGetPurchaseDeliveriesRequest($syncMarker, $fromDeliveryDate, $throughDeliveryDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit));
+      return $this->parser->parseGetPurchaseDeliveriesResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getPurchaseDeliveriesV2($syncMarker, $fromDeliveryDate, $throughDeliveryDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getPurchaseDeliveriesV2()
 
   //----------------------------------------------------------------------------
 
@@ -2469,7 +2509,7 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function saveInvoice($invoice)
+  public function saveInvoice($invoice, $attempts=0)
   {
     try {
       if (false !== ($result = @$this->client->saveInvoice($this->parser->convertInvoice($invoice)))) {
@@ -2478,7 +2518,13 @@ class MplusQAPIclient
         throw new MplusQAPIException('Error while saving invoice: '.json_encode($invoice));
       }
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->saveInvoice($invoice, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -2486,16 +2532,22 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function savePurchaseOrder($purchaseOrder)
+  public function savePurchaseOrder($purchaseOrder, $attempts=0)
   {
     try {
       if (false !== ($result = @$this->client->savePurchaseOrder($this->parser->convertPurchaseOrder($purchaseOrder)))) {
         return $this->parser->parseSavePurchaseOrderResult($result);
       } else {
-        throw new MplusQAPIException('Error while saving invoice: '.json_encode($invoice));
+        throw new MplusQAPIException('Error while saving purchase order: '.json_encode($purchaseOrder));
       }
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->savePurchaseOrder($purchaseOrder, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
@@ -2503,7 +2555,31 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function savePurchaseDelivery($purchaseDelivery)
+  public function savePurchaseOrderV2($purchaseOrder, $attempts=0)
+  {
+    try {
+      // i($this->parser->convertPurchaseOrderV2($purchaseOrder));
+      if (false !== ($result = @$this->client->savePurchaseOrderV2($this->parser->convertPurchaseOrderV2($purchaseOrder)))) {
+        return $this->parser->parseSavePurchaseOrderResult($result);
+      } else {
+        throw new MplusQAPIException('Error while saving purchase order: '.json_encode($purchaseOrder));
+      }
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->savePurchaseOrderV2($purchaseOrder, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END savePurchaseOrder()
+
+  //----------------------------------------------------------------------------
+
+  public function savePurchaseDelivery($purchaseDelivery, $attempts=0)
   {
     try {
       if (false !== ($result = @$this->client->savePurchaseDelivery($this->parser->convertPurchaseDelivery($purchaseDelivery)))) {
@@ -2512,11 +2588,40 @@ class MplusQAPIclient
         throw new MplusQAPIException('Error while saving invoice: '.json_encode($invoice));
       }
     } catch (SoapFault $e) {
-      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->savePurchaseDelivery($purchaseDelivery, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
   } // END savePurchaseDelivery()
+
+  //----------------------------------------------------------------------------
+
+  public function savePurchaseDeliveryV2($purchaseDelivery, $attempts=0)
+  {
+    try {
+      if (false !== ($result = @$this->client->savePurchaseDeliveryV2($this->parser->convertPurchaseDeliveryV2($purchaseDelivery)))) {
+        return $this->parser->parseSavePurchaseDeliveryResult($result);
+      } else {
+        throw new MplusQAPIException('Error while saving invoice: '.json_encode($invoice));
+      }
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->savePurchaseDeliveryV2($purchaseDelivery, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END savePurchaseDeliveryV2()
 
   //----------------------------------------------------------------------------
 
@@ -6599,11 +6704,11 @@ class MplusQAPIDataParser
 
   public function convertPurchaseOrder($purchaseOrder)
   {
-    if (isset($invoice['orderDate'])) {
-      $invoice['orderDate'] = $this->convertMplusDate($invoice['orderDate'], 'orderDate');
+    if (isset($purchaseOrder['orderDate'])) {
+      $purchaseOrder['orderDate'] = $this->convertMplusDate($purchaseOrder['orderDate'], 'orderDate');
     }
-    if (isset($invoice['deliveryDate'])) {
-      $invoice['deliveryDate'] = $this->convertMplusDate($invoice['deliveryDate'], 'deliveryDate');
+    if (isset($purchaseOrder['deliveryDate'])) {
+      $purchaseOrder['deliveryDate'] = $this->convertMplusDate($purchaseOrder['deliveryDate'], 'deliveryDate');
     }
     if (isset($purchaseOrder['entryTimestamp'])) {
       $purchaseOrder['entryTimestamp'] = $this->convertMplusDateTime($purchaseOrder['entryTimestamp'], 'entryTimestamp');
@@ -6618,6 +6723,30 @@ class MplusQAPIDataParser
     $object = arrayToObject(array('purchaseOrder'=>$purchaseOrder));
     return $object;
   } // END convertPurchaseOrder()
+
+  //----------------------------------------------------------------------------
+
+  public function convertPurchaseOrderV2($purchaseOrder)
+  {
+    if (isset($purchaseOrder['orderDate'])) {
+      $purchaseOrder['orderDate'] = $this->convertMplusDate($purchaseOrder['orderDate'], 'orderDate');
+    }
+    if (isset($purchaseOrder['deliveryDate'])) {
+      $purchaseOrder['deliveryDate'] = $this->convertMplusDate($purchaseOrder['deliveryDate'], 'deliveryDate');
+    }
+    if (isset($purchaseOrder['entryTimestamp'])) {
+      $purchaseOrder['entryTimestamp'] = $this->convertMplusDateTime($purchaseOrder['entryTimestamp'], 'entryTimestamp');
+    }
+    if (isset($purchaseOrder['purchaseOrderNumber'])) {
+      $purchaseOrder['purchaseOrderNumber'] = $this->convertYearNumber($purchaseOrder['purchaseOrderNumber']);
+    }
+    if ( ! isset($purchaseOrder['lineList'])) {
+      $purchaseOrder['lineList'] = array();
+    }
+    $purchaseOrder['lineList'] = $this->convertPurchaseOrderLineList($purchaseOrder['lineList']);
+    $object = arrayToObject(array('request'=>array('savePurchaseOrder'=>$purchaseOrder)));
+    return $object;
+  } // convertPurchaseOrderV2()
 
   //----------------------------------------------------------------------------
 
@@ -6639,6 +6768,27 @@ class MplusQAPIDataParser
     $object = arrayToObject(array('purchaseDelivery'=>$purchaseDelivery));
     return $object;
   } // END convertPurchaseDelivery()
+
+  //----------------------------------------------------------------------------
+
+  public function convertPurchaseDeliveryV2($purchaseDelivery)
+  {
+    if (isset($invoice['deliveryDate'])) {
+      $invoice['deliveryDate'] = $this->convertMplusDate($invoice['deliveryDate'], 'deliveryDate');
+    }
+    if (isset($purchaseDelivery['entryTimestamp'])) {
+      $purchaseDelivery['entryTimestamp'] = $this->convertMplusDateTime($purchaseDelivery['entryTimestamp'], 'entryTimestamp');
+    }
+    if (isset($purchaseDelivery['purchaseDeliveryNumber'])) {
+      $purchaseDelivery['purchaseDeliveryNumber'] = $this->convertYearNumber($purchaseDelivery['purchaseDeliveryNumber']);
+    }
+    if ( ! isset($purchaseDelivery['lineList'])) {
+      $purchaseDelivery['lineList'] = array();
+    }
+    $purchaseDelivery['lineList'] = $this->convertPurchaseDeliveryLineList($purchaseDelivery['lineList']);
+    $object = arrayToObject(array('request'=>array('savePurchaseDelivery'=>$purchaseDelivery)));
+    return $object;
+  } // END convertPurchaseDeliveryV2()
 
   //----------------------------------------------------------------------------
 
