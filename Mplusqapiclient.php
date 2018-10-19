@@ -2596,7 +2596,7 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
   
-  public function getRelationPoints($relationNumbers=array(), $syncMarker=null, $syncMarkerLimit=null)
+  public function getRelationPoints($relationNumbers=array(), $syncMarker=null, $syncMarkerLimit=null, $attempts=0)
   {
     try {
       $result = $this->client->getRelationPoints(
@@ -2606,7 +2606,7 @@ class MplusQAPIclient
       $msg = $e->getMessage();
       if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
         sleep(1);
-        return $this->getRelations($relationNumbers, $syncMarker, $categoryId, $syncMarkerLimit, $attempts+1);
+        return $this->getRelationPoints($relationNumbers, $syncMarker, $syncMarkerLimit, $attempts+1);
       } else {
         throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
       }
