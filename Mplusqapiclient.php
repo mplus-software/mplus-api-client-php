@@ -5310,8 +5310,12 @@ class MplusQAPIDataParser
       $request['supplierRelationNumbers'] = array_values($supplierRelationNumbers);
     }
 
-    if (!is_null($includeOrderReferences) and is_bool($includeOrderReferences)) {
-      $request['includeOrderReferences'] = $includeOrderReferences;
+    if (!is_null($includeOrderReferences)) {
+      if (is_bool($includeOrderReferences)) {
+        $request['includeOrderReferences'] = $includeOrderReferences;
+      } else {
+        throw new MplusQAPIException('Supplied value for `includeOrderReferences` is not a valid boolean.');
+      }
     }
 
     $object = arrayToObject(array('request'=>$request));
