@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.10.0';
+  const CLIENT_VERSION  = '1.10.1';
   
 
   var $MIN_API_VERSION_MAJOR = 0;
