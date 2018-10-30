@@ -4635,7 +4635,12 @@ class MplusQAPIDataParser
   
   public function parseRelationPoints($soapRelationPoints)
   {
-    return objectToArray($soapRelationPoints->relationPointsLst);
+    if (isset($soapRelationPoints->relationPointsLst)) {
+        return objectToArray($soapRelationPoints->relationPointsLst);
+    }
+    else {
+        return array();
+    }
   }  
   
   //----------------------------------------------------------------------------
