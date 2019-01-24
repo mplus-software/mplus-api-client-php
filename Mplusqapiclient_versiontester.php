@@ -25,6 +25,10 @@ class MplusQAPIclient_VersionTester
   /**
    * @var string
    */
+  private $detectedFingerprint = null;
+  /**
+   * @var string
+   */
   private $apiIdent = null;
   /**
    * @var string
@@ -56,7 +60,7 @@ class MplusQAPIclient_VersionTester
       throw new MplusQAPIException_VersionTester('MplusQAPIclient_VersionTester needs the JSON PHP extension.');
     }
 
-    if ( ! is_nulL($params)) {
+    if ( ! is_null($params)) {
       $this->setApiServer($params['apiServer']);
       $this->setApiPort($params['apiPort']);
       $this->setApiPath($params['apiPath']);
@@ -177,13 +181,24 @@ class MplusQAPIclient_VersionTester
       'cache_wsdl' => WSDL_CACHE_NONE,
       );
 
-    if ($require_fingerprint_check and ! $this->checkFingerprint($location)) {
-      throw new MplusQAPIException_VersionTester('Fingerprint of SSL certificate doesn\'t match.');
+    $wsdl_url = $location.'?wsdl';
+    try {
+      // Don't wait longer than 5 seconds for the headers.
+      // We call get_headers() here because we want a relatively fast check if the API is available at all
+      // , before we actually initialize the SoapClient and start running requests
+      ini_set('default_socket_timeout', 5);
+      if (false === @get_headers($wsdl_url)) {
+        throw new MplusQAPIException_VersionTester(sprintf('Cannot find API WSDL @ %s', $wsdl_url));
+      }
+      $this->client = @new SoapClient($wsdl_url, $options);
+      if (false === $this->client or is_null($this->client)) {
+        throw new MplusQAPIException_VersionTester('Unable to load SoapClient.');
+      }
+    } catch (SoapFault $exception) {
+      throw new MplusQAPIException_VersionTester($exception->getMessage());
     }
 
-    $wsdl_url = $location.'?wsdl';
-    $this->client = new SoapClient($wsdl_url, $options);
-
+    return true;
   } // END initClient()
 
   //----------------------------------------------------------------------------
@@ -222,27 +237,32 @@ class MplusQAPIclient_VersionTester
 
   protected function checkFingerprint($location)
   {
+    $this->detectedFingerprint = null;
     $fingerprint_matches = false;
     $g = stream_context_create (array('ssl' => array('capture_peer_cert' => true)));
     if (false === ($r = @stream_socket_client(str_replace('https', 'ssl', $location), $errno,
       $errstr, 30, STREAM_CLIENT_CONNECT, $g))) {
+      $this->detectedFingerprint = 'Unable to stream_socket_client()';
       return $fingerprint_matches;
     }
     $cont = stream_context_get_params($r);
     if (isset($cont['options']['ssl']['peer_certificate'])) {
       // $certificate_info = openssl_x509_parse($cont['options']['ssl']['peer_certificate']);
       $resource = $cont['options']['ssl']['peer_certificate'];
-      $fingerprint = null;
       $output = null;
       if (false !== ($result = openssl_x509_export($resource, $output))) {
         $output = str_replace('-----BEGIN CERTIFICATE-----', '', $output);
         $output = str_replace('-----END CERTIFICATE-----', '', $output);
         $output = base64_decode($output);
-        $fingerprint = sha1($output);
-        if ($fingerprint == $this->apiFingerprint) {
+        $this->detectedFingerprint = sha1($output);
+        if ($this->detectedFingerprint == $this->apiFingerprint) {
           $fingerprint_matches = true;
         }
+      } else {
+        $this->detectedFingerprint = 'Unable to openssl_x509_export()';
       }
+    } else {
+        $this->detectedFingerprint = 'Cannot find \'peer_certificate\'';
     }
     return $fingerprint_matches;
   } // END checkFingerprint()
