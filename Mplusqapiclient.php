@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.12.0';
+  const CLIENT_VERSION  = '1.12.1';
   
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -5347,23 +5347,41 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function parseCreateActivityResult($soapCreateActivityResult) 
+  public function parseCreateActivityResult($in) 
   {
-    i($soapCreateActivityResult);
-  } // END parseCreateActivityResult()
+    $result = ['result'=>$in->result];
+    if (isset($in->activity)) {
+      $result['activity'] = $in->activity;
+    }
+    if (isset($in->errorMessage)) {
+      $result['errorMessage '] = $in->errorMessage;
+    }
+    return $result;
+  }
 
   //----------------------------------------------------------------------------
 
-  public function parseUpdateActivityResult($soapUpdateActivityResult) 
+  public function parseUpdateActivityResult($in) 
   {
-    i($soapUpdateActivityResult);
+    $result = ['result'=>$in->result];
+    if (isset($in->activity)) {
+      $result['activity'] = $in->activity;
+    }
+    if (isset($in->errorMessage)) {
+      $result['errorMessage '] = $in->errorMessage;
+    }
+    return $result;
   } // END parseUpdateActivityResult()
 
   //----------------------------------------------------------------------------
 
-  public function parseDeleteActivityResult($soapDeleteActivityResult) 
+  public function parseDeleteActivityResult($in) 
   {
-    i($soapDeleteActivityResult);
+    $result = ['result'=>$in->result];
+    if (isset($in->errorMessage)) {
+      $result['errorMessage '] = $in->errorMessage;
+    }
+    return $result;
   } // END parseDeleteActivityResult()
 
   //----------------------------------------------------------------------------
