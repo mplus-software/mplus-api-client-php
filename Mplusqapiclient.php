@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.12.1';
+  const CLIENT_VERSION  = '1.13.0';
   
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -342,7 +342,6 @@ class MplusQAPIclient
       'trace' => $this->debug,
       'exceptions' => true, 
       'features' => SOAP_SINGLE_ELEMENT_ARRAYS,
-      'cache_wsdl' => WSDL_CACHE_NONE,
       'connection_timeout' => $this->connection_timeout,
       );
 
