@@ -16,6 +16,6 @@
 		"lib-curl" : "*"
 	},
 	"autoload" : {
-		"files" : ["Mplusqapiclient.php"]
+		"files" : ["Mplusqapiclient.php","Mplusqapiclient_versiontester.php"]
 	}
 }
