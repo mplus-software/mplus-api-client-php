@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.13.1';
+  const CLIENT_VERSION  = '1.13.2';
   
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -336,14 +336,15 @@ class MplusQAPIclient
       $location_with_credentials .= 'secret='.urlencode($this->apiSecret);
     }
 
-    $options = array(
+    $options = [
       'location' => $location_with_credentials,
       'uri' => 'urn:mplusqapi',
       'trace' => $this->debug,
       'exceptions' => true, 
       'features' => SOAP_SINGLE_ELEMENT_ARRAYS,
+      'cache_wsdl' => WSDL_CACHE_NONE,
       'connection_timeout' => $this->connection_timeout,
-      );
+    ];
 
     $wsdl_url = $location.'?wsdl';
     try {
