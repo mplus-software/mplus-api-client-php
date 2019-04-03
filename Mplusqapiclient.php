@@ -2,8 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.13.2';
-  
+  const CLIENT_VERSION  = '1.14.0';
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 9;
@@ -2438,6 +2437,20 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function createOrderV2($order, $applySalesAndActions=null, $applySalesPrices=null, $applyPriceGroups=null)
+  {
+    try {
+      $result = $this->client->createOrderV2($this->parser->convertCreateOrderV2Request($order, $applySalesAndActions, $applySalesPrices, $applyPriceGroups));
+      return $this->parser->parseCreateOrderV2Result($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  }
+
+  //----------------------------------------------------------------------------
+
   public function updateOrder($order)
   {
     try {
@@ -3850,28 +3863,35 @@ class MplusQAPIDataParser
   {
     if (isset($soapOrderResult->result)) {
       if ($soapOrderResult->result == 'GET-ORDER-RESULT-OK') {
-      if (isset($soapOrderResult->order)) {
-        $soapOrder = $soapOrderResult->order;
-        $order = objectToArray($soapOrder);
-        if (isset($order['lineList'])) {
-          if (isset($order['lineList']['line'])) {
-            $order['lineList'] = $order['lineList']['line'];
-          }
+        if (isset($soapOrderResult->order)) {
+          $soapOrder = $soapOrderResult->order;
+          return $this->parseOrder($soapOrder);
         }
-        if (isset($order['invoiceIds'])) {
-          if (isset($order['invoiceIds']['id'])) {
-            $order['invoiceIds'] = $order['invoiceIds']['id'];
-          }
-        }
-        return $order;
-      }
       } else {
         throw new MplusQAPIException($soapOrderResult->result);
       }
     } else {
       throw new MplusQAPIException('No valid order result');
     }
-  } // END parseOrderResult()
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function parseOrder($soapOrder)
+  {
+    $order = objectToArray($soapOrder);
+    if (isset($order['lineList'])) {
+      if (isset($order['lineList']['line'])) {
+        $order['lineList'] = $order['lineList']['line'];
+      }
+    }
+    if (isset($order['invoiceIds'])) {
+      if (isset($order['invoiceIds']['id'])) {
+        $order['invoiceIds'] = $order['invoiceIds']['id'];
+      }
+    }
+    return $order;
+  }
 
   //----------------------------------------------------------------------------
 
@@ -4942,7 +4962,8 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function parseCreateOrderResult($soapCreateOrderResult) {
+  public function parseCreateOrderResult($soapCreateOrderResult) 
+  {
     if (isset($soapCreateOrderResult->result) and $soapCreateOrderResult->result == 'CREATE-ORDER-RESULT-OK') {
       if (isset($soapCreateOrderResult->info)) {
         return objectToArray($soapCreateOrderResult->info);
@@ -4952,7 +4973,22 @@ class MplusQAPIDataParser
     } else {
       return false;
     }
-  } // END parseCreateOrderResult()
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function parseCreateOrderV2Result($soapCreateOrderV2Result) 
+  {
+    if (isset($soapCreateOrderV2Result->result) and $soapCreateOrderV2Result->result == 'CREATE-ORDER-RESULT-OK') {
+      if (isset($soapCreateOrderV2Result->order)) {
+        return $this->parseOrder($soapCreateOrderV2Result->order);
+      } else {
+        return true;
+      }
+    } else {
+      return false;
+    }
+  }
 
   //----------------------------------------------------------------------------
 
@@ -6700,10 +6736,10 @@ class MplusQAPIDataParser
             $relation['customFieldList']['customField'][$cf_idx]['dataType'] = 'DATA-TYPE-UNKNOWN';
           }
           if (isset($customField['dateValue'])) {
-            $relation['customFieldList']['customField'][$cf_idx]['dateValue'] = $this->convertMplusDate(strtotime($customField['dateValue']), 'dateValue');
+            $relation['customFieldList']['customField'][$cf_idx]['dateValue'] = $this->convertMplusDate($customField['dateValue'], 'dateValue');
           }
           if (isset($customField['dateTimeValue'])) {
-            $relation['customFieldList']['customField'][$cf_idx]['dateTimeValue'] = $this->convertMplusDateTime(strtotime($customField['dateTimeValue']), 'dateTimeValue');
+            $relation['customFieldList']['customField'][$cf_idx]['dateTimeValue'] = $this->convertMplusDateTime($customField['dateTimeValue'], 'dateTimeValue');
           }
         }
       }
@@ -6728,10 +6764,10 @@ class MplusQAPIDataParser
             $employee['customFieldList']['customField'][$cf_idx]['dataType'] = 'DATA-TYPE-UNKNOWN';
           }
           if (isset($customField['dateValue'])) {
-            $employee['customFieldList']['customField'][$cf_idx]['dateValue'] = $this->convertMplusDate(strtotime($customField['dateValue']), 'dateValue');
+            $employee['customFieldList']['customField'][$cf_idx]['dateValue'] = $this->convertMplusDate($customField['dateValue'], 'dateValue');
           }
           if (isset($customField['dateTimeValue'])) {
-            $employee['customFieldList']['customField'][$cf_idx]['dateTimeValue'] = $this->convertMplusDateTime(strtotime($customField['dateTimeValue']), 'dateTimeValue');
+            $employee['customFieldList']['customField'][$cf_idx]['dateTimeValue'] = $this->convertMplusDateTime($customField['dateTimeValue'], 'dateTimeValue');
           }
         }
       }
@@ -6805,10 +6841,10 @@ class MplusQAPIDataParser
               $article['customFieldList']['customField'][$cf_idx]['dataType'] = 'DATA-TYPE-UNKNOWN';
             }
             if (isset($customField['dateValue'])) {
-              $article['customFieldList']['customField'][$cf_idx]['dateValue'] = $this->convertMplusDate(strtotime($customField['dateValue']), 'dateValue');
+              $article['customFieldList']['customField'][$cf_idx]['dateValue'] = $this->convertMplusDate($customField['dateValue'], 'dateValue');
             }
             if (isset($customField['dateTimeValue'])) {
-              $article['customFieldList']['customField'][$cf_idx]['dateTimeValue'] = $this->convertMplusDateTime(strtotime($customField['dateTimeValue']), 'dateTimeValue');
+              $article['customFieldList']['customField'][$cf_idx]['dateTimeValue'] = $this->convertMplusDateTime($customField['dateTimeValue'], 'dateTimeValue');
             }
           }
         }
@@ -6909,6 +6945,25 @@ class MplusQAPIDataParser
     $object = arrayToObject(array('terminal'=>$terminal));
     return $object;
   } // END convertTerminal()
+
+  //----------------------------------------------------------------------------
+
+  public function convertCreateOrderV2Request($order, $applySalesAndActions, $applySalesPrices, $applyPriceGroups)
+  {
+    $order = $this->convertOrder($order);
+    $request = ['order'=>$order->order];
+    if (!is_null($applySalesAndActions)) {
+      $request['applySalesAndActions'] = $applySalesAndActions;
+    }
+    if (!is_null($applySalesPrices)) {
+      $request['applySalesPrices'] = $applySalesPrices;
+    }
+    if (!is_null($applyPriceGroups)) {
+      $request['applyPriceGroups'] = $applyPriceGroups;
+    }
+    $object = arrayToObject(['request'=>$request]);
+    return $object;
+  }
 
   //----------------------------------------------------------------------------
 
