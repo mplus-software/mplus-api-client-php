@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.14.0';
+  const CLIENT_VERSION  = '1.15.0';
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 9;
@@ -1035,7 +1035,67 @@ class MplusQAPIclient
     } catch (Exception $e) {
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
-  } // END getDeliveryMethods()
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function getDeliveryMethodsV2($request, $attempts=0)
+  {
+    try {
+      $result = $this->client->getDeliveryMethodsV2($this->parser->convertGetDeliveryMethodsV2Request($request));
+      return $this->parser->parseGetDeliveryMethodsV2Result($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getDeliveryMethodsV2($request, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function createDeliveryMethod($createDeliveryMethod, $attempts=0)
+  {
+    try {
+      $result = $this->client->createDeliveryMethod($this->parser->convertCreateDeliveryMethodRequest($createDeliveryMethod));
+      return $this->parser->parseCreateDeliveryMethodResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->createDeliveryMethod($createDeliveryMethod, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function updateDeliveryMethod($updateDeliveryMethod, $attempts=0)
+  {
+    try {
+      $result = $this->client->updateDeliveryMethod($this->parser->convertUpdateDeliveryMethodRequest($updateDeliveryMethod));
+      return $this->parser->parseUpdateDeliveryMethodResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->updateDeliveryMethod($updateDeliveryMethod, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  }
 
   //----------------------------------------------------------------------------
 
@@ -4577,14 +4637,50 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function parseGetDeliveryMethodsResult($soapGetDeliveryMethodsResult) {
-    $deliveryMethods = array();
-    if (isset($soapGetDeliveryMethodsResult->deliveryMethodList->deliveryMethod)) {
-      $soapDeliveryMethods = $soapGetDeliveryMethodsResult->deliveryMethodList->deliveryMethod;
-      $deliveryMethods = objectToArray($soapDeliveryMethods);
+  public function parseGetDeliveryMethodsResult($soap)
+  {
+    $deliveryMethods = [];
+    if (isset($soap->deliveryMethodList->deliveryMethod)) {
+      $soap = $soap->deliveryMethodList->deliveryMethod;
+      $deliveryMethods = objectToArray($soap);
     }
     return $deliveryMethods;
-  } // END parseGetDeliveryMethodsResult()
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function parseGetDeliveryMethodsV2Result($soap) 
+  {
+    return $this->parseGetDeliveryMethodsResult($soap);
+  }  
+
+  //----------------------------------------------------------------------------
+
+  public function parseCreateDeliveryMethodResult($in) 
+  {
+    $result = ['result'=>$in->result];
+    if (isset($in->deliveryMethod)) {
+      $result['deliveryMethod'] = $in->deliveryMethod;
+    }
+    if (isset($in->errorMessage)) {
+      $result['errorMessage '] = $in->errorMessage;
+    }
+    return $result;
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function parseUpdateDeliveryMethodResult($in) 
+  {
+    $result = ['result'=>$in->result];
+    if (isset($in->deliveryMethod)) {
+      $result['deliveryMethod'] = $in->deliveryMethod;
+    }
+    if (isset($in->errorMessage)) {
+      $result['errorMessage '] = $in->errorMessage;
+    }
+    return $result;
+  }
 
   //----------------------------------------------------------------------------
 
@@ -5419,6 +5515,30 @@ class MplusQAPIDataParser
     }
     return $result;
   } // END parseDeleteActivityResult()
+
+  //----------------------------------------------------------------------------
+
+  public function convertGetDeliveryMethodsV2Request($request)
+  {
+    $object = arrayToObject(['request'=>$request]);
+    return $object;
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function convertCreateDeliveryMethodRequest($createDeliveryMethod)
+  {
+    $object = arrayToObject(array('request'=>array('deliveryMethod'=>$createDeliveryMethod)));
+    return $object;
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function convertUpdateDeliveryMethodRequest($updateDeliveryMethod)
+  {
+    $object = arrayToObject(array('request'=>array('deliveryMethod'=>$updateDeliveryMethod)));
+    return $object;
+  }
 
   //----------------------------------------------------------------------------
 
