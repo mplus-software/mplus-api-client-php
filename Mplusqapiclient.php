@@ -3,6 +3,7 @@
 class MplusQAPIclient
 {
   const CLIENT_VERSION  = '1.15.0';
+  const WSDL_TTL = 300; // 5 min WSDL TTL
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 9;
@@ -341,9 +342,10 @@ class MplusQAPIclient
       'trace' => $this->debug,
       'exceptions' => true, 
       'features' => SOAP_SINGLE_ELEMENT_ARRAYS,
-      'cache_wsdl' => WSDL_CACHE_NONE,
+      'cache_wsdl' => WSDL_CACHE_DISK,
       'connection_timeout' => $this->connection_timeout,
     ];
+    ini_set('soap.wsdl_cache_ttl', MplusQAPIclient::WSDL_TTL);
 
     $wsdl_url = $location.'?wsdl';
     try {
