@@ -922,6 +922,26 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function getCurrentTableOrders($request=null, $attempts=0)
+  {
+    try {
+      $result = $this->client->getCurrentTableOrders($this->parser->convertGetCurrentTableOrdersRequest($request));
+      return $this->parser->parseGetOrdersResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getCurrentTableOrders($request, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  }
+
+  //----------------------------------------------------------------------------
+
   public function getAvailablePaymentMethods($terminal, $attempts=0)
   {
     try {
@@ -7068,6 +7088,17 @@ class MplusQAPIDataParser
     $object = arrayToObject(array('terminal'=>$terminal));
     return $object;
   } // END convertTerminal()
+
+  //----------------------------------------------------------------------------
+
+  public function convertGetCurrentTableOrdersRequest($request)
+  {
+    if (is_null($request)) {
+      $request = [];
+    }
+    $object = arrayToObject(['request'=>$request]);
+    return $object;
+  }
 
   //----------------------------------------------------------------------------
 
