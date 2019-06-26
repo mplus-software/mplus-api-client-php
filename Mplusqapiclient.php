@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.17.0';
+  const CLIENT_VERSION  = '1.17.1';
   const WSDL_TTL = 300; // 5 min WSDL TTL
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -6504,8 +6504,8 @@ class MplusQAPIDataParser
 
   public function convertPayTableOrderRequest($terminal, $order, $paymentList, $keepTableName, $releaseTable)
   {
-    $terminal = $this->convertTerminal($terminal);
     $order = $this->convertOrder($order, $terminal);
+    $terminal = $this->convertTerminal($terminal);
     $array = array(
       'terminal'=>$terminal->terminal,
       'request'=>array(
@@ -6522,8 +6522,8 @@ class MplusQAPIDataParser
 
   public function convertPrepayTableOrderRequest($terminal, $order, $paymentList, $prepayAmount, $releaseTable)
   {
-    $terminal = $this->convertTerminal($terminal);
     $order = $this->convertOrder($order, $terminal);
+    $terminal = $this->convertTerminal($terminal);
     $array = array(
       'terminal'=>$terminal->terminal,
       'request'=>array(
@@ -7790,8 +7790,8 @@ class MplusQAPIDataParser
 
   public function convertSaveTableOrder($terminal, $order)
   {
-    $terminal = $this->convertTerminal($terminal);
     $order = $this->convertOrder($order, $terminal);
+    $terminal = $this->convertTerminal($terminal);
     $object = arrayToObject(array(
       'terminal'=>$terminal->terminal,
       'order'=>$order->order,
@@ -7803,8 +7803,8 @@ class MplusQAPIDataParser
 
   public function convertMoveTableOrderRequest($terminal, $order, $tableNumber)
   {
-    $terminal = $this->convertTerminal($terminal);
     $order = $this->convertOrder($order, $terminal);
+    $terminal = $this->convertTerminal($terminal);
     $object = arrayToObject(array(
       'terminal'=>$terminal->terminal,
       'order'=>$order->order,
