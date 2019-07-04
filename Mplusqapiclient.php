@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.15.0';
+  const CLIENT_VERSION  = '1.17.1';
   const WSDL_TTL = 300; // 5 min WSDL TTL
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -918,6 +918,26 @@ class MplusQAPIclient
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
   } // END getTableListV2()
+
+  //----------------------------------------------------------------------------
+
+  public function getCurrentTableOrders($request=null, $attempts=0)
+  {
+    try {
+      $result = $this->client->getCurrentTableOrders($this->parser->convertGetCurrentTableOrdersRequest($request));
+      return $this->parser->parseGetOrdersResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getCurrentTableOrders($request, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  }
 
   //----------------------------------------------------------------------------
 
@@ -2554,7 +2574,7 @@ class MplusQAPIclient
       $msg = $e->getMessage();
       if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
         sleep(1);
-        return $this->queueBranchOrder($orderId, $attempts+1);
+        return $this->queueBranchOrder($order, $attempts+1);
       } else {
         throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
       }
@@ -6556,8 +6576,8 @@ class MplusQAPIDataParser
 
   public function convertPayTableOrderRequest($terminal, $order, $paymentList, $keepTableName, $releaseTable)
   {
+    $order = $this->convertOrder($order, $terminal);
     $terminal = $this->convertTerminal($terminal);
-    $order = $this->convertOrder($order);
     $array = array(
       'terminal'=>$terminal->terminal,
       'request'=>array(
@@ -6574,8 +6594,8 @@ class MplusQAPIDataParser
 
   public function convertPrepayTableOrderRequest($terminal, $order, $paymentList, $prepayAmount, $releaseTable)
   {
+    $order = $this->convertOrder($order, $terminal);
     $terminal = $this->convertTerminal($terminal);
-    $order = $this->convertOrder($order);
     $array = array(
       'terminal'=>$terminal->terminal,
       'request'=>array(
@@ -7142,6 +7162,17 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function convertGetCurrentTableOrdersRequest($request)
+  {
+    if (is_null($request)) {
+      $request = [];
+    }
+    $object = arrayToObject(['request'=>$request]);
+    return $object;
+  }
+
+  //----------------------------------------------------------------------------
+
   public function convertCreateOrderV2Request($order, $applySalesAndActions, $applySalesPrices, $applyPriceGroups)
   {
     $order = $this->convertOrder($order);
@@ -7161,7 +7192,7 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertOrder($order, $as_array=false)
+  public function convertOrder($order, $terminal=null, $as_array=false)
   {
     if ( ! isset($order['orderId']) or is_null($order['orderId'])) {
       $order['orderId'] = '';
@@ -7172,6 +7203,8 @@ class MplusQAPIDataParser
     if ( ! isset($order['entryBranchNumber'])) {
       if (isset($order['financialBranchNumber'])) {
         $order['entryBranchNumber'] = $order['financialBranchNumber'];
+      } elseif (!is_null($terminal) and isset($terminal['branchNumber'])) {
+        $order['entryBranchNumber'] = $terminal['branchNumber'];
       } else {
         $order['entryBranchNumber'] = 0;
       }
@@ -7202,6 +7235,8 @@ class MplusQAPIDataParser
     if ( ! isset($order['financialBranchNumber'])) {
       if (isset($order['entryBranchNumber'])) {
         $order['financialBranchNumber'] = $order['entryBranchNumber'];
+      } elseif (!is_null($terminal) and isset($terminal['branchNumber'])) {
+        $order['financialBranchNumber'] = $terminal['branchNumber'];
       } else {
         $order['financialBranchNumber'] = 0;
       }
@@ -7971,8 +8006,8 @@ class MplusQAPIDataParser
 
   public function convertSaveTableOrder($terminal, $order)
   {
+    $order = $this->convertOrder($order, $terminal);
     $terminal = $this->convertTerminal($terminal);
-    $order = $this->convertOrder($order);
     $object = arrayToObject(array(
       'terminal'=>$terminal->terminal,
       'order'=>$order->order,
@@ -7984,8 +8019,8 @@ class MplusQAPIDataParser
 
   public function convertMoveTableOrderRequest($terminal, $order, $tableNumber)
   {
+    $order = $this->convertOrder($order, $terminal);
     $terminal = $this->convertTerminal($terminal);
-    $order = $this->convertOrder($order);
     $object = arrayToObject(array(
       'terminal'=>$terminal->terminal,
       'order'=>$order->order,
