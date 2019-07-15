@@ -5095,6 +5095,8 @@ class MplusQAPIDataParser
       return true;
     } else if (isset($soapUpdateOrderResult->result) and $soapUpdateOrderResult->result == 'UPDATE-ORDER-RESULT-FAILED' and $soapUpdateOrderResult->errorMessage == 'Order not saved because there were no changes in the order.') {
       return true;
+    } else if (isset($soapUpdateOrderResult->result) and $soapUpdateOrderResult->result == 'UPDATE-ORDER-RESULT-NO-CHANGES') {
+      return true;
     } else {
       if ( ! empty($soapUpdateOrderResult->errorMessage)) {
         $this->lastErrorMessage = $soapUpdateOrderResult->errorMessage;
@@ -5144,6 +5146,8 @@ class MplusQAPIDataParser
         return true;
       }
     } else if (isset($soapSaveOrderResult->result) and $soapSaveOrderResult->result == 'SAVE-ORDER-RESULT-FAILED' and $soapSaveOrderResult->errorMessage == 'Order not saved because there were no changes in the order.') {
+      return true;
+    } else if (isset($soapSaveOrderResult->result) and $soapSaveOrderResult->result == 'SAVE-ORDER-RESULT-NO-CHANGES') {
       return true;
     } else {
       if ( ! empty($soapSaveOrderResult->errorMessage)) {
