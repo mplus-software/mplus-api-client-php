@@ -94,7 +94,13 @@ class MplusQAPIclient
     {
       throw new MplusQAPIException('MplusQAPIClient needs the JSON PHP extension.');
     }
-    if (PHP_INT_MAX <= 2147483647) {
+    $ignore64BitWarning = false;
+    if (PHP_INT_MAX > 2147483647) {
+      $ignore64BitWarning = true;
+    } elseif (!is_null($params) and isset($params['ignore64BitWarning']) and $params['ignore64BitWarning']) {
+      $ignore64BitWarning = true;
+    }
+    if (!$ignore64BitWarning) {
       throw new MplusQAPIException(sprintf('Your PHP_INT_MAX is %d. MplusQAPIClient needs to run in a 64-bit system.', PHP_INT_MAX));
     }
 
