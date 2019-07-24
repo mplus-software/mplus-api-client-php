@@ -108,12 +108,24 @@ class MplusQAPIclient
     $this->parser->setConvertToTimestamps($this->convertToTimestamps);
 
     if ( ! is_null($params)) {
-      $this->setApiServer($params['apiServer']);
-      $this->setApiPort($params['apiPort']);
-      $this->setApiPath($params['apiPath']);
-      $this->setApiFingerprint($params['apiFingerprint']);
-      $this->setApiIdent($params['apiIdent']);
-      $this->setApiSecret($params['apiSecret']);
+      if (isset($params['apiServer'])) {
+        $this->setApiServer($params['apiServer']);
+      }
+      if (isset($params['apiPort'])) {
+        $this->setApiPort($params['apiPort']);
+      }
+      if (isset($params['apiPath'])) {
+        $this->setApiPath($params['apiPath']);
+      }
+      if (isset($params['apiFingerprint'])) {
+        $this->setApiFingerprint($params['apiFingerprint']);
+      }
+      if (isset($params['apiIdent'])) {
+        $this->setApiIdent($params['apiIdent']);
+      }
+      if (isset($params['apiSecret'])) {
+        $this->setApiSecret($params['apiSecret']);
+      }
       $this->initClient();
     }
   }
