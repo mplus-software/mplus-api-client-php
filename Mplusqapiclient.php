@@ -126,7 +126,9 @@ class MplusQAPIclient
       if (isset($params['apiSecret'])) {
         $this->setApiSecret($params['apiSecret']);
       }
-      $this->initClient();
+      if (isset($params['apiServer']) and isset($params['apiPort']) and isset($params['apiIdent']) and isset($params['apiSecret'])) {
+        $this->initClient();
+      }
     }
   }
 
