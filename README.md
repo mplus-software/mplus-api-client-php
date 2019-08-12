@@ -3,6 +3,10 @@ mplus-api-client-php
 
 PHP client for the Mplus Q-line API.
 
+### Install through Composer:
+
+```composer require mplus-software/mplus-api-client-php```
+
 ### Example of usage:
 
 The following script will connect to the API with your credentials and try to request the currently running version of the API.
