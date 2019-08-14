@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.18.2';
+  const CLIENT_VERSION  = '1.19.0';
   const WSDL_TTL = 300; // 5 min WSDL TTL
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -3216,7 +3216,28 @@ class MplusQAPIclient
     }
   } // END deleteActivity()
 
-//----------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
+
+  public function verifyCredentials($request, $attempts=0)
+  {
+    try {
+      $result = $this->client->verifyCredentials($this->parser->convertVerifyCredentialsRequest($request));
+      return $this->parser->parseVerifyCredentialsResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->verifyCredentials($activityId, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  }
+
+  //----------------------------------------------------------------------------
+
 public function report($arguments, $attempts = 0)
 {
     try {
@@ -5586,6 +5607,20 @@ class MplusQAPIDataParser
     }
     return $result;
   } // END parseDeleteActivityResult()
+
+  //----------------------------------------------------------------------------
+
+  public function parseVerifyCredentialsResult($in)
+  {
+    if (isset($in->verified)) {
+      $parsed = ['verified'=>$in->verified];
+      if (isset($in->employee)) {
+        $parsed['employee'] = objectToArray($in->employee);
+      }
+      return $parsed;
+    }
+    return false;
+  }
 
   //----------------------------------------------------------------------------
   public function parseReportResult($method, $soapReportResult)
@@ -8187,6 +8222,14 @@ class MplusQAPIDataParser
       ));
     return $object;
   } // END convertButtonLayoutRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertVerifyCredentialsRequest($request)
+  {
+    $object = arrayToObject(['request'=>$request]);
+    return $object;
+  }
 
   //----------------------------------------------------------------------------
 }
