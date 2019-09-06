@@ -5706,6 +5706,14 @@ class MplusQAPIDataParser
                   }
               }
               break;
+          case "reportCancellations":
+                $data = array();
+                if (isset($soapReportResult->cancellationsList->cancellations)) {
+                    foreach ($soapReportResult->cancellationsList->cancellations as $soapCancellations) {
+                        $data[] = $soapCancellations;
+                    }
+                }
+                break;
       }
       return $data;
   } // END parseReportResult()
@@ -7918,6 +7926,14 @@ class MplusQAPIDataParser
               'optional' => array(
                   'branchNumbers',
               ),
+          ),
+          'reportCancellations' => array(
+                'required' => array(
+                    'fromFinancialDate', 'throughFinancialDate',
+                ),
+                'optional' => array(
+                    'branchNumbers', 'employeeNumbers',
+                ),
           ),
       );
       $request = [];
