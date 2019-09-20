@@ -3295,7 +3295,26 @@ public function report($arguments, $attempts = 0)
     }
 } // END report()
 
+
   //----------------------------------------------------------------------------
+
+public function getBranchGroups($attempts = 0)
+{
+    try {
+        $result = $this->client->getBranchGroups();
+        return $this->parser->parseGetBranchGroupsResult($result);
+    } catch (SoapFault $e) {
+        $msg = $e->getMessage();
+        if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+            sleep(1);
+            return $this->getBranchGroups($attempts + 1);
+        } else {
+            throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+        }
+    } catch (Exception $e) {
+        throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+    }
+} // END getBranchGroups()
 
 }
 
@@ -4976,6 +4995,17 @@ class MplusQAPIDataParser
     }
     return $branches;
   } // END parseGetBranchesResult()
+  
+  //----------------------------------------------------------------------------
+
+  public function parseGetBranchGroupsResult($soapGetBranchGroupsResult) {
+    $branchGroups = array();
+    if (isset($soapGetBranchGroupsResult->branchGroupsList->branchGroups)) {
+      $soapBranchGroups = $soapGetBranchGroupsResult->branchGroupsList->branchGroups;
+      return objectToArray($soapBranchGroups);
+    }
+    return $branchGroups;
+  } // END parseGetBranchGroupsResult()
 
   //----------------------------------------------------------------------------
 
