@@ -5253,12 +5253,13 @@ class MplusQAPIDataParser
       return true;
     } else if (isset($soapSaveOrderResult->result) and $soapSaveOrderResult->result == 'SAVE-ORDER-RESULT-NO-CHANGES') {
       return true;
-    } else {
-      if ( ! empty($soapSaveOrderResult->errorMessage)) {
-        $this->lastErrorMessage = $soapSaveOrderResult->errorMessage;
-      }
-      return false;
+    } else if (isset($soapSaveOrderResult->result) and $soapSaveOrderResult->result == 'SAVE-ORDER-RESULT-ORDER-HAS-CHANGED') {
+      $this->lastErrorMessage = 'Order has changed. Please send up-to-date version versionNumber and changeCounter.';
     }
+    if (!empty($soapSaveOrderResult->errorMessage)) {
+      $this->lastErrorMessage = $soapSaveOrderResult->errorMessage;
+    }
+    return false;
   } // END parseSaveOrderResult()
 
   //----------------------------------------------------------------------------
