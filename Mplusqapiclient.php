@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.22.0';
+  const CLIENT_VERSION  = '1.23.0';
   const WSDL_TTL = 300; // 5 min WSDL TTL
 
   var $MIN_API_VERSION_MAJOR = 0;
