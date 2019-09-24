@@ -1255,16 +1255,16 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getProducts($articleNumbers = array(), $groupNumbers = array(), $pluNumbers = array(), $changedSinceTimestamp = null, $changedSinceBranchNumber = null, $syncMarker = null, $onlyWebshop = null, $onlyActive = null, $syncMarkerLimit = null, $productNumbers = [], $attempts = 0)
+  public function getProducts($articleNumbers = array(), $groupNumbers = array(), $pluNumbers = array(), $changedSinceTimestamp = null, $changedSinceBranchNumber = null, $syncMarker = null, $onlyWebshop = null, $onlyActive = null, $syncMarkerLimit = null, $productNumbers = [], $includeAllArticlesOfSelectedProducts = false, $attempts = 0)
   {
     try {
-      $result = $this->client->getProducts($this->parser->convertGetProductsRequest($productNumbers, $articleNumbers, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker, $onlyWebshop, $onlyActive, $syncMarkerLimit));
+      $result = $this->client->getProducts($this->parser->convertGetProductsRequest($productNumbers, $articleNumbers, $includeAllArticlesOfSelectedProducts, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker, $onlyWebshop, $onlyActive, $syncMarkerLimit));
       return $this->parser->parseProducts($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
       if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
         sleep(1);
-        return $this->getProducts($articleNumbers, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker, $onlyWebshop, $onlyActive, $syncMarkerLimit, $productNumbers, $attempts+1);
+        return $this->getProducts($articleNumbers, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker, $onlyWebshop, $onlyActive, $syncMarkerLimit, $productNumbers, $includeAllArticlesOfSelectedProducts, $attempts+1);
       } else {
         throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
       }
@@ -5817,7 +5817,7 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertGetProductsRequest($productNumbers, $articleNumbers, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker, $onlyWebshop, $onlyActive, $syncMarkerLimit)
+  public function convertGetProductsRequest($productNumbers, $articleNumbers, $includeAllArticlesOfSelectedProducts, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker, $onlyWebshop, $onlyActive, $syncMarkerLimit)
   {
     if (!is_array($productNumbers)) {
       if (is_null($productNumbers)) {
@@ -5850,6 +5850,7 @@ class MplusQAPIDataParser
     $array = array('request'=>array(
       'productNumbers'=>empty($productNumbers) ? null : array_values($productNumbers),
       'articleNumbers'=>empty($articleNumbers) ? null : array_values($articleNumbers),
+      'includeAllArticlesOfSelectedProducts'=>empty($includeAllArticlesOfSelectedProducts) ? false : (bool)$includeAllArticlesOfSelectedProducts,
       'groupNumbers'=>empty($groupNumbers) ? null : array_values($groupNumbers),
       'pluNumbers'=>empty($pluNumbers) ? null : $this->convertPluNumbers($pluNumbers),
       ));
