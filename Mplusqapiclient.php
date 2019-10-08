@@ -3316,6 +3316,25 @@ public function getBranchGroups($attempts = 0)
     }
 } // END getBranchGroups()
 
+//----------------------------------------------------------------------------
+  public function getSalePromotions($branchNumbers = [], $attempts=0)
+  {
+    try {
+      $result = $this->client->getSalePromotions($this->parser->convertGetSalePromotionsRequest($branchNumbers));
+      return $this->parser->parseGetSalePromotionsResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getSalePromotions($attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getSalePromotions()
+
 }
 
 //==============================================================================
@@ -5749,6 +5768,29 @@ class MplusQAPIDataParser
       return $data;
   } // END parseReportResult()
 
+  //----------------------------------------------------------------------------
+
+  public function parseGetSalePromotionsResult($soapGetSalePromotionsResult) {
+    $salePromotions = array();
+    if (isset($soapGetSalePromotionsResult->salePromotionsList->salePromotions)) {
+      $soapSalePromotions = $soapGetSalePromotionsResult->salePromotionsList->salePromotions;
+      $salePromotions = objectToArray($soapSalePromotions);
+      foreach ($salePromotions as $idx => $salePromotion) {
+        if (isset($salePromotion['salePromotionLineList']['salePromotionLineList'])) {
+          if (isset($salePromotion['salePromotionLineList']['salePromotionLineList'])) {
+            $salePromotions[$idx]['salePromotionLineList'] = $salePromotion['salePromotionLineList']['salePromotionLineList'];
+            foreach($salePromotions[$idx]['salePromotionLineList'] as $idy=>$salePromotionLine) {
+                if(isset($salePromotionLine['salePromotionLineDiscountList']['salePromotionLineDiscountList'])) {
+                    $salePromotions[$idx]['salePromotionLineList'][$idy]['salePromotionLineDiscountList'] = $salePromotions[$idx]['salePromotionLineList'][$idy]['salePromotionLineDiscountList']['salePromotionLineDiscountList'];
+                }          
+            }
+          }
+        }
+      }
+    }
+    return $salePromotions;
+  } // END parseGetSalePromotionsResult()
+  
 
   //----------------------------------------------------------------------------
 
@@ -8022,6 +8064,21 @@ class MplusQAPIDataParser
       $object = arrayToObject(array('request' => $request));
       return $object;
   } // END convertReportRequest()
+  
+  public function convertGetSalePromotionsRequest($branchNumbers)
+  {
+      $array = [ 'request' => [] ];
+      
+      if($branchNumbers !== null) {
+          if(!is_array($branchNumbers)) {
+              $branchNumbers = array($branchNumbers);
+          }
+          $array['request']['branchFilter'] = $branchNumbers;
+      }
+                              
+    $object = arrayToObject($array);
+    return $object;
+  } // END convertGetSalePromotionsRequest()
 
   //----------------------------------------------------------------------------
 
