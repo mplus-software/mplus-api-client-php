@@ -8031,7 +8031,7 @@ class MplusQAPIDataParser
                               if (!is_array($arguments[$callField])) {
                                   $arguments[$callField] = array($arguments[$callField]);
                               }
-                              $request['turnoverGroupFilter'] = $callField;
+                              $request['turnoverGroupFilter'] = $arguments[$callField];
                               break;
                           case "employeeNumbers":
                               if (!is_array($arguments[$callField])) {
