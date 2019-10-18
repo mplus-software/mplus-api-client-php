@@ -2,8 +2,8 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.26.0';
-  const WSDL_TTL = 300; // 5 min WSDL TTL
+  const CLIENT_VERSION  = '1.26.1';
+  const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 9;
@@ -5804,15 +5804,11 @@ class MplusQAPIDataParser
   //----------------------------------------------------------------------------
   public function parseGetProductOverviewFieldsResult($soapGetProductOverviewFieldsResult) {     
     $productOverviewFields = array();
-    die(print_r($soapGetProductOverviewFieldsResult, true));
     
-    if(isset($soapGetProductOverviewResult->productOverview)) {
-        $productOverview = objectToArray($soapGetProductOverviewResult->productOverview);
+    if (isset($soapGetProductOverviewFieldsResult->productOverviewFieldsList->productOverviewFields)) {
+      $productOverviewFields = objectToArray($soapGetProductOverviewFieldsResult->productOverviewFieldsList->productOverviewFields);
     }
-    if (isset($soapGetProductOverviewResult->productOverviewArticleList->productOverviewArticle)) {
-      $productOverview['productOverviewArticleList'] = objectToArray($soapGetProductOverviewResult->productOverviewArticleList->productOverviewArticle);
-    }
-    return $productOverview;
+    return $productOverviewFields;
   } // END parseGetProductOverviewFieldsResult()
   
 
