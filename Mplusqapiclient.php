@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.25.1';
+  const CLIENT_VERSION  = '1.26.0';
   const WSDL_TTL = 300; // 5 min WSDL TTL
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -3334,6 +3334,46 @@ public function getBranchGroups($attempts = 0)
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
   } // END getSalePromotions()
+  
+  //----------------------------------------------------------------------------
+  public function getProductOverview($selectFields, $pageNumber = null, $maxPerPage = null, $orderField = null, $sortOrder = null, $filters = null, $search=null, $attempts=0)
+  {
+    try {
+      $request = $this->parser->convertGetProductOverviewRequest($selectFields, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search);
+      $result = $this->client->getProductOverview($request);
+      return $this->parser->parseGetProductOverviewResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getProductOverview($selectFields, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getProductOverview()
+  
+  //----------------------------------------------------------------------------
+  public function getProductOverviewFields($attempts=0)
+  {
+    try {
+        $request = $this->parser->convertGetProductOverviewFieldsRequest();
+      $result = $this->client->getProductOverviewFields($request);
+      return $this->parser->parseGetProductOverviewFieldsResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getProductOverviewFields($attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getProductOverview()
 
 }
 
@@ -5791,6 +5831,32 @@ class MplusQAPIDataParser
     return $salePromotions;
   } // END parseGetSalePromotionsResult()
   
+  //----------------------------------------------------------------------------
+  public function parseGetProductOverviewResult($soapGetProductOverviewResult) {     
+    $productOverview = array();
+    if(isset($soapGetProductOverviewResult->productOverview)) {
+        $productOverview = objectToArray($soapGetProductOverviewResult->productOverview);
+    }
+    if (isset($soapGetProductOverviewResult->productOverviewArticleList->productOverviewArticle)) {
+      $productOverview['productOverviewArticleList'] = objectToArray($soapGetProductOverviewResult->productOverviewArticleList->productOverviewArticle);
+    }
+    return $productOverview;
+  } // END parseGetProductOverviewResult()
+  
+  //----------------------------------------------------------------------------
+  public function parseGetProductOverviewFieldsResult($soapGetProductOverviewFieldsResult) {     
+    $productOverviewFields = array();
+    die(print_r($soapGetProductOverviewFieldsResult, true));
+    
+    if(isset($soapGetProductOverviewResult->productOverview)) {
+        $productOverview = objectToArray($soapGetProductOverviewResult->productOverview);
+    }
+    if (isset($soapGetProductOverviewResult->productOverviewArticleList->productOverviewArticle)) {
+      $productOverview['productOverviewArticleList'] = objectToArray($soapGetProductOverviewResult->productOverviewArticleList->productOverviewArticle);
+    }
+    return $productOverview;
+  } // END parseGetProductOverviewFieldsResult()
+  
 
   //----------------------------------------------------------------------------
 
@@ -8079,6 +8145,48 @@ class MplusQAPIDataParser
     $object = arrayToObject($array);
     return $object;
   } // END convertGetSalePromotionsRequest()
+  
+  //----------------------------------------------------------------------------
+  public function convertGetProductOverviewRequest($selectFieldList, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search)
+  {
+    $request = new stdClass();
+    $request->request = new stdClass();
+      
+    if(!is_array($selectFieldList)) {
+       $selectFieldList = array($selectFieldList);
+    }
+    $request->request->selectFieldNameList = $selectFieldList;
+      
+    if(isset($pageNumber)) {
+        $request->request->pageNumber = $pageNumber;
+    }
+    if(isset($maxPerPage)) {
+        $request->request->maxPerPage = $maxPerPage;
+    }
+    if(isset($orderField)) {
+        $request->request->orderField = $orderField;
+    }
+    if(isset($sortOrder)) {
+        $request->request->sortOrder = $sortOrder;
+    }
+    
+    if(isset($filters)) {
+        $request->request->filterList = $filters;
+    }
+    
+    if(isset($search)) {
+        $request->request->search = $search;
+    }
+    return $request;
+  } // END convertGetProductOverviewRequest()
+  
+  //----------------------------------------------------------------------------
+  public function convertGetProductOverviewFieldsRequest()
+  {
+    $request = new stdClass();
+    $request->request = new stdClass();
+    return $request;
+  } // END convertGetProductOverviewFieldsRequest()
 
   //----------------------------------------------------------------------------
 
