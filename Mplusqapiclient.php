@@ -64,6 +64,10 @@ class MplusQAPIclient
   /**
    * @var
    */
+  private $skipQuickAvailabilityCheck = false;
+  /**
+   * @var
+   */
   private $convertToTimestamps = true;
   /**
    * @var
@@ -131,6 +135,9 @@ class MplusQAPIclient
       }
       if (isset($params['skipApiVersionCheck'])) {
         $this->skipApiVersionCheck((bool)$params['skipApiVersionCheck']);
+      }
+      if (isset($params['skipQuickAvailabilityCheck'])) {
+        $this->skipQuickAvailabilityCheck((bool)$params['skipQuickAvailabilityCheck']);
       }
       if (isset($params['apiServer']) and isset($params['apiPort']) and isset($params['apiIdent']) and isset($params['apiSecret'])) {
         $this->initClient();
@@ -240,6 +247,21 @@ class MplusQAPIclient
   {
     return $this->skipApiVersionCheck;
   } // END getSkipApiVersionCheck()
+
+  //----------------------------------------------------------------------------
+
+  /**
+   * @param $skipQuickAvailabilityCheck
+   */
+  public function skipQuickAvailabilityCheck($skipQuickAvailabilityCheck)
+  {
+    $this->skipQuickAvailabilityCheck = $skipQuickAvailabilityCheck;
+  } // END skipQuickAvailabilityCheck()
+
+  public function getSkipQuickAvailabilityCheck()
+  {
+    return $this->skipQuickAvailabilityCheck;
+  } // END getskipQuickAvailabilityCheck()
 
   //----------------------------------------------------------------------------
 
@@ -375,12 +397,14 @@ class MplusQAPIclient
 
     $wsdl_url = $location.'?wsdl';
     try {
-      // Don't wait longer than 5 seconds for the headers.
-      // We call get_headers() here because we want a relatively fast check if the API is available at all
-      // , before we actually initialize the SoapClient and start running requests
-      ini_set('default_socket_timeout', 5);
-      if (false === @get_headers($wsdl_url)) {
-        throw new MplusQAPIException(sprintf('Cannot find API WSDL @ %s', $wsdl_url));
+      if (!$this->skipQuickAvailabilityCheck) { 
+        // Don't wait longer than 5 seconds for the headers.
+        // We call get_headers() here because we want a relatively fast check if the API is available at all
+        // , before we actually initialize the SoapClient and start running requests
+        ini_set('default_socket_timeout', 5);
+        if (false === @get_headers($wsdl_url)) {
+            throw new MplusQAPIException(sprintf('Cannot find API WSDL @ %s', $wsdl_url));
+        }
       }
       $this->client = @new SoapClient($wsdl_url, $options);
       if (false === $this->client or is_null($this->client)) {
