@@ -126,6 +126,9 @@ class MplusQAPIclient
       if (isset($params['apiSecret'])) {
         $this->setApiSecret($params['apiSecret']);
       }
+      if (isset($params['skipFingerprintCheck'])) {
+        $this->skipFingerprintCheck((bool)$params['skipFingerprintCheck']);
+      }
       if (isset($params['apiServer']) and isset($params['apiPort']) and isset($params['apiIdent']) and isset($params['apiSecret'])) {
         $this->initClient();
       }
