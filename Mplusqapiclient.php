@@ -76,7 +76,7 @@ class MplusQAPIclient
   /**
    * @var
    */
-  private $cache_wsdl = WSDL_CACHE_DISK;
+  private $cache_wsdl = WSDL_CACHE_MEMORY;
   /**
    * @var
    */
