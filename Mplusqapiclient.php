@@ -76,6 +76,10 @@ class MplusQAPIclient
   /**
    * @var
    */
+  private $cache_wsdl = WSDL_CACHE_DISK;
+  /**
+   * @var
+   */
   private $default_socket_timeout = 600;
   
   /**
@@ -138,6 +142,9 @@ class MplusQAPIclient
       }
       if (isset($params['skipQuickAvailabilityCheck'])) {
         $this->skipQuickAvailabilityCheck((bool)$params['skipQuickAvailabilityCheck']);
+      }
+      if (isset($params['cache_wsdl']) and in_array($params['cache_wsdl'],[WSDL_CACHE_NONE,WSDL_CACHE_DISK,WSDL_CACHE_MEMORY,WSDL_CACHE_BOTH])) {
+        $this->cache_wsdl = $params['cache_wsdl'];
       }
       if (isset($params['apiServer']) and isset($params['apiPort']) and isset($params['apiIdent']) and isset($params['apiSecret'])) {
         $this->initClient();
@@ -390,7 +397,7 @@ class MplusQAPIclient
       'trace' => $this->debug,
       'exceptions' => true, 
       'features' => SOAP_SINGLE_ELEMENT_ARRAYS,
-      'cache_wsdl' => WSDL_CACHE_DISK,
+      'cache_wsdl' => $this->cache_wsdl,
       'connection_timeout' => $this->connection_timeout,
     ];
     ini_set('soap.wsdl_cache_ttl', MplusQAPIclient::WSDL_TTL);
