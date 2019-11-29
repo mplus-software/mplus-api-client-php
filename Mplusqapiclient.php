@@ -2564,6 +2564,39 @@ class MplusQAPIclient
   } // END queueBranchOrder()
 
   //----------------------------------------------------------------------------
+  private function RetryCall($func)
+  {
+    $attempts = 0;
+    while ($attempts < 3) {
+      try {
+        return $func();
+      } catch (SoapFault $e) {
+        $msg = $e->getMessage();
+        if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+          sleep(1);
+          ++$attempts;
+        } else {
+          throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+        }
+      } catch (Exception $e) {
+        throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+      }
+    }
+  }
+
+  public function queueBranchOrderPayment($orderId, $paymentList)
+  {
+    $request = $this->parser->convertQueueBranchOrderPaymentOrderRequest($orderId, $paymentList);
+    return $this->RetryCall( 
+      function() use ($request) {
+        $result = $this->client->queueBranchOrderPayment($request);
+        if (false !== $result) {
+          return $this->parser->parseQueueBranchOrderPaymentResult($result);
+        }
+      }
+    );
+  }
+  //----------------------------------------------------------------------------
 
   public function cancelOrder($orderId, $attempts=0)
   {
@@ -5203,6 +5236,15 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function parseQueueBranchOrderPaymentResult($soapResult)
+  {
+    if ($soapResult->result == 'QUEUE-BRANCH-ORDER-PAYMENT-RESULT-OK') {
+      return true;
+    }
+    return $soapResult->errorMessage;
+  }
+
+  //----------------------------------------------------------------------------
   public function parseUpdateStockResult($soapUpdateStockResult)
   {
     if (isset($soapUpdateStockResult->result) and $soapUpdateStockResult->result == 'UPDATE-STOCK-RESULT-OK') {
@@ -6539,7 +6581,17 @@ class MplusQAPIDataParser
   } // END convertDeliverOrderV2Request()
 
   //----------------------------------------------------------------------------
+  public function convertQueueBranchOrderPaymentOrderRequest($orderId, $paymentList)
+  {
+    $array = array('paymentRequest'=>array(
+      'orderId'=>$orderId,
+      'paymentList'=>$this->convertPaymentList($paymentList),
+      ));
+    $object = arrayToObject($array);
+    return $object;
+  }
 
+  //----------------------------------------------------------------------------
   public function convertPaymentList($paymentList)
   {
     if ( ! isset($paymentList['payment'])) {
