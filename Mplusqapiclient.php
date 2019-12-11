@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.27.1';
+  const CLIENT_VERSION  = '1.27.2';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -3014,16 +3014,16 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getTableOrderV2($terminal, $tableNumber, $claimTable=null, $attempts=0)
+  public function getTableOrderV2($terminal, $tableNumber, $claimTable=null, $tableSubNumber = null, $attempts=0)
   {
     try {
-      $result = $this->client->getTableOrderV2($this->parser->convertGetTableOrderV2Request($terminal, $terminal['branchNumber'], $tableNumber, $claimTable));
+      $result = $this->client->getTableOrderV2($this->parser->convertGetTableOrderV2Request($terminal, $tableNumber, $tableSubNumber, $claimTable));
       return $this->parser->parseGetTableOrderResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
       if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
         sleep(1);
-        return $this->getTableOrderV2($terminal, $branchNumber, $tableNumber, $attempts+1);
+        return $this->getTableOrderV2($terminal, $tableNumber, $claimTable, $tableSubNumber, $attempts+1);
       } else {
         throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
       }
@@ -8271,17 +8271,20 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertGetTableOrderV2Request($terminal, $branchNumber, $tableNumber, $claimTable)
+  public function convertGetTableOrderV2Request($terminal, $tableNumber, $tableSubNumber, $claimTable)
   {
     $terminal = $this->convertTerminal($terminal);
-    $branchNumber = $this->convertBranchNumber($branchNumber);
-    $tableNumber = $this->convertTableNumber($tableNumber);
     $array = array(
       'terminal'=>$terminal->terminal,
-      'request'=>array('tableNumber'=>$tableNumber->tableNumber),
+      'request'=>array(
+          'tableNumber'=>intval($tableNumber)
+          ),
       );
     if ( ! is_null($claimTable)) {
       $array['request']['claimTable'] = $claimTable;
+    }
+    if ( ! is_null($tableSubNumber)) {
+      $array['request']['tableSubNumber'] = $tableSubNumber;
     }
     $object = arrayToObject($array);
     return $object;
