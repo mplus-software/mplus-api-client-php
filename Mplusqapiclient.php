@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.27.2';
+  const CLIENT_VERSION  = '1.27.3';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -8006,7 +8006,7 @@ class MplusQAPIDataParser
                   'fromFinancialDate', 'throughFinancialDate',
               ),
               'optional' => array(
-                  'branchNumbers', 'activityNumbers',
+                  'branchNumbers', 'activityNumbers', 'perHour',
               ),
           ),
           'reportTurnoverByTurnoverGroup' => array(
@@ -8022,7 +8022,7 @@ class MplusQAPIDataParser
                   'fromFinancialDate', 'throughFinancialDate',
               ),
               'optional' => array(
-                  'branchNumbers', 'turnoverGroups', 'articleNumbers',
+                  'branchNumbers', 'turnoverGroups', 'articleNumbers', 'perHour',
               ),
           ),
           'reportHoursByEmployee' => array(
