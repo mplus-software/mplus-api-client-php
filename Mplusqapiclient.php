@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.27.3';
+  const CLIENT_VERSION  = '1.27.4';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -44,7 +44,7 @@ class MplusQAPIclient
   /**
    * @var 
    */
-  private $client = null;
+  protected $client = null;
   /**
    * @var
    */
@@ -5841,6 +5841,14 @@ class MplusQAPIDataParser
                     }
                 }
                 break;
+          case "reportBPE":
+                $data = array();
+                if (isset($soapReportResult->bpeList->bpes)) {
+                    foreach ($soapReportResult->bpeList->bpes as $soapBpes) {
+                        $data[] = $soapBpes;
+                    }
+                }
+                break;
       }
       return $data;
   } // END parseReportResult()
@@ -8107,6 +8115,14 @@ class MplusQAPIDataParser
                 'optional' => array(
                     'branchNumbers', 'employeeNumbers',
                 ),
+          ),
+          'reportBPE' => array(
+              'required' => array(
+                  'fromFinancialDate', 'throughFinancialDate',
+              ),
+              'optional' => array(
+                  'branchNumbers', 'articleNumbers', 'perHour',
+              ),
           ),
       );
       $request = [];
