@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.27.4';
+  const CLIENT_VERSION  = '1.27.5';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -8712,7 +8712,7 @@ if ( ! function_exists('arrayToObject')) {
       elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['group'])) {
         return array_map(__FUNCTION__, $d);
       }
-      elseif (isset($d[0]) and is_integer($d[0])) {
+      elseif (isset($d[0]) and (is_integer($d[0]) or is_float($d[0]))) {
         return array_map(__FUNCTION__, $d);
       }
       else {
