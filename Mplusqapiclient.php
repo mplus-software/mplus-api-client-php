@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.27.5';
+  const CLIENT_VERSION  = '1.27.6';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -2322,16 +2322,16 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getTurnoverGroups($attempts=0)
+  public function getTurnoverGroups($onlyActive = null, $attempts=0)
   {
     try {
-      $result = $this->client->getTurnoverGroups();
+      $result = $this->client->getTurnoverGroups($this->parser->convertGetTurnoverGroupsRequest($onlyActive));
       return $this->parser->parseGetTurnoverGroupsResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
       if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
         sleep(1);
-        return $this->getTurnoverGroups($attempts+1);
+        return $this->getTurnoverGroups($onlyActive, $attempts+1);
       } else {
         throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
       }
@@ -5899,6 +5899,18 @@ class MplusQAPIDataParser
   } // END parseGetProductOverviewFieldsResult()
   
 
+  //----------------------------------------------------------------------------
+
+  public function convertGetTurnoverGroupsRequest($onlyActive=null)
+  {
+    $array = array('request'=>array());
+    if ($onlyActive) {
+      $array['request']['onlyActive'] = true;
+    }
+    $object = arrayToObject($array);
+    return $object;
+  } // END convertTurnoverGroupsRequest()
+  
   //----------------------------------------------------------------------------
 
   public function convertGetDeliveryMethodsV2Request($request)
