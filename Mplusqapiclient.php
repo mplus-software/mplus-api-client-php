@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.27.6';
+  const CLIENT_VERSION  = '1.27.7';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -5849,6 +5849,14 @@ class MplusQAPIDataParser
                     }
                 }
                 break;
+          case "reportBranchPerformance":
+                $data = array();
+                if (isset($soapReportResult->branchPerformanceList->branchPerformance)) {
+                    foreach ($soapReportResult->branchPerformanceList->branchPerformance as $soapbranchPerformance) {
+                        $data[] = $soapbranchPerformance;
+                    }
+                }
+                break;
       }
       return $data;
   } // END parseReportResult()
@@ -8134,6 +8142,14 @@ class MplusQAPIDataParser
               ),
               'optional' => array(
                   'branchNumbers', 'articleNumbers', 'perHour',
+              ),
+          ),
+          'reportBranchPerformance' => array(
+              'required' => array(
+                  'fromFinancialDate', 'throughFinancialDate',
+              ),
+              'optional' => array(
+                  'branchNumbers',
               ),
           ),
       );
