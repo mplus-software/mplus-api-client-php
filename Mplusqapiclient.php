@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.27.7';
+  const CLIENT_VERSION  = '1.27.8';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -3412,6 +3412,43 @@ public function getBranchGroups($attempts = 0)
     }
   } // END getProductOverview()
 
+  //----------------------------------------------------------------------------
+    public function checkGiftcardPayment($cardNumber, $branchNumber, $amount = null, $attempts = 0) {
+        try {
+            $result = $this->client->checkGiftcardPayment($this->parser->convertCheckGiftcardPaymentRequest($cardNumber, $branchNumber, $amount));
+            return $this->parser->parseCheckGiftcardPaymentResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->checkGiftcardPayment($cardNumber, $branchNumber, $amount, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+    // END checkGiftcardPayment()
+  
+    //----------------------------------------------------------------------------
+    public function registerGiftcardPayment($cardNumber, $branchNumber, $employeeNumber, $amount, $externalReference, $attempts = 0) {
+        try {
+            $result = $this->client->registerGiftcardPayment($this->parser->convertRegisterGiftcardPaymentRequest($cardNumber, $branchNumber, $employeeNumber, $amount, $externalReference));
+            return $this->parser->parseRegisterGiftcardPaymentResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->registerGiftcardPayment($cardNumber, $branchNumber, $employeeNumber, $amount, $externalReference, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+    // END registerGiftcardPayment()
 }
 
 //==============================================================================
@@ -5905,6 +5942,18 @@ class MplusQAPIDataParser
     }
     return $productOverviewFields;
   } // END parseGetProductOverviewFieldsResult()
+  
+  //----------------------------------------------------------------------------
+    public function parseCheckGiftcardPaymentResult($soapCheckGiftcardPaymentResult) {
+        return objectToArray($soapCheckGiftcardPaymentResult);
+    }
+    // END parseCheckGiftcardPaymentResult()
+    
+    //----------------------------------------------------------------------------
+    public function parseRegisterGiftcardPaymentResult($soapRegisterGiftcardPaymentResult) {
+        return objectToArray($soapRegisterGiftcardPaymentResult);
+    }
+    // END parseRegisterGiftcardPaymentResult()
   
 
   //----------------------------------------------------------------------------
@@ -8585,6 +8634,30 @@ class MplusQAPIDataParser
   }
 
   //----------------------------------------------------------------------------
+    public function convertCheckGiftcardPaymentRequest($cardNumber, $branchNumber, $amount) {
+        $array = array('request' => array());
+        $array['request']['cardNumber'] = $cardNumber;
+        $array['request']['branchNumber'] = $branchNumber;
+        if ($amount !== null) {
+            $array['request']['amount'] = $amount;
+        }
+        $object = arrayToObject($array);
+        return $object;
+    }
+    // END convertCheckGiftcardPaymentRequest()
+    
+    //----------------------------------------------------------------------------
+    public function convertRegisterGiftcardPaymentRequest($cardNumber, $branchNumber, $employeeNumber, $amount, $externalReference) {
+        $array = array('request' => array());
+        $array['request']['cardNumber'] = $cardNumber;
+        $array['request']['branchNumber'] = $branchNumber;
+        $array['request']['employeeNumber'] = $employeeNumber;
+        $array['request']['amount'] = $amount;
+        $array['request']['externalReference'] = $externalReference;
+        $object = arrayToObject($array);
+        return $object;
+    }
+    // END convertRegisterGiftcardPaymentRequest()
 }
 
 //------------------------------------------------------------------------------
