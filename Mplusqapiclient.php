@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.27.8';
+  const CLIENT_VERSION  = '1.27.9';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -3449,6 +3449,106 @@ public function getBranchGroups($attempts = 0)
         }
     }
     // END registerGiftcardPayment()
+    
+    //----------------------------------------------------------------------------
+    public function getEmployeeAuthorizations($employeeNumber, $branchNumber, $attempts = 0) {
+        try {
+            $request = $this->parser->convertGetEmployeeAuthorizationsRequest($employeeNumber, $branchNumber);
+            $result = $this->client->getEmployeeAuthorizations($request);
+            return $this->parser->parseGetEmployeeAuthorizationsResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->getEmployeeAuthorizations($employeeNumber, $branchNumber, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+// END getEmployeeAuthorizations()
+//----------------------------------------------------------------------------
+    public function getGroupAuthorizations($groupNumber, $attempts = 0) {
+        try {
+            $request = $this->parser->convertGetGroupAuthorizationsRequest($groupNumber);
+            $result = $this->client->getGroupAuthorizations($request);
+            return $this->parser->parseGetGroupAuthorizationsResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->getGroupAuthorizations($groupNumber, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+// END getGroupAuthorizations()
+    //----------------------------------------------------------------------------
+    public function updateGroupAuthorizations($groupNumber, $authorizations, $attempts = 0) {
+        try {
+            $request = $this->parser->convertUpdateGroupAuthorizationsRequest($groupNumber, $authorizations);
+            $result = $this->client->updateGroupAuthorizations($request);
+            return $this->parser->parseUpdateGroupAuthorizationsResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->updateGroupAuthorizations($groupNumber, $authorizations, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+// END updateGroupAuthorizations()
+    //----------------------------------------------------------------------------
+    public function getAuthorizationGroups($attempts = 0) {
+        try {
+            $result = $this->client->getAuthorizationGroups();
+            return $this->parser->parseGetAuthorizationGroupsResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->getAuthorizationGroups($attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+// END getAuthorizationGroups()
+
+    //----------------------------------------------------------------------------
+    public function getAuthorizationTree($attempts = 0) {
+        try {
+            $result = $this->client->getAuthorizationTree();
+            return $this->parser->parseGetAuthorizationTreeResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->getAuthorizationTree($attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+// END getAuthorizationTree()
 }
 
 //==============================================================================
@@ -5955,6 +6055,67 @@ class MplusQAPIDataParser
     }
     // END parseRegisterGiftcardPaymentResult()
   
+    //----------------------------------------------------------------------------
+    public function parseGetEmployeeAuthorizationsResult($soapGetEmployeeAuthorizationsResult) {
+        if (property_exists($soapGetEmployeeAuthorizationsResult, "authorizationsList") &&
+                property_exists($soapGetEmployeeAuthorizationsResult->authorizationsList, "authorizations")) {
+            return $soapGetEmployeeAuthorizationsResult->authorizationsList->authorizations;
+        } else {
+            return false;
+        }
+    }
+// END parseGetEmployeeAuthorizationsResult()
+    
+    //----------------------------------------------------------------------------
+    public function parseGetGroupAuthorizationsResult($soapGetGroupAuthorizationsResult) {
+        if (property_exists($soapGetGroupAuthorizationsResult, "authorizationsList") &&
+                property_exists($soapGetGroupAuthorizationsResult->authorizationsList, "authorizations")) {
+            return $soapGetGroupAuthorizationsResult->authorizationsList->authorizations;
+        } else {
+            return false;
+        }
+    }
+// END parseGetGroupAuthorizationsResult()
+    
+    //----------------------------------------------------------------------------
+    public function parseUpdateGroupAuthorizationsResult($soapUpdateGroupAuthorizationsResult) {
+        if (property_exists($soapUpdateGroupAuthorizationsResult, "authorizationsList") &&
+                property_exists($soapUpdateGroupAuthorizationsResult->authorizationsList, "authorizations")) {
+            return $soapUpdateGroupAuthorizationsResult->authorizationsList->authorizations;
+        } else {
+            return false;
+        }
+    }
+// END parseUpdateGroupAuthorizationsResult()  
+
+    //----------------------------------------------------------------------------
+    public function parseGetAuthorizationGroupsResult($soapGetAuthorizationGroupsResult) {
+        if (property_exists($soapGetAuthorizationGroupsResult, "groupList") &&
+                property_exists($soapGetAuthorizationGroupsResult->groupList, "groups")) {
+            return $soapGetAuthorizationGroupsResult->groupList->groups;
+        } else {
+            return false;
+        }
+    }
+// END parseGetAuthorizationTreeResult()
+    
+    //----------------------------------------------------------------------------
+    public function parseGetAuthorizationTreeResult($soapGetAuthorizationTreeResult) {
+        if (property_exists($soapGetAuthorizationTreeResult, "backOfficeAuthorizationsList") &&
+                property_exists($soapGetAuthorizationTreeResult->backOfficeAuthorizationsList, "authorizations") &&
+                property_exists($soapGetAuthorizationTreeResult, "articleAuthorizationsList") &&
+                property_exists($soapGetAuthorizationTreeResult->articleAuthorizationsList, "authorizations") &&
+                property_exists($soapGetAuthorizationTreeResult, "relationAuthorizationsList") &&
+                property_exists($soapGetAuthorizationTreeResult->relationAuthorizationsList, "authorizations") &&
+                property_exists($soapGetAuthorizationTreeResult, "employeeAuthorizationsList") &&
+                property_exists($soapGetAuthorizationTreeResult->employeeAuthorizationsList, "authorizations")
+        ) {
+            return $soapGetAuthorizationTreeResult;
+        } else {
+            return false;
+        }
+    }
+// END parseGetAuthorizationTreeResult()
 
   //----------------------------------------------------------------------------
 
@@ -8658,6 +8819,37 @@ class MplusQAPIDataParser
         return $object;
     }
     // END convertRegisterGiftcardPaymentRequest()
+    
+    //----------------------------------------------------------------------------
+    public function convertGetEmployeeAuthorizationsRequest($employeeNumber, $branchNumber) {
+        $request = new stdClass();
+        $request->request = new stdClass();
+        $request->request->employeeNumber = $employeeNumber;
+        $request->request->branchNumber = $branchNumber;
+        return $request;
+    }
+    // END convertGetEmployeeAuthorizationsRequest()
+    
+    //----------------------------------------------------------------------------
+    public function convertGetGroupAuthorizationsRequest($groupNumber) {
+        $request = new stdClass();
+        $request->request = new stdClass();
+        $request->request->groupNumber = $groupNumber;
+        return $request;
+    }
+    // END convertGetGroupAuthorizationsRequest()
+    
+    //----------------------------------------------------------------------------
+    public function convertUpdateGroupAuthorizationsRequest($groupNumber, $authorizations) {
+        $request = new stdClass();
+        $request->request = new stdClass();
+        $request->request->groupNumber = $groupNumber;
+        $request->request->authorizationsList = new stdClass();
+        $request->request->authorizationsList->authorizations = $authorizations;
+        return $request;
+    }
+    // END convertUpdateGroupAuthorizationsRequest()
+
 }
 
 //------------------------------------------------------------------------------
