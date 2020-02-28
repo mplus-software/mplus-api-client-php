@@ -2,8 +2,8 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.18.0';
-  const WSDL_TTL = 300; // 5 min WSDL TTL
+  const CLIENT_VERSION  = '1.28.0';
+  const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
   var $MIN_API_VERSION_MINOR = 9;
@@ -44,7 +44,7 @@ class MplusQAPIclient
   /**
    * @var 
    */
-  private $client = null;
+  protected $client = null;
   /**
    * @var
    */
@@ -64,11 +64,19 @@ class MplusQAPIclient
   /**
    * @var
    */
+  private $skipQuickAvailabilityCheck = false;
+  /**
+   * @var
+   */
   private $convertToTimestamps = true;
   /**
    * @var
    */
   private $connection_timeout = 30;
+  /**
+   * @var
+   */
+  private $cache_wsdl = WSDL_CACHE_MEMORY;
   /**
    * @var
    */
@@ -94,7 +102,13 @@ class MplusQAPIclient
     {
       throw new MplusQAPIException('MplusQAPIClient needs the JSON PHP extension.');
     }
-    if (PHP_INT_MAX <= 2147483647) {
+    $ignore64BitWarning = false;
+    if (PHP_INT_MAX > 2147483647) {
+      $ignore64BitWarning = true;
+    } elseif (!is_null($params) and isset($params['ignore64BitWarning']) and $params['ignore64BitWarning']) {
+      $ignore64BitWarning = true;
+    }
+    if (!$ignore64BitWarning) {
       throw new MplusQAPIException(sprintf('Your PHP_INT_MAX is %d. MplusQAPIClient needs to run in a 64-bit system.', PHP_INT_MAX));
     }
 
@@ -102,13 +116,39 @@ class MplusQAPIclient
     $this->parser->setConvertToTimestamps($this->convertToTimestamps);
 
     if ( ! is_null($params)) {
-      $this->setApiServer($params['apiServer']);
-      $this->setApiPort($params['apiPort']);
-      $this->setApiPath($params['apiPath']);
-      $this->setApiFingerprint($params['apiFingerprint']);
-      $this->setApiIdent($params['apiIdent']);
-      $this->setApiSecret($params['apiSecret']);
-      $this->initClient();
+      if (isset($params['apiServer'])) {
+        $this->setApiServer($params['apiServer']);
+      }
+      if (isset($params['apiPort'])) {
+        $this->setApiPort($params['apiPort']);
+      }
+      if (isset($params['apiPath'])) {
+        $this->setApiPath($params['apiPath']);
+      }
+      if (isset($params['apiFingerprint'])) {
+        $this->setApiFingerprint($params['apiFingerprint']);
+      }
+      if (isset($params['apiIdent'])) {
+        $this->setApiIdent($params['apiIdent']);
+      }
+      if (isset($params['apiSecret'])) {
+        $this->setApiSecret($params['apiSecret']);
+      }
+      if (isset($params['skipFingerprintCheck'])) {
+        $this->skipFingerprintCheck((bool)$params['skipFingerprintCheck']);
+      }
+      if (isset($params['skipApiVersionCheck'])) {
+        $this->skipApiVersionCheck((bool)$params['skipApiVersionCheck']);
+      }
+      if (isset($params['skipQuickAvailabilityCheck'])) {
+        $this->skipQuickAvailabilityCheck((bool)$params['skipQuickAvailabilityCheck']);
+      }
+      if (isset($params['cache_wsdl']) and in_array($params['cache_wsdl'],[WSDL_CACHE_NONE,WSDL_CACHE_DISK,WSDL_CACHE_MEMORY,WSDL_CACHE_BOTH])) {
+        $this->cache_wsdl = $params['cache_wsdl'];
+      }
+      if (isset($params['apiServer']) and isset($params['apiPort']) and isset($params['apiIdent']) and isset($params['apiSecret'])) {
+        $this->initClient();
+      }
     }
   }
 
@@ -214,6 +254,21 @@ class MplusQAPIclient
   {
     return $this->skipApiVersionCheck;
   } // END getSkipApiVersionCheck()
+
+  //----------------------------------------------------------------------------
+
+  /**
+   * @param $skipQuickAvailabilityCheck
+   */
+  public function skipQuickAvailabilityCheck($skipQuickAvailabilityCheck)
+  {
+    $this->skipQuickAvailabilityCheck = $skipQuickAvailabilityCheck;
+  } // END skipQuickAvailabilityCheck()
+
+  public function getSkipQuickAvailabilityCheck()
+  {
+    return $this->skipQuickAvailabilityCheck;
+  } // END getskipQuickAvailabilityCheck()
 
   //----------------------------------------------------------------------------
 
@@ -342,19 +397,21 @@ class MplusQAPIclient
       'trace' => $this->debug,
       'exceptions' => true, 
       'features' => SOAP_SINGLE_ELEMENT_ARRAYS,
-      'cache_wsdl' => WSDL_CACHE_DISK,
+      'cache_wsdl' => $this->cache_wsdl,
       'connection_timeout' => $this->connection_timeout,
     ];
     ini_set('soap.wsdl_cache_ttl', MplusQAPIclient::WSDL_TTL);
 
     $wsdl_url = $location.'?wsdl';
     try {
-      // Don't wait longer than 5 seconds for the headers.
-      // We call get_headers() here because we want a relatively fast check if the API is available at all
-      // , before we actually initialize the SoapClient and start running requests
-      ini_set('default_socket_timeout', 5);
-      if (false === @get_headers($wsdl_url)) {
-        throw new MplusQAPIException(sprintf('Cannot find API WSDL @ %s', $wsdl_url));
+      if (!$this->skipQuickAvailabilityCheck) { 
+        // Don't wait longer than 5 seconds for the headers.
+        // We call get_headers() here because we want a relatively fast check if the API is available at all
+        // , before we actually initialize the SoapClient and start running requests
+        ini_set('default_socket_timeout', 5);
+        if (false === @get_headers($wsdl_url)) {
+            throw new MplusQAPIException(sprintf('Cannot find API WSDL @ %s', $wsdl_url));
+        }
       }
       $this->client = @new SoapClient($wsdl_url, $options);
       if (false === $this->client or is_null($this->client)) {
@@ -1235,16 +1292,16 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getProducts($articleNumbers = array(), $groupNumbers = array(), $pluNumbers = array(), $changedSinceTimestamp = null, $changedSinceBranchNumber = null, $syncMarker = null, $onlyWebshop = null, $onlyActive = null, $syncMarkerLimit = null, $attempts = 0)
+  public function getProducts($articleNumbers = array(), $groupNumbers = array(), $pluNumbers = array(), $changedSinceTimestamp = null, $changedSinceBranchNumber = null, $syncMarker = null, $onlyWebshop = null, $onlyActive = null, $syncMarkerLimit = null, $productNumbers = [], $includeAllArticlesOfSelectedProducts = false, $attempts = 0)
   {
     try {
-      $result = $this->client->getProducts($this->parser->convertGetProductsRequest($articleNumbers, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker, $onlyWebshop, $onlyActive, $syncMarkerLimit));
+      $result = $this->client->getProducts($this->parser->convertGetProductsRequest($productNumbers, $articleNumbers, $includeAllArticlesOfSelectedProducts, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker, $onlyWebshop, $onlyActive, $syncMarkerLimit));
       return $this->parser->parseProducts($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
       if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
         sleep(1);
-        return $this->getProducts($articleNumbers, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker, $onlyWebshop, $onlyActive, $syncMarkerLimit, $attempts+1);
+        return $this->getProducts($articleNumbers, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker, $onlyWebshop, $onlyActive, $syncMarkerLimit, $productNumbers, $includeAllArticlesOfSelectedProducts, $attempts+1);
       } else {
         throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
       }
@@ -2265,16 +2322,16 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getTurnoverGroups($attempts=0)
+  public function getTurnoverGroups($onlyActive = null, $attempts=0)
   {
     try {
-      $result = $this->client->getTurnoverGroups();
+      $result = $this->client->getTurnoverGroups($this->parser->convertGetTurnoverGroupsRequest($onlyActive));
       return $this->parser->parseGetTurnoverGroupsResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
       if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
         sleep(1);
-        return $this->getTurnoverGroups($attempts+1);
+        return $this->getTurnoverGroups($onlyActive, $attempts+1);
       } else {
         throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
       }
@@ -2616,26 +2673,26 @@ class MplusQAPIclient
       }
     );
   }
+  
   //----------------------------------------------------------------------------
-
-  public function cancelOrder($orderId, $attempts=0)
-  {
-    try {
-      if (false !== ($result = $this->client->cancelOrder($this->parser->convertOrderId($orderId)))) {
-      return $this->parser->parseCancelOrderResult($result);
-      }
-    } catch (SoapFault $e) {
-      $msg = $e->getMessage();
-      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
-        sleep(1);
-        return $this->cancelOrder($orderId, $attempts+1);
-      } else {
-        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
-      }
-    } catch (Exception $e) {
-      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    public function cancelOrder($orderId, $branchNumber = null, $attempts = 0) {
+        try {
+            if (false !== ($result = $this->client->cancelOrder($this->parser->convertCancelOrder($orderId, $branchNumber)))) {
+                return $this->parser->parseCancelOrderResult($result);
+            }
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->cancelOrder($orderId, $branchNumber, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
     }
-  } // END cancelOrder()
+// END cancelOrder()
 
   //----------------------------------------------------------------------------
 
@@ -2990,16 +3047,16 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getTableOrderV2($terminal, $tableNumber, $claimTable=null, $attempts=0)
+  public function getTableOrderV2($terminal, $tableNumber, $claimTable=null, $tableSubNumber = null, $attempts=0)
   {
     try {
-      $result = $this->client->getTableOrderV2($this->parser->convertGetTableOrderV2Request($terminal, $terminal['branchNumber'], $tableNumber, $claimTable));
+      $result = $this->client->getTableOrderV2($this->parser->convertGetTableOrderV2Request($terminal, $tableNumber, $tableSubNumber, $claimTable));
       return $this->parser->parseGetTableOrderResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
       if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
         sleep(1);
-        return $this->getTableOrderV2($terminal, $branchNumber, $tableNumber, $attempts+1);
+        return $this->getTableOrderV2($terminal, $tableNumber, $claimTable, $tableSubNumber, $attempts+1);
       } else {
         throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
       }
@@ -3229,7 +3286,28 @@ class MplusQAPIclient
     }
   } // END deleteActivity()
 
-//----------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
+
+  public function verifyCredentials($request, $attempts=0)
+  {
+    try {
+      $result = $this->client->verifyCredentials($this->parser->convertVerifyCredentialsRequest($request));
+      return $this->parser->parseVerifyCredentialsResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->verifyCredentials($activityId, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  }
+
+  //----------------------------------------------------------------------------
+
 public function report($arguments, $attempts = 0)
 {
     try {
@@ -3254,8 +3332,239 @@ public function report($arguments, $attempts = 0)
     }
 } // END report()
 
+
   //----------------------------------------------------------------------------
 
+public function getBranchGroups($attempts = 0)
+{
+    try {
+        $result = $this->client->getBranchGroups();
+        return $this->parser->parseGetBranchGroupsResult($result);
+    } catch (SoapFault $e) {
+        $msg = $e->getMessage();
+        if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+            sleep(1);
+            return $this->getBranchGroups($attempts + 1);
+        } else {
+            throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+        }
+    } catch (Exception $e) {
+        throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+    }
+} // END getBranchGroups()
+
+//----------------------------------------------------------------------------
+  public function getSalePromotions($branchNumbers = [], $attempts=0)
+  {
+    try {
+      $result = $this->client->getSalePromotions($this->parser->convertGetSalePromotionsRequest($branchNumbers));
+      return $this->parser->parseGetSalePromotionsResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getSalePromotions($attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getSalePromotions()
+  
+  //----------------------------------------------------------------------------
+  public function getProductOverview($selectFields, $pageNumber = null, $maxPerPage = null, $orderField = null, $sortOrder = null, $filters = null, $search=null, $attempts=0)
+  {
+    try {
+      $request = $this->parser->convertGetProductOverviewRequest($selectFields, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search);
+      $result = $this->client->getProductOverview($request);
+      return $this->parser->parseGetProductOverviewResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getProductOverview($selectFields, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getProductOverview()
+  
+  //----------------------------------------------------------------------------
+  public function getProductOverviewFields($attempts=0)
+  {
+    try {
+        $request = $this->parser->convertGetProductOverviewFieldsRequest();
+      $result = $this->client->getProductOverviewFields($request);
+      return $this->parser->parseGetProductOverviewFieldsResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getProductOverviewFields($attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END getProductOverview()
+
+  //----------------------------------------------------------------------------
+    public function checkGiftcardPayment($cardNumber, $branchNumber, $amount = null, $attempts = 0) {
+        try {
+            $result = $this->client->checkGiftcardPayment($this->parser->convertCheckGiftcardPaymentRequest($cardNumber, $branchNumber, $amount));
+            return $this->parser->parseCheckGiftcardPaymentResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->checkGiftcardPayment($cardNumber, $branchNumber, $amount, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+    // END checkGiftcardPayment()
+  
+    //----------------------------------------------------------------------------
+    public function registerGiftcardPayment($cardNumber, $branchNumber, $employeeNumber, $amount, $externalReference, $attempts = 0) {
+        try {
+            $result = $this->client->registerGiftcardPayment($this->parser->convertRegisterGiftcardPaymentRequest($cardNumber, $branchNumber, $employeeNumber, $amount, $externalReference));
+            return $this->parser->parseRegisterGiftcardPaymentResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->registerGiftcardPayment($cardNumber, $branchNumber, $employeeNumber, $amount, $externalReference, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+    // END registerGiftcardPayment()
+    
+    //----------------------------------------------------------------------------
+    public function getEmployeeAuthorizations($employeeNumber, $branchNumber, $attempts = 0) {
+        try {
+            $request = $this->parser->convertGetEmployeeAuthorizationsRequest($employeeNumber, $branchNumber);
+            $result = $this->client->getEmployeeAuthorizations($request);
+            return $this->parser->parseGetEmployeeAuthorizationsResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->getEmployeeAuthorizations($employeeNumber, $branchNumber, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+// END getEmployeeAuthorizations()
+//----------------------------------------------------------------------------
+    public function getGroupAuthorizations($groupNumber, $attempts = 0) {
+        try {
+            $request = $this->parser->convertGetGroupAuthorizationsRequest($groupNumber);
+            $result = $this->client->getGroupAuthorizations($request);
+            return $this->parser->parseGetGroupAuthorizationsResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->getGroupAuthorizations($groupNumber, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+// END getGroupAuthorizations()
+    //----------------------------------------------------------------------------
+    public function updateGroupAuthorizations($groupNumber, $authorizations, $attempts = 0) {
+        try {
+            $request = $this->parser->convertUpdateGroupAuthorizationsRequest($groupNumber, $authorizations);
+            $result = $this->client->updateGroupAuthorizations($request);
+            return $this->parser->parseUpdateGroupAuthorizationsResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->updateGroupAuthorizations($groupNumber, $authorizations, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+// END updateGroupAuthorizations()
+    //----------------------------------------------------------------------------
+    public function getAuthorizationGroups($attempts = 0) {
+        try {
+            $result = $this->client->getAuthorizationGroups();
+            return $this->parser->parseGetAuthorizationGroupsResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->getAuthorizationGroups($attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+// END getAuthorizationGroups()
+
+    //----------------------------------------------------------------------------
+    public function getAuthorizationTree($attempts = 0) {
+        try {
+            $result = $this->client->getAuthorizationTree();
+            return $this->parser->parseGetAuthorizationTreeResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->getAuthorizationTree($attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+// END getAuthorizationTree()
+
+    //----------------------------------------------------------------------------
+    public function updateOrderV2($order) {
+        try {
+            if (!isset($order['orderId'])) {
+                throw new MplusQAPIException('No orderId set.');
+            }
+            $result = $this->client->updateOrderV2($this->parser->convertUpdateOrderV2($order));
+            return $this->parser->parseUpdateOrderV2Result($result);
+        } catch (SoapFault $e) {
+            throw new MplusQAPIException('SoapFault occurred: ' . $e->getMessage(), 0, $e);
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+// END updateOrderV2()
 }
 
 //==============================================================================
@@ -4935,6 +5244,17 @@ class MplusQAPIDataParser
     }
     return $branches;
   } // END parseGetBranchesResult()
+  
+  //----------------------------------------------------------------------------
+
+  public function parseGetBranchGroupsResult($soapGetBranchGroupsResult) {
+    $branchGroups = array();
+    if (isset($soapGetBranchGroupsResult->branchGroupsList->branchGroups)) {
+      $soapBranchGroups = $soapGetBranchGroupsResult->branchGroupsList->branchGroups;
+      return objectToArray($soapBranchGroups);
+    }
+    return $branchGroups;
+  } // END parseGetBranchGroupsResult()
 
   //----------------------------------------------------------------------------
 
@@ -5128,6 +5448,8 @@ class MplusQAPIDataParser
       return true;
     } else if (isset($soapUpdateOrderResult->result) and $soapUpdateOrderResult->result == 'UPDATE-ORDER-RESULT-FAILED' and $soapUpdateOrderResult->errorMessage == 'Order not saved because there were no changes in the order.') {
       return true;
+    } else if (isset($soapUpdateOrderResult->result) and $soapUpdateOrderResult->result == 'UPDATE-ORDER-RESULT-NO-CHANGES') {
+      return true;
     } else {
       if ( ! empty($soapUpdateOrderResult->errorMessage)) {
         $this->lastErrorMessage = $soapUpdateOrderResult->errorMessage;
@@ -5178,12 +5500,15 @@ class MplusQAPIDataParser
       }
     } else if (isset($soapSaveOrderResult->result) and $soapSaveOrderResult->result == 'SAVE-ORDER-RESULT-FAILED' and $soapSaveOrderResult->errorMessage == 'Order not saved because there were no changes in the order.') {
       return true;
-    } else {
-      if ( ! empty($soapSaveOrderResult->errorMessage)) {
-        $this->lastErrorMessage = $soapSaveOrderResult->errorMessage;
-      }
-      return false;
+    } else if (isset($soapSaveOrderResult->result) and $soapSaveOrderResult->result == 'SAVE-ORDER-RESULT-NO-CHANGES') {
+      return true;
+    } else if (isset($soapSaveOrderResult->result) and $soapSaveOrderResult->result == 'SAVE-ORDER-RESULT-ORDER-HAS-CHANGED') {
+      $this->lastErrorMessage = 'Order has changed. Please send up-to-date version versionNumber and changeCounter.';
     }
+    if (!empty($soapSaveOrderResult->errorMessage)) {
+      $this->lastErrorMessage = $soapSaveOrderResult->errorMessage;
+    }
+    return false;
   } // END parseSaveOrderResult()
 
   //----------------------------------------------------------------------------
@@ -5606,6 +5931,20 @@ class MplusQAPIDataParser
   } // END parseDeleteActivityResult()
 
   //----------------------------------------------------------------------------
+
+  public function parseVerifyCredentialsResult($in)
+  {
+    if (isset($in->verified)) {
+      $parsed = ['verified'=>$in->verified];
+      if (isset($in->employee)) {
+        $parsed['employee'] = objectToArray($in->employee);
+      }
+      return $parsed;
+    }
+    return false;
+  }
+
+  //----------------------------------------------------------------------------
   public function parseReportResult($method, $soapReportResult)
   {
       $data = null;
@@ -5647,11 +5986,179 @@ class MplusQAPIDataParser
                   }
               }
               break;
+          case "reportCancellations":
+                $data = array();
+                if (isset($soapReportResult->cancellationsList->cancellations)) {
+                    foreach ($soapReportResult->cancellationsList->cancellations as $soapCancellations) {
+                        $data[] = $soapCancellations;
+                    }
+                }
+                break;
+          case "reportBPE":
+                $data = array();
+                if (isset($soapReportResult->bpeList->bpes)) {
+                    foreach ($soapReportResult->bpeList->bpes as $soapBpes) {
+                        $data[] = $soapBpes;
+                    }
+                }
+                break;
+          case "reportBranchPerformance":
+                $data = array();
+                if (isset($soapReportResult->branchPerformanceList->branchPerformance)) {
+                    foreach ($soapReportResult->branchPerformanceList->branchPerformance as $soapbranchPerformance) {
+                        $data[] = $soapbranchPerformance;
+                    }
+                }
+                break;
       }
       return $data;
   } // END parseReportResult()
 
+  //----------------------------------------------------------------------------
 
+  public function parseGetSalePromotionsResult($soapGetSalePromotionsResult) {
+    $salePromotions = array();
+    if (isset($soapGetSalePromotionsResult->salePromotionsList->salePromotions)) {
+      $soapSalePromotions = $soapGetSalePromotionsResult->salePromotionsList->salePromotions;
+      $salePromotions = objectToArray($soapSalePromotions);
+      foreach ($salePromotions as $idx => $salePromotion) {
+        if (isset($salePromotion['salePromotionLineList']['salePromotionLineList'])) {
+          if (isset($salePromotion['salePromotionLineList']['salePromotionLineList'])) {
+            $salePromotions[$idx]['salePromotionLineList'] = $salePromotion['salePromotionLineList']['salePromotionLineList'];
+            foreach($salePromotions[$idx]['salePromotionLineList'] as $idy=>$salePromotionLine) {
+                if(isset($salePromotionLine['salePromotionLineDiscountList']['salePromotionLineDiscountList'])) {
+                    $salePromotions[$idx]['salePromotionLineList'][$idy]['salePromotionLineDiscountList'] = $salePromotions[$idx]['salePromotionLineList'][$idy]['salePromotionLineDiscountList']['salePromotionLineDiscountList'];
+                }          
+            }
+          }
+        }
+      }
+    }
+    return $salePromotions;
+  } // END parseGetSalePromotionsResult()
+  
+  //----------------------------------------------------------------------------
+  public function parseGetProductOverviewResult($soapGetProductOverviewResult) {     
+    $productOverview = array();
+    if(isset($soapGetProductOverviewResult->productOverview)) {
+        $productOverview = objectToArray($soapGetProductOverviewResult->productOverview);
+    }
+    if (isset($soapGetProductOverviewResult->productOverviewArticleList->productOverviewArticle)) {
+      $productOverview['productOverviewArticleList'] = objectToArray($soapGetProductOverviewResult->productOverviewArticleList->productOverviewArticle);
+    }
+    return $productOverview;
+  } // END parseGetProductOverviewResult()
+  
+  //----------------------------------------------------------------------------
+  public function parseGetProductOverviewFieldsResult($soapGetProductOverviewFieldsResult) {     
+    $productOverviewFields = array();
+    
+    if (isset($soapGetProductOverviewFieldsResult->productOverviewFieldsList->productOverviewFields)) {
+      $productOverviewFields = objectToArray($soapGetProductOverviewFieldsResult->productOverviewFieldsList->productOverviewFields);
+    }
+    return $productOverviewFields;
+  } // END parseGetProductOverviewFieldsResult()
+  
+  //----------------------------------------------------------------------------
+    public function parseCheckGiftcardPaymentResult($soapCheckGiftcardPaymentResult) {
+        return objectToArray($soapCheckGiftcardPaymentResult);
+    }
+    // END parseCheckGiftcardPaymentResult()
+    
+    //----------------------------------------------------------------------------
+    public function parseRegisterGiftcardPaymentResult($soapRegisterGiftcardPaymentResult) {
+        return objectToArray($soapRegisterGiftcardPaymentResult);
+    }
+    // END parseRegisterGiftcardPaymentResult()
+  
+    //----------------------------------------------------------------------------
+    public function parseGetEmployeeAuthorizationsResult($soapGetEmployeeAuthorizationsResult) {
+        if (property_exists($soapGetEmployeeAuthorizationsResult, "authorizationsList") &&
+                property_exists($soapGetEmployeeAuthorizationsResult->authorizationsList, "authorizations")) {
+            return $soapGetEmployeeAuthorizationsResult->authorizationsList->authorizations;
+        } else {
+            return false;
+        }
+    }
+// END parseGetEmployeeAuthorizationsResult()
+    
+    //----------------------------------------------------------------------------
+    public function parseGetGroupAuthorizationsResult($soapGetGroupAuthorizationsResult) {
+        if (property_exists($soapGetGroupAuthorizationsResult, "authorizationsList") &&
+                property_exists($soapGetGroupAuthorizationsResult->authorizationsList, "authorizations")) {
+            return $soapGetGroupAuthorizationsResult->authorizationsList->authorizations;
+        } else {
+            return false;
+        }
+    }
+// END parseGetGroupAuthorizationsResult()
+    
+    //----------------------------------------------------------------------------
+    public function parseUpdateGroupAuthorizationsResult($soapUpdateGroupAuthorizationsResult) {
+        if (property_exists($soapUpdateGroupAuthorizationsResult, "authorizationsList") &&
+                property_exists($soapUpdateGroupAuthorizationsResult->authorizationsList, "authorizations")) {
+            return $soapUpdateGroupAuthorizationsResult->authorizationsList->authorizations;
+        } else {
+            return false;
+        }
+    }
+// END parseUpdateGroupAuthorizationsResult()  
+
+    //----------------------------------------------------------------------------
+    public function parseGetAuthorizationGroupsResult($soapGetAuthorizationGroupsResult) {
+        if (property_exists($soapGetAuthorizationGroupsResult, "groupList") &&
+                property_exists($soapGetAuthorizationGroupsResult->groupList, "groups")) {
+            return $soapGetAuthorizationGroupsResult->groupList->groups;
+        } else {
+            return false;
+        }
+    }
+// END parseGetAuthorizationTreeResult()
+    
+    //----------------------------------------------------------------------------
+    public function parseGetAuthorizationTreeResult($soapGetAuthorizationTreeResult) {
+        if (property_exists($soapGetAuthorizationTreeResult, "backOfficeAuthorizationsList") &&
+                property_exists($soapGetAuthorizationTreeResult->backOfficeAuthorizationsList, "authorizations") &&
+                property_exists($soapGetAuthorizationTreeResult, "articleAuthorizationsList") &&
+                property_exists($soapGetAuthorizationTreeResult->articleAuthorizationsList, "authorizations") &&
+                property_exists($soapGetAuthorizationTreeResult, "relationAuthorizationsList") &&
+                property_exists($soapGetAuthorizationTreeResult->relationAuthorizationsList, "authorizations") &&
+                property_exists($soapGetAuthorizationTreeResult, "employeeAuthorizationsList") &&
+                property_exists($soapGetAuthorizationTreeResult->employeeAuthorizationsList, "authorizations")
+        ) {
+            return $soapGetAuthorizationTreeResult;
+        } else {
+            return false;
+        }
+    }
+// END parseGetAuthorizationTreeResult()
+    
+    //----------------------------------------------------------------------------
+    public function parseUpdateOrderV2Result($soapUpdateOrderV2Result) {
+        if (isset($soapUpdateOrderV2Result->result) and $soapUpdateOrderV2Result->result == 'UPDATE-ORDER-RESULT-OK') {
+            if (isset($soapUpdateOrderV2Result->order)) {
+                return $this->parseOrder($soapUpdateOrderV2Result->order);
+            } else {
+                return true;
+            }
+        } else {
+            return false;
+        }
+    }
+    // END parseUpdateOrderV2Result()
+
+  //----------------------------------------------------------------------------
+
+  public function convertGetTurnoverGroupsRequest($onlyActive=null)
+  {
+    $array = array('request'=>array());
+    if ($onlyActive) {
+      $array['request']['onlyActive'] = true;
+    }
+    $object = arrayToObject($array);
+    return $object;
+  } // END convertTurnoverGroupsRequest()
+  
   //----------------------------------------------------------------------------
 
   public function convertGetDeliveryMethodsV2Request($request)
@@ -5720,8 +6227,15 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertGetProductsRequest($articleNumbers, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker, $onlyWebshop, $onlyActive, $syncMarkerLimit)
+  public function convertGetProductsRequest($productNumbers, $articleNumbers, $includeAllArticlesOfSelectedProducts, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker, $onlyWebshop, $onlyActive, $syncMarkerLimit)
   {
+    if (!is_array($productNumbers)) {
+      if (is_null($productNumbers)) {
+        $productNumbers = [];
+      } else {
+        $productNumbers = [$productNumbers];
+      }
+    }
     if ( ! is_array($articleNumbers)) {
       if (is_null($articleNumbers)) {
         $articleNumbers = array();
@@ -5744,7 +6258,9 @@ class MplusQAPIDataParser
       }
     }
     $array = array('request'=>array(
+      'productNumbers'=>empty($productNumbers) ? null : array_values($productNumbers),
       'articleNumbers'=>empty($articleNumbers) ? null : array_values($articleNumbers),
+      'includeAllArticlesOfSelectedProducts'=>empty($includeAllArticlesOfSelectedProducts) ? false : (bool)$includeAllArticlesOfSelectedProducts,
       'groupNumbers'=>empty($groupNumbers) ? null : array_values($groupNumbers),
       'pluNumbers'=>empty($pluNumbers) ? null : $this->convertPluNumbers($pluNumbers),
       ));
@@ -7810,7 +8326,7 @@ class MplusQAPIDataParser
                   'fromFinancialDate', 'throughFinancialDate',
               ),
               'optional' => array(
-                  'branchNumbers', 'activityNumbers',
+                  'branchNumbers', 'activityNumbers', 'perHour',
               ),
           ),
           'reportTurnoverByTurnoverGroup' => array(
@@ -7826,7 +8342,7 @@ class MplusQAPIDataParser
                   'fromFinancialDate', 'throughFinancialDate',
               ),
               'optional' => array(
-                  'branchNumbers', 'turnoverGroups', 'articleNumbers',
+                  'branchNumbers', 'turnoverGroups', 'articleNumbers', 'perHour',
               ),
           ),
           'reportHoursByEmployee' => array(
@@ -7847,6 +8363,30 @@ class MplusQAPIDataParser
           ),
           'reportTables' => array(
               'required' => array(
+              ),
+              'optional' => array(
+                  'branchNumbers',
+              ),
+          ),
+          'reportCancellations' => array(
+                'required' => array(
+                    'fromFinancialDate', 'throughFinancialDate',
+                ),
+                'optional' => array(
+                    'branchNumbers', 'employeeNumbers',
+                ),
+          ),
+          'reportBPE' => array(
+              'required' => array(
+                  'fromFinancialDate', 'throughFinancialDate',
+              ),
+              'optional' => array(
+                  'branchNumbers', 'articleNumbers', 'perHour',
+              ),
+          ),
+          'reportBranchPerformance' => array(
+              'required' => array(
+                  'fromFinancialDate', 'throughFinancialDate',
               ),
               'optional' => array(
                   'branchNumbers',
@@ -7874,7 +8414,7 @@ class MplusQAPIDataParser
                               if (!is_array($arguments[$callField])) {
                                   $arguments[$callField] = array($arguments[$callField]);
                               }
-                              $request['turnoverGroupFilter'] = $callField;
+                              $request['turnoverGroupFilter'] = $arguments[$callField];
                               break;
                           case "employeeNumbers":
                               if (!is_array($arguments[$callField])) {
@@ -7907,6 +8447,63 @@ class MplusQAPIDataParser
       $object = arrayToObject(array('request' => $request));
       return $object;
   } // END convertReportRequest()
+  
+  public function convertGetSalePromotionsRequest($branchNumbers)
+  {
+      $array = [ 'request' => [] ];
+      
+      if($branchNumbers !== null) {
+          if(!is_array($branchNumbers)) {
+              $branchNumbers = array($branchNumbers);
+          }
+          $array['request']['branchFilter'] = $branchNumbers;
+      }
+                              
+    $object = arrayToObject($array);
+    return $object;
+  } // END convertGetSalePromotionsRequest()
+  
+  //----------------------------------------------------------------------------
+  public function convertGetProductOverviewRequest($selectFieldList, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search)
+  {
+    $request = new stdClass();
+    $request->request = new stdClass();
+      
+    if(!is_array($selectFieldList)) {
+       $selectFieldList = array($selectFieldList);
+    }
+    $request->request->selectFieldNameList = $selectFieldList;
+      
+    if(isset($pageNumber)) {
+        $request->request->pageNumber = $pageNumber;
+    }
+    if(isset($maxPerPage)) {
+        $request->request->maxPerPage = $maxPerPage;
+    }
+    if(isset($orderField)) {
+        $request->request->orderField = $orderField;
+    }
+    if(isset($sortOrder)) {
+        $request->request->sortOrder = $sortOrder;
+    }
+    
+    if(isset($filters)) {
+        $request->request->filterList = $filters;
+    }
+    
+    if(isset($search)) {
+        $request->request->search = $search;
+    }
+    return $request;
+  } // END convertGetProductOverviewRequest()
+  
+  //----------------------------------------------------------------------------
+  public function convertGetProductOverviewFieldsRequest()
+  {
+    $request = new stdClass();
+    $request->request = new stdClass();
+    return $request;
+  } // END convertGetProductOverviewFieldsRequest()
 
   //----------------------------------------------------------------------------
 
@@ -8010,17 +8607,20 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertGetTableOrderV2Request($terminal, $branchNumber, $tableNumber, $claimTable)
+  public function convertGetTableOrderV2Request($terminal, $tableNumber, $tableSubNumber, $claimTable)
   {
     $terminal = $this->convertTerminal($terminal);
-    $branchNumber = $this->convertBranchNumber($branchNumber);
-    $tableNumber = $this->convertTableNumber($tableNumber);
     $array = array(
       'terminal'=>$terminal->terminal,
-      'request'=>array('tableNumber'=>$tableNumber->tableNumber),
+      'request'=>array(
+          'tableNumber'=>intval($tableNumber)
+          ),
       );
     if ( ! is_null($claimTable)) {
       $array['request']['claimTable'] = $claimTable;
+    }
+    if ( ! is_null($tableSubNumber)) {
+      $array['request']['tableSubNumber'] = $tableSubNumber;
     }
     $object = arrayToObject($array);
     return $object;
@@ -8217,6 +8817,98 @@ class MplusQAPIDataParser
   } // END convertButtonLayoutRequest()
 
   //----------------------------------------------------------------------------
+
+  public function convertVerifyCredentialsRequest($request)
+  {
+    $object = arrayToObject(['request'=>$request]);
+    return $object;
+  }
+
+  //----------------------------------------------------------------------------
+    public function convertCheckGiftcardPaymentRequest($cardNumber, $branchNumber, $amount) {
+        $array = array('request' => array());
+        $array['request']['cardNumber'] = $cardNumber;
+        $array['request']['branchNumber'] = $branchNumber;
+        if ($amount !== null) {
+            $array['request']['amount'] = $amount;
+        }
+        $object = arrayToObject($array);
+        return $object;
+    }
+    // END convertCheckGiftcardPaymentRequest()
+    
+    //----------------------------------------------------------------------------
+    public function convertRegisterGiftcardPaymentRequest($cardNumber, $branchNumber, $employeeNumber, $amount, $externalReference) {
+        $array = array('request' => array());
+        $array['request']['cardNumber'] = $cardNumber;
+        $array['request']['branchNumber'] = $branchNumber;
+        $array['request']['employeeNumber'] = $employeeNumber;
+        $array['request']['amount'] = $amount;
+        $array['request']['externalReference'] = $externalReference;
+        $object = arrayToObject($array);
+        return $object;
+    }
+    // END convertRegisterGiftcardPaymentRequest()
+    
+    //----------------------------------------------------------------------------
+    public function convertGetEmployeeAuthorizationsRequest($employeeNumber, $branchNumber) {
+        $request = new stdClass();
+        $request->request = new stdClass();
+        $request->request->employeeNumber = $employeeNumber;
+        $request->request->branchNumber = $branchNumber;
+        return $request;
+    }
+    // END convertGetEmployeeAuthorizationsRequest()
+    
+    //----------------------------------------------------------------------------
+    public function convertGetGroupAuthorizationsRequest($groupNumber) {
+        $request = new stdClass();
+        $request->request = new stdClass();
+        $request->request->groupNumber = $groupNumber;
+        return $request;
+    }
+    // END convertGetGroupAuthorizationsRequest()
+    
+    //----------------------------------------------------------------------------
+    public function convertUpdateGroupAuthorizationsRequest($groupNumber, $authorizations) {
+        $request = new stdClass();
+        $request->request = new stdClass();
+        $request->request->groupNumber = $groupNumber;
+        $request->request->authorizationsList = new stdClass();
+        $request->request->authorizationsList->authorizations = $authorizations;
+        return $request;
+    }
+    // END convertUpdateGroupAuthorizationsRequest()
+
+    //----------------------------------------------------------------------------
+   public function convertCancelOrder($orderId, $branchNumber = null) {
+        $data = array('orderId' => $orderId);
+        if ($branchNumber !== null) {
+            $data['request'] = array('branchNumber' => $branchNumber);
+        }
+        $object = arrayToObject($data);
+        return $object;
+    }
+    // END convertCancelOrder()
+    
+    //----------------------------------------------------------------------------
+    public function convertUpdateOrderV2($order, $applySalesAndActions = null, $applySalesPrices = null, $applyPriceGroups = null) {
+        $order = $this->convertOrder($order);
+        $request = ['order' => $order->order];
+        if (!is_null($applySalesAndActions)) {
+            $request['applySalesAndActions'] = $applySalesAndActions;
+        }
+        if (!is_null($applySalesPrices)) {
+            $request['applySalesPrices'] = $applySalesPrices;
+        }
+        if (!is_null($applyPriceGroups)) {
+            $request['applyPriceGroups'] = $applyPriceGroups;
+        }
+        $object = arrayToObject(['request' => $request]);
+        return $object;
+    }
+    // END convertUpdateOrderV2()
+    
 }
 
 //------------------------------------------------------------------------------
@@ -8372,7 +9064,7 @@ if ( ! function_exists('arrayToObject')) {
       elseif (is_array($d) and isset($d[0]) and is_array($d[0]) and isset($d[0]['group'])) {
         return array_map(__FUNCTION__, $d);
       }
-      elseif (isset($d[0]) and is_integer($d[0])) {
+      elseif (isset($d[0]) and (is_integer($d[0]) or is_float($d[0]))) {
         return array_map(__FUNCTION__, $d);
       }
       else {
