@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.27.9';
+  const CLIENT_VERSION  = '1.28.0';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -2673,26 +2673,26 @@ class MplusQAPIclient
       }
     );
   }
+  
   //----------------------------------------------------------------------------
-
-  public function cancelOrder($orderId, $attempts=0)
-  {
-    try {
-      if (false !== ($result = $this->client->cancelOrder($this->parser->convertOrderId($orderId)))) {
-      return $this->parser->parseCancelOrderResult($result);
-      }
-    } catch (SoapFault $e) {
-      $msg = $e->getMessage();
-      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
-        sleep(1);
-        return $this->cancelOrder($orderId, $attempts+1);
-      } else {
-        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
-      }
-    } catch (Exception $e) {
-      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    public function cancelOrder($orderId, $branchNumber = null, $attempts = 0) {
+        try {
+            if (false !== ($result = $this->client->cancelOrder($this->parser->convertCancelOrder($orderId, $branchNumber)))) {
+                return $this->parser->parseCancelOrderResult($result);
+            }
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->cancelOrder($orderId, $branchNumber, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
     }
-  } // END cancelOrder()
+// END cancelOrder()
 
   //----------------------------------------------------------------------------
 
@@ -3549,6 +3549,22 @@ public function getBranchGroups($attempts = 0)
     }
 
 // END getAuthorizationTree()
+
+    //----------------------------------------------------------------------------
+    public function updateOrderV2($order) {
+        try {
+            if (!isset($order['orderId'])) {
+                throw new MplusQAPIException('No orderId set.');
+            }
+            $result = $this->client->updateOrderV2($this->parser->convertUpdateOrderV2($order));
+            return $this->parser->parseUpdateOrderV2Result($result);
+        } catch (SoapFault $e) {
+            throw new MplusQAPIException('SoapFault occurred: ' . $e->getMessage(), 0, $e);
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+// END updateOrderV2()
 }
 
 //==============================================================================
@@ -6116,6 +6132,20 @@ class MplusQAPIDataParser
         }
     }
 // END parseGetAuthorizationTreeResult()
+    
+    //----------------------------------------------------------------------------
+    public function parseUpdateOrderV2Result($soapUpdateOrderV2Result) {
+        if (isset($soapUpdateOrderV2Result->result) and $soapUpdateOrderV2Result->result == 'UPDATE-ORDER-RESULT-OK') {
+            if (isset($soapUpdateOrderV2Result->order)) {
+                return $this->parseOrder($soapUpdateOrderV2Result->order);
+            } else {
+                return true;
+            }
+        } else {
+            return false;
+        }
+    }
+    // END parseUpdateOrderV2Result()
 
   //----------------------------------------------------------------------------
 
@@ -8850,6 +8880,35 @@ class MplusQAPIDataParser
     }
     // END convertUpdateGroupAuthorizationsRequest()
 
+    //----------------------------------------------------------------------------
+   public function convertCancelOrder($orderId, $branchNumber = null) {
+        $data = array('orderId' => $orderId);
+        if ($branchNumber !== null) {
+            $data['request'] = array('branchNumber' => $branchNumber);
+        }
+        $object = arrayToObject($data);
+        return $object;
+    }
+    // END convertCancelOrder()
+    
+    //----------------------------------------------------------------------------
+    public function convertUpdateOrderV2($order, $applySalesAndActions = null, $applySalesPrices = null, $applyPriceGroups = null) {
+        $order = $this->convertOrder($order);
+        $request = ['order' => $order->order];
+        if (!is_null($applySalesAndActions)) {
+            $request['applySalesAndActions'] = $applySalesAndActions;
+        }
+        if (!is_null($applySalesPrices)) {
+            $request['applySalesPrices'] = $applySalesPrices;
+        }
+        if (!is_null($applyPriceGroups)) {
+            $request['applyPriceGroups'] = $applyPriceGroups;
+        }
+        $object = arrayToObject(['request' => $request]);
+        return $object;
+    }
+    // END convertUpdateOrderV2()
+    
 }
 
 //------------------------------------------------------------------------------
