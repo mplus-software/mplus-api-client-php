@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.28.0';
+  const CLIENT_VERSION  = '1.28.1';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -3565,6 +3565,126 @@ public function getBranchGroups($attempts = 0)
         }
     }
 // END updateOrderV2()
+    
+    //----------------------------------------------------------------------------
+    public function getGiftcard($cardNumber = null, $cardId = null, $attempts = 0) {
+        try {
+            $request = $this->parser->convertGetGiftcardRequest($cardNumber, $cardId);
+            $result = $this->client->getGiftcard($request);
+            return $this->parser->parseGetGiftcardResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->getGiftcard($cardNumber, $cardId, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+    // END getGiftcard()
+
+    //----------------------------------------------------------------------------
+    public function getGiftcardHistory($cardNumber = null, $cardId = null, $attempts = 0) {
+        try {
+            $request = $this->parser->convertGetGiftcardHistoryRequest($cardNumber, $cardId);
+            $result = $this->client->getGiftcardHistory($request);
+            return $this->parser->parseGetGiftcardHistoryResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->getGiftcardHistory($cardNumber, $cardId, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+    // END getGiftcardHistory()
+
+    //----------------------------------------------------------------------------
+    public function createGiftcard($cardNumber, $cardTypeId, $branchNumber, $employeeNumber, $amount, $externalReference, $relationNumber = null, $attempts = 0) {
+        try {
+            $request = $this->parser->convertCreateGiftcardRequest($cardNumber, $cardTypeId, $branchNumber, $employeeNumber, $amount, $externalReference, $relationNumber);
+            $result = $this->client->createGiftcard($request);
+            return $this->parser->parseCreateGiftcardResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->createGiftcard($cardNumber, $cardTypeId, $branchNumber, $employeeNumber, $amount, $externalReference, $relationNumber, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+    // END createGiftcard()
+
+    //----------------------------------------------------------------------------
+    public function getGiftcardTypes($branchNumber, $attempts = 0) {
+        try {
+            $request = $this->parser->convertGetGiftcardTypesRequest($branchNumber);
+            $result = $this->client->getGiftcardTypes($request);
+            return $this->parser->parseGetGiftcardTypesResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->getGiftcardTypes($branchNumber, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+    // END getGiftcardTypes()
+
+    //----------------------------------------------------------------------------
+    public function getRelationGiftcards($relationNumber, $attempts = 0) {
+        try {
+            $request = $this->parser->convertGetRelationGiftcardsRequest($relationNumber);
+            $result = $this->client->getRelationGiftcards($request);
+            return $this->parser->parseGetRelationGiftcardsResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->getRelationGiftcards($relationNumber, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+    // END getRelationGiftcards()
+
+    //----------------------------------------------------------------------------
+    public function reloadGiftcard($cardNumber, $branchNumber, $employeeNumber, $amount, $externalReference, $attempts = 0) {
+        try {
+            $request = $this->parser->convertReloadGiftcardRequest($cardNumber, $branchNumber, $employeeNumber, $amount, $externalReference);
+            $result = $this->client->reloadGiftcard($request);
+            return $this->parser->parseReloadGiftcardResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->reloadGiftcard($cardNumber, $branchNumber, $employeeNumber, $amount, $externalReference, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+    // END reloadGiftcard()
 }
 
 //==============================================================================
@@ -6146,6 +6266,61 @@ class MplusQAPIDataParser
         }
     }
     // END parseUpdateOrderV2Result()
+    
+    //----------------------------------------------------------------------------
+    public function parseGetGiftcardTypesResult($soapGetGiftcardTypesResult) {
+        if (property_exists($soapGetGiftcardTypesResult, "giftcardTypesList") &&
+                property_exists($soapGetGiftcardTypesResult->giftcardTypesList, "giftcardTypes")) {
+            return $soapGetGiftcardTypesResult->giftcardTypesList->giftcardTypes;
+        } else {
+            return false;
+        }
+    }
+    // END parseGetGiftcardTypesResult()
+    
+    //----------------------------------------------------------------------------
+    public function parseGetRelationGiftcardsResult($soapGetRelationGiftcardsResult) {
+        if (property_exists($soapGetRelationGiftcardsResult, "relationGiftcardList") &&
+                property_exists($soapGetRelationGiftcardsResult->relationGiftcardList, "relationGiftcards")) {
+            return $soapGetRelationGiftcardsResult->relationGiftcardList->relationGiftcards;
+        } else {
+            return false;
+        }
+    }
+    // END parseGetGiftcardTypesResult()
+    
+    //----------------------------------------------------------------------------
+    public function parseCreateGiftcardResult($soapCreateGiftcardResult) {
+        return $soapCreateGiftcardResult;
+    }
+    // END parseCreateGiftcardResult()
+    
+    //----------------------------------------------------------------------------
+    public function parseReloadGiftcardResult($soapReloadGiftcardResult) {
+        return $soapReloadGiftcardResult;
+    }
+    // END parseReloadGiftcardResult()
+    
+    //----------------------------------------------------------------------------
+    public function parseGetGiftcardResult($soapGetGiftcardResult) {
+        if (property_exists($soapGetGiftcardResult, "giftcard")) {
+            return $soapGetGiftcardResult->giftcard;
+        } else {
+            return false;
+        }
+    }
+    // END parseGetGiftcardResult()
+    
+    //----------------------------------------------------------------------------
+    public function parseGetGiftcardHistoryResult($soapGetGiftcardHistoryResult) {
+        if (property_exists($soapGetGiftcardHistoryResult, "giftcardHistoryList") &&
+                property_exists($soapGetGiftcardHistoryResult->giftcardHistoryList, "giftcardHistory")) {
+            return $soapGetGiftcardHistoryResult->giftcardHistoryList->giftcardHistory;
+        } else {
+            return false;
+        }
+    }
+    // END parseGetGiftcardHistoryResult()
 
   //----------------------------------------------------------------------------
 
@@ -8908,6 +9083,82 @@ class MplusQAPIDataParser
         return $object;
     }
     // END convertUpdateOrderV2()
+    
+    //----------------------------------------------------------------------------
+    public function convertGetGiftcardTypesRequest($branchNumber) {
+        $request = new stdClass();
+        $request->request = new stdClass();
+        $request->request->branchNumber = $branchNumber;
+        return $request;
+    }
+    // END convertGetGiftcardTypesRequest()
+    
+    //----------------------------------------------------------------------------
+    public function convertGetRelationGiftcardsRequest($relationNumber) {
+        $request = new stdClass();
+        $request->request = new stdClass();
+        $request->request->relationNumber = $relationNumber;
+        return $request;
+    }
+    // END convertGetRelationGiftcardsRequest()
+    
+    //----------------------------------------------------------------------------
+    public function convertCreateGiftcardRequest($cardNumber, $cardTypeId, $branchNumber, $employeeNumber, $amount, $externalReference, $relationNumber) {
+        $request = new stdClass();
+        $request->request = new stdClass();
+        $request->request->cardNumber = $cardNumber;
+        $request->request->cardTypeId = $cardTypeId;
+        $request->request->branchNumber = $branchNumber;
+        $request->request->employeeNumber = $employeeNumber;
+        $request->request->amount = $amount;
+        $request->request->externalReference = $externalReference;
+        if ($relationNumber !== null) {
+            $request->request->relationNumber = $relationNumber;
+        }
+        return $request;
+    }
+    // END convertCreateGiftcardRequest()
+    
+    //----------------------------------------------------------------------------
+    public function convertReloadGiftcardRequest($cardNumber, $branchNumber, $employeeNumber, $amount, $externalReference) {
+        $request = new stdClass();
+        $request->request = new stdClass();
+        $request->request->cardNumber = $cardNumber;
+        $request->request->branchNumber = $branchNumber;
+        $request->request->employeeNumber = $employeeNumber;
+        $request->request->amount = $amount;
+        $request->request->externalReference = $externalReference;
+        return $request;
+    }
+    // END convertReloadGiftcardRequest()
+    
+    //----------------------------------------------------------------------------
+    public function convertGetGiftcardRequest($cardNumber, $cardId) {
+        $request = new stdClass();
+        $request->request = new stdClass();
+        if ($cardNumber !== null) {
+            $request->request->cardNumber = $cardNumber;
+        }
+        if ($cardId !== null) {
+            $request->request->cardId = $cardId;
+        }
+        return $request;
+    }
+    // END convertGetGiftcardRequest()
+    
+    //----------------------------------------------------------------------------
+    public function convertGetGiftcardHistoryRequest($cardNumber, $cardId) {
+        $request = new stdClass();
+        $request->request = new stdClass();
+        if ($cardNumber !== null) {
+            $request->request->cardNumber = $cardNumber;
+        }
+        if ($cardId !== null) {
+            $request->request->cardId = $cardId;
+        }
+        return $request;
+    }
+    // END convertGetGiftcardHistoryRequest()
     
 }
 
