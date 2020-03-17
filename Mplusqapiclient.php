@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.28.1';
+  const CLIENT_VERSION  = '1.28.2';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -3685,6 +3685,26 @@ public function getBranchGroups($attempts = 0)
         }
     }
     // END reloadGiftcard()
+    
+    //----------------------------------------------------------------------------
+    public function getEmployeeBranchAuthorizations($employeeNumber, $attempts = 0) {
+        try {
+            $request = $this->parser->convertGetEmployeeBranchAuthorizationsRequest($employeeNumber);
+            $result = $this->client->getEmployeeBranchAuthorizations($request);
+            return $this->parser->parseGetEmployeeBranchAuthorizationsResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->getEmployeeBranchAuthorizations($employeeNumber, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+    // END getEmployeeBranchAuthorizations()
 }
 
 //==============================================================================
@@ -6321,6 +6341,17 @@ class MplusQAPIDataParser
         }
     }
     // END parseGetGiftcardHistoryResult()
+    
+    //----------------------------------------------------------------------------
+    public function parseGetEmployeeBranchAuthorizationsResult($soapGetEmployeeBranchAuthorizationsResult) {
+        if (property_exists($soapGetEmployeeBranchAuthorizationsResult, "branchAuthorizationsList") &&
+                property_exists($soapGetEmployeeBranchAuthorizationsResult->branchAuthorizationsList, "branchAuthorizations")) {
+            return $soapGetEmployeeBranchAuthorizationsResult->branchAuthorizationsList->branchAuthorizations;
+        } else {
+            return false;
+        }
+    }
+    // END parseGetEmployeeBranchAuthorizationsResult()
 
   //----------------------------------------------------------------------------
 
@@ -9159,6 +9190,15 @@ class MplusQAPIDataParser
         return $request;
     }
     // END convertGetGiftcardHistoryRequest()
+   
+    //----------------------------------------------------------------------------
+    public function convertGetEmployeeBranchAuthorizationsRequest($employeeNumber) {
+        $request = new stdClass();
+        $request->request = new stdClass();
+        $request->request->employeeNumber = $employeeNumber;
+        return $request;
+    }
+    // END convertGetEmployeeBranchAuthorizationsRequest()
     
 }
 
