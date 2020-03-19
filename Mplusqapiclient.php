@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.28.2';
+  const CLIENT_VERSION  = '1.28.3';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -6325,9 +6325,11 @@ class MplusQAPIDataParser
     public function parseGetGiftcardResult($soapGetGiftcardResult) {
         if (property_exists($soapGetGiftcardResult, "giftcard")) {
             return $soapGetGiftcardResult->giftcard;
-        } else {
-            return false;
         }
+        if (!empty($soapGetGiftcardResult->errorMessage)) {
+            $this->lastErrorMessage = $soapGetGiftcardResult->errorMessage;
+        }
+        return false;
     }
     // END parseGetGiftcardResult()
     
@@ -6336,9 +6338,11 @@ class MplusQAPIDataParser
         if (property_exists($soapGetGiftcardHistoryResult, "giftcardHistoryList") &&
                 property_exists($soapGetGiftcardHistoryResult->giftcardHistoryList, "giftcardHistory")) {
             return $soapGetGiftcardHistoryResult->giftcardHistoryList->giftcardHistory;
-        } else {
-            return false;
         }
+        if (!empty($soapGetGiftcardHistoryResult->errorMessage)) {
+            $this->lastErrorMessage = $soapGetGiftcardHistoryResult->errorMessage;
+        }
+        return false;
     }
     // END parseGetGiftcardHistoryResult()
     
