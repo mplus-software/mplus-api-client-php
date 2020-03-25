@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.28.3';
+  const CLIENT_VERSION  = '1.28.4';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -81,6 +81,10 @@ class MplusQAPIclient
    * @var
    */
   private $default_socket_timeout = 600;
+  
+  const OverviewTypeEmployee = 'EMPLOYEE';   
+  const OverviewTypeProduct = 'PRODUCT';
+  const OverviewTypeRelation = 'RELATION';
   
   /**
    * @param string $apiServer The api server
@@ -3372,45 +3376,60 @@ public function getBranchGroups($attempts = 0)
     }
   } // END getSalePromotions()
   
-  //----------------------------------------------------------------------------
-  public function getProductOverview($selectFields, $pageNumber = null, $maxPerPage = null, $orderField = null, $sortOrder = null, $filters = null, $search=null, $attempts=0)
-  {
-    try {
-      $request = $this->parser->convertGetProductOverviewRequest($selectFields, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search);
-      $result = $this->client->getProductOverview($request);
-      return $this->parser->parseGetProductOverviewResult($result);
-    } catch (SoapFault $e) {
-      $msg = $e->getMessage();
-      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
-        sleep(1);
-        return $this->getProductOverview($selectFields, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search, $attempts+1);
-      } else {
-        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
-      }
-    } catch (Exception $e) {
-      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+  private function validateOverviewType($overviewType) {
+        $overviewAllowedTypes = [
+            self::OverviewTypeEmployee,
+            self::OverviewTypeProduct,
+            self::OverviewTypeRelation,
+        ];
+        if (!in_array($overviewType, $overviewAllowedTypes)) {
+            throw new Exception('OverviewType should be one of those : ' . implode(', ', $overviewAllowedTypes));
+        }
     }
-  } // END getProductOverview()
-  
-  //----------------------------------------------------------------------------
-  public function getProductOverviewFields($attempts=0)
-  {
-    try {
-        $request = $this->parser->convertGetProductOverviewFieldsRequest();
-      $result = $this->client->getProductOverviewFields($request);
-      return $this->parser->parseGetProductOverviewFieldsResult($result);
-    } catch (SoapFault $e) {
-      $msg = $e->getMessage();
-      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
-        sleep(1);
-        return $this->getProductOverviewFields($attempts+1);
-      } else {
-        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
-      }
-    } catch (Exception $e) {
-      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+
+    //----------------------------------------------------------------------------
+    public function getOverview($overviewType, $selectFields, $pageNumber = null, $maxPerPage = null, $orderField = null, $sortOrder = null, $filters = null, $search = null, $attempts = 0) {
+        try {
+            $this->validateOverviewType($overviewType);
+            $request = $this->parser->convertGetOverviewRequest($overviewType, $selectFields, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search);
+            $result = $this->client->getOverview($request);
+            return $this->parser->parseGetOverviewResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->getOverview($overviewType, $selectFields, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
     }
-  } // END getProductOverview()
+
+// END getOverview()
+    //----------------------------------------------------------------------------
+    public function getOverviewFields($overviewType, $attempts = 0) {
+        try {
+            $this->validateOverviewType($overviewType);
+            $request = $this->parser->convertGetOverviewFieldsRequest($overviewType);
+            $result = $this->client->getOverviewFields($request);
+            return $this->parser->parseGetOverviewFieldsResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->getOverviewFields($overviewType, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+// END getOverviewFields()
+
 
   //----------------------------------------------------------------------------
     public function checkGiftcardPayment($cardNumber, $branchNumber, $amount = null, $attempts = 0) {
@@ -6178,26 +6197,28 @@ class MplusQAPIDataParser
   } // END parseGetSalePromotionsResult()
   
   //----------------------------------------------------------------------------
-  public function parseGetProductOverviewResult($soapGetProductOverviewResult) {     
-    $productOverview = array();
-    if(isset($soapGetProductOverviewResult->productOverview)) {
-        $productOverview = objectToArray($soapGetProductOverviewResult->productOverview);
+  public function parseGetOverviewFieldsResult($soapGetOverviewFieldsResult) {     
+    $overviewFields = array();
+    
+    if (isset($soapGetOverviewFieldsResult->overviewFieldsList->overviewFields)) {
+      $overviewFields = objectToArray($soapGetOverviewFieldsResult->overviewFieldsList->overviewFields);
     }
-    if (isset($soapGetProductOverviewResult->productOverviewArticleList->productOverviewArticle)) {
-      $productOverview['productOverviewArticleList'] = objectToArray($soapGetProductOverviewResult->productOverviewArticleList->productOverviewArticle);
-    }
-    return $productOverview;
-  } // END parseGetProductOverviewResult()
+    return $overviewFields;
+  } // END parseGetOverviewFieldsResult()
   
   //----------------------------------------------------------------------------
-  public function parseGetProductOverviewFieldsResult($soapGetProductOverviewFieldsResult) {     
-    $productOverviewFields = array();
-    
-    if (isset($soapGetProductOverviewFieldsResult->productOverviewFieldsList->productOverviewFields)) {
-      $productOverviewFields = objectToArray($soapGetProductOverviewFieldsResult->productOverviewFieldsList->productOverviewFields);
+    public function parseGetOverviewResult($soapOverviewResult) {
+        $overview = array();
+        if (isset($soapOverviewResult->overview)) {
+            $overview = objectToArray($soapOverviewResult->overview);
+        }
+        if (isset($soapOverviewResult->overviewList->overview)) {
+            $overview['overviewList'] = objectToArray($soapOverviewResult->overviewList->overview);
+        }
+        return $overview;
     }
-    return $productOverviewFields;
-  } // END parseGetProductOverviewFieldsResult()
+
+// END parseGetOverviewResult()
   
   //----------------------------------------------------------------------------
     public function parseCheckGiftcardPaymentResult($soapCheckGiftcardPaymentResult) {
@@ -8674,49 +8695,56 @@ class MplusQAPIDataParser
   } // END convertGetSalePromotionsRequest()
   
   //----------------------------------------------------------------------------
-  public function convertGetProductOverviewRequest($selectFieldList, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search)
-  {
-    $request = new stdClass();
-    $request->request = new stdClass();
-      
-    if(!is_array($selectFieldList)) {
-       $selectFieldList = array($selectFieldList);
-    }
-    $request->request->selectFieldNameList = $selectFieldList;
-      
-    if(isset($pageNumber)) {
-        $request->request->pageNumber = $pageNumber;
-    }
-    if(isset($maxPerPage)) {
-        $request->request->maxPerPage = $maxPerPage;
-    }
-    if(isset($orderField)) {
-        $request->request->orderField = $orderField;
-    }
-    if(isset($sortOrder)) {
-        $request->request->sortOrder = $sortOrder;
-    }
-    
-    if(isset($filters)) {
-        $request->request->filterList = $filters;
-    }
-    
-    if(isset($search)) {
-        $request->request->search = $search;
-    }
-    return $request;
-  } // END convertGetProductOverviewRequest()
-  
-  //----------------------------------------------------------------------------
-  public function convertGetProductOverviewFieldsRequest()
-  {
-    $request = new stdClass();
-    $request->request = new stdClass();
-    return $request;
-  } // END convertGetProductOverviewFieldsRequest()
+    public function convertGetOverviewRequest($overviewType, $selectFieldList, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search) {
+        $request = new stdClass();
+        $request->request = new stdClass();
 
-  //----------------------------------------------------------------------------
+        if (isset($overviewType)) {
+            $request->request->overviewType = $overviewType;
+        }
 
+        if (!is_array($selectFieldList)) {
+            $selectFieldList = array($selectFieldList);
+        }
+        $request->request->selectFieldNameList = $selectFieldList;
+
+        if (isset($pageNumber)) {
+            $request->request->pageNumber = $pageNumber;
+        }
+        if (isset($maxPerPage)) {
+            $request->request->maxPerPage = $maxPerPage;
+        }
+        if (isset($orderField)) {
+            $request->request->orderField = $orderField;
+        }
+        if (isset($sortOrder)) {
+            $request->request->sortOrder = $sortOrder;
+        }
+
+        if (isset($filters)) {
+            $request->request->filterList = $filters;
+        }
+
+        if (isset($search)) {
+            $request->request->search = $search;
+        }
+        return $request;
+    }
+
+// END convertGetOverviewRequest()
+    
+    //----------------------------------------------------------------------------
+    public function convertGetOverviewFieldsRequest($overviewType) {
+        $request = new stdClass();
+        $request->request = new stdClass();
+        if (isset($overviewType)) {
+            $request->request->overviewType = $overviewType;
+        }
+        return $request;
+    }
+
+// END convertGetOverviewFieldsRequest()
+    
   public function parseMplusDate($mplus_date)
   {
     if ($mplus_date['day'] == 0 || $mplus_date['mon'] == 0 || $mplus_date['year'] == 0) {
