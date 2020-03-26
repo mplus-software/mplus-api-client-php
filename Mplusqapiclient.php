@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.28.4';
+  const CLIENT_VERSION  = '1.28.5';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -4550,6 +4550,9 @@ class MplusQAPIDataParser
   //----------------------------------------------------------------------------
 
   public function parsePayOrderResult($soapPayOrderResult) {
+      if ( ! empty($soapPayOrderResult->errorMessage)) {
+        $this->lastErrorMessage = $soapPayOrderResult->errorMessage;
+      }
     if (isset($soapPayOrderResult->result) and $soapPayOrderResult->result == 'PAY-ORDER-RESULT-OK') {
       if (isset($soapPayOrderResult->invoiceId)) {
         return $soapPayOrderResult->invoiceId;
@@ -5707,7 +5710,7 @@ class MplusQAPIDataParser
 
   public function parseCancelOrderResult($soapCancelOrderResult)
   {
-    if (isset($soapCancelOrderResult->result) and $soapCancelOrderResult->result == 'CANCEL-ORDER-RESULT-OK') {
+    if (isset($soapCancelOrderResult->result) and (($soapCancelOrderResult->result == 'CANCEL-ORDER-RESULT-OK') || ($soapCancelOrderResult->result == 'CANCEL-ORDER-RESULT-PENDING'))) {
       return true;
     } else {
       if (isset($soapCancelOrderResult->message)) {
