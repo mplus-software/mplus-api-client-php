@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.28.5';
+  const CLIENT_VERSION  = '1.28.6';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -3318,7 +3318,7 @@ public function report($arguments, $attempts = 0)
         if (!is_array($arguments) || !array_key_exists('method', $arguments) || empty($arguments['method'])) {
             throw new Exception("No method defined for group call : " . __FUNCTION__);
         }
-        $method = __FUNCTION__ . $arguments['method'];
+        $method = __FUNCTION__ . ucfirst(strtolower($arguments['method']));
         unset($arguments['method']);
         $parameters = $this->parser->convertReportRequest($method, $arguments);
         $result = call_user_func(array($this->client, $method), $parameters);
