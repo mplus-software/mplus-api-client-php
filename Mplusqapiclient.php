@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.28.6';
+  const CLIENT_VERSION  = '1.28.7';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -85,6 +85,8 @@ class MplusQAPIclient
   const OverviewTypeEmployee = 'EMPLOYEE';   
   const OverviewTypeProduct = 'PRODUCT';
   const OverviewTypeRelation = 'RELATION';
+  
+  private $returnRawResult = false;
   
   /**
    * @param string $apiServer The api server
@@ -365,6 +367,21 @@ class MplusQAPIclient
   {
     return $this->debug;
   } // END getDebug()
+  
+  //----------------------------------------------------------------------------
+
+  /**
+   * @param $returnRawResult
+   */
+  public function setReturnRawResult(bool $returnRawResult)
+  {
+    $this->returnRawResult = $returnRawResult;
+  } // END setReturnRawResult()
+
+  public function getReturnRawResult()
+  {
+    return $this->returnRawResult;
+  } // END getReturnRawResult()
 
   //----------------------------------------------------------------------------
 
@@ -666,6 +683,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getApiVersion();
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseApiVersion($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -686,6 +706,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getDatabaseVersion();
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseDatabaseVersion($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -706,6 +729,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getTerminalSettings($this->parser->convertTerminal($terminal));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseTerminalSettings($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -726,6 +752,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getMaxTableNumber($this->parser->convertTerminal($terminal));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseMaxTableNumber($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -746,6 +775,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getCurrentSyncMarkers();
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseCurrentSyncMarkers($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -766,6 +798,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getLicenseInformation();
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseLicenseInformation($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -786,6 +821,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getCustomFieldLists();
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseCustomFieldLists($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -806,6 +844,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getRelationArticleDiscounts($this->parser->convertGetRelationArticleDiscountsRequest($relationNumbers, $articleNumbers));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseRelationArticleDiscounts($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -826,6 +867,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getCardCategories();
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseCardCategories($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -846,6 +890,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getArticleCardLayout();
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseArticleCardLayout($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -866,6 +913,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getAvailableTerminalList();
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseTerminalList($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -886,6 +936,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getButtonLayout($this->parser->convertTerminal($terminal));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseButtonLayout($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -906,6 +959,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getArticlesInLayout($this->parser->convertTerminal($terminal));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseArticlesInLayout($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -926,6 +982,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getActiveEmployeeList($this->parser->convertTerminal($terminal));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseActiveEmployeeList($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -946,6 +1005,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getTableList($this->parser->convertTerminal($terminal));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseTableList($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -966,6 +1028,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getTableListV2($this->parser->convertTerminal($terminal));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseTableListV2($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -986,6 +1051,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getCurrentTableOrders($this->parser->convertGetCurrentTableOrdersRequest($request));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetOrdersResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1006,6 +1074,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getAvailablePaymentMethods($this->parser->convertTerminal($terminal));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseAvailablePaymentMethods($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1026,6 +1097,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getCourseList($this->parser->convertTerminal($terminal));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseCourseList($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1046,6 +1120,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getVatGroupList();
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseVatGroupList($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1066,6 +1143,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getPriceGroupList();
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parsePriceGroupList($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1086,6 +1166,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getSalesPriceList();
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseSalesPriceList($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1106,6 +1189,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getDeliveryMethods();
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetDeliveryMethodsResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1126,6 +1212,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getDeliveryMethodsV2($this->parser->convertGetDeliveryMethodsV2Request($request));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetDeliveryMethodsV2Result($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1146,6 +1235,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->createDeliveryMethod($this->parser->convertCreateDeliveryMethodRequest($createDeliveryMethod));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseCreateDeliveryMethodResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1166,6 +1258,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->updateDeliveryMethod($this->parser->convertUpdateDeliveryMethodRequest($updateDeliveryMethod));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseUpdateDeliveryMethodResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1186,6 +1281,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getPaymentMethods();
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetPaymentMethodsResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1206,6 +1304,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getPaymentMethodsV2($this->parser->convertGetPaymentMethodsV2Request($accountNumber));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetPaymentMethodsResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -1220,6 +1321,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getRetailSpaceRental($this->parser->convertGetRetailSpaceRentalRequest($retailSpaceRentalNumber, $retailSpaceRentalBarcode));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetRetailSpaceRentalResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1240,6 +1344,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getRetailSpaceRentals();
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetRetailSpaceRentalsResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1260,6 +1367,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getExchangeRateHistory($this->parser->convertGetExchangeRateHistoryRequest($sinceHistoryId));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetExchangeRateHistoryResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1280,6 +1390,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->updateExchangeRate($this->parser->convertUpdateExchangeRateRequest($exchangeRates));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseUpdateExchangeRateResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1300,6 +1413,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getProducts($this->parser->convertGetProductsRequest($productNumbers, $articleNumbers, $includeAllArticlesOfSelectedProducts, $groupNumbers, $pluNumbers, $changedSinceTimestamp, $changedSinceBranchNumber, $syncMarker, $onlyWebshop, $onlyActive, $syncMarkerLimit));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseProducts($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1320,6 +1436,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getRelations($this->parser->convertGetRelationsRequest($relationNumbers, $syncMarker, $categoryId, $syncMarkerLimit));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseRelations($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1340,6 +1459,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getImages($this->parser->convertGetImagesRequest($imageIds, $includeImageData, $includeThumbData));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseImages($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1360,6 +1482,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->findEmployee($this->parser->convertEmployee($employee));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseFindEmployeeResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1380,6 +1505,9 @@ class MplusQAPIclient
   {
     try {      
       $result = $this->client->getEmployee($this->parser->convertGeneric('employeeNumber', $employeeNumber));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseEmployee($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1400,6 +1528,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getEmployees($this->parser->convertGetEmployeesRequest($employeeNumbers, $syncMarker, $syncMarkerLimit));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseEmployees($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1420,6 +1551,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->createEmployee($this->parser->convertEmployee($employee));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseCreateEmployeeResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -1434,6 +1568,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->updateEmployee($this->parser->convertEmployee($employee));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseUpdateEmployeeResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -1449,6 +1586,9 @@ class MplusQAPIclient
     try {
       $add_default_fields = $this->isServiceVersionLowerThan('4.0.0');
       $result = $this->client->createProduct($this->parser->convertProduct($product, $add_default_fields));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseCreateProductResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -1464,6 +1604,9 @@ class MplusQAPIclient
     try {
       $add_default_fields = $this->isServiceVersionLowerThan('4.0.0');
       $result = $this->client->updateProduct($this->parser->convertProduct($product, $add_default_fields));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseUpdateProductResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -1478,6 +1621,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getArticleGroups($this->parser->convertGetArticleGroupsRequest($groupNumbers, $syncMarker, $syncMarkerLimit));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseArticleGroups($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1498,6 +1644,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getArticleGroupChanges($this->parser->convertGetArticleGroupChangesRequest($groupNumbers, $syncMarker, $syncMarkerLimit));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseChangedArticleGroups($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1518,6 +1667,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->saveArticleGroups($this->parser->convertSaveArticleGroupsRequest($articleGroupList));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseSaveArticleGroupsResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -1532,6 +1684,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getStock($this->parser->convertGetStockRequest($branchNumber, $articleNumbers, $stockId));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseStock($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1552,6 +1707,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getStockHistory($this->parser->convertGetStockHistoryRequest($branchNumber, $articleNumbers, $sinceStockId, $fromFinancialDateTime, $throughFinancialDateTime));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseStockHistory($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1572,6 +1730,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->updateStock($this->parser->convertUpdateStockRequest($branchNumber, $articleNumber, $amountChanged));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseUpdateStockResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -1586,6 +1747,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->setStock($this->parser->convertSetStockRequest($branchNumber, $articleNumber, $amount));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseSetStockResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -1600,6 +1764,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getShifts($this->parser->convertGetShiftsRequest($fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseShifts($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1620,6 +1787,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->findOrder($this->parser->convertExtOrderId($extOrderId));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseOrderResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1640,6 +1810,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->payOrder($this->parser->convertPayOrderRequest($orderId, $prepay, $paymentList));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parsePayOrderResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -1654,6 +1827,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->payTableOrderV2($this->parser->convertPayTableOrderRequest($terminal, $order, $paymentList, $keepTableName, $releaseTable));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parsePayTableOrderResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -1668,6 +1844,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->prepayTableOrderV2($this->parser->convertPrepayTableOrderRequest($terminal, $order, $paymentList, $prepayAmount, $releaseTable));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parsePrepayTableOrderResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -1682,6 +1861,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->payInvoice($this->parser->convertPayInvoiceRequest($invoiceId, $paymentList));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parsePayInvoiceResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -1696,6 +1878,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->deliverOrder($this->parser->convertDeliverOrderRequest($orderId));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseDeliverOrderResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -1710,6 +1895,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->deliverOrderV2($this->parser->convertDeliverOrderV2Request($orderDelivery));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseDeliverOrderV2Result($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1730,6 +1918,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getProposals($this->parser->convertGetProposalsRequest($syncMarker, $syncMarkerLimit, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $supplierRelationNumbers, $activityId));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetProposalsResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1750,6 +1941,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getProposal($this->parser->convertProposalId($proposalId));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseProposalResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1770,6 +1964,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getOrder($this->parser->convertOrderId($orderId));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseOrderResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1790,6 +1987,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getPackingSlips($this->parser->convertGetPackingSlipsRequest($syncMarker, $syncMarkerLimit, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $supplierRelationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $activityId));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetPackingSlipsResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1810,6 +2010,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getPackingSlipsByOrder($this->parser->convertGetPackingSlipsByOrderRequest($orderId));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetPackingSlipsByOrderResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1830,6 +2033,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getOrders($this->parser->convertGetOrdersRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit, null, $activityId));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetOrdersResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1850,6 +2056,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getOrderChanges($this->parser->convertGetOrdersRequest($syncMarker, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit, $orderTypeList, $activityId));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetOrderChangesResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1870,6 +2079,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getOrderCategories();
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseOrderCategories($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1890,6 +2102,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getInterbranchOrders($this->parser->convertGetInterbranchOrdersRequest($syncMarker, $syncMarkerLimit));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetInterbranchOrdersResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1910,6 +2125,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getInterbranchShipments($this->parser->convertGetInterbranchShipmentsRequest($syncMarker, $syncMarkerLimit));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetInterbranchShipmentsResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1930,6 +2148,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getInterbranchDeliveries($this->parser->convertGetInterbranchDeliveriesRequest($syncMarker, $syncMarkerLimit));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetInterbranchDeliveriesResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1950,6 +2171,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->createInterbranchOrder($this->parser->convertCreateInterbranchOrderRequest($orderRequest, $branchNumber, $workplaceNumber));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseCreateInterbranchOrderResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1970,6 +2194,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->createInterbranchShipment($this->parser->convertCreateInterbranchShipmentRequest($shipmentRequest, $branchNumber, $workplaceNumber));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseCreateInterbranchShipmentResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -1990,6 +2217,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->createInterbranchDelivery($this->parser->convertCreateInterbranchDeliveryRequest($shipmentRequest, $branchNumber, $workplaceNumber));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseCreateInterbranchDeliveryResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2010,6 +2240,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->claimInterbranchOrder($this->parser->convertClaimInterbranchOrderRequest($interbranchOrderNumber, $branchNumber, $workplaceNumber, $employeeNumber));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseClaimInterbranchOrderResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2030,6 +2263,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->releaseInterbranchOrder($this->parser->convertReleaseInterbranchOrderRequest($interbranchOrderNumber));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseReleaseInterbranchOrderResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2050,6 +2286,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->shipInterbranchOrder($this->parser->convertShipInterbranchOrderRequest($interbranchOrderNumber, $branchNumber, $workplaceNumber, $employeeNumber));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseShipInterbranchOrderResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2070,6 +2309,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->deliverInterbranchShipment($this->parser->convertDeliverInterbranchShipmentRequest($interbranchShipmentNumber, $branchNumber, $workplaceNumber));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseDeliverInterbranchShipmentResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2090,6 +2332,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getReceipts($this->parser->convertGetReceiptsRequest($syncMarker, $syncMarkerLimit, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $supplierRelationNumbers, $includeOrderReferences, $activityId));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetReceiptsResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2110,6 +2355,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getReceiptsByOrder($this->parser->convertOrderId($orderId));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseReceiptsByOrderResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2130,6 +2378,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getReceiptsByCashCount($this->parser->convertGetReceiptsByCashCountRequest($cashCountId));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseReceiptsByCashCountResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2150,6 +2401,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getInvoices($this->parser->convertGetInvoicesRequest($syncMarker, $syncMarkerLimit, $fromFinancialDate, $throughFinancialDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $supplierRelationNumbers, $finalizeInvoices, $activityId));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetInvoicesResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2170,6 +2424,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getInvoice($this->parser->convertInvoiceId($invoiceId));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseInvoiceResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2190,6 +2447,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->creditInvoice($this->parser->convertInvoiceId($invoiceId));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseCreditInvoiceResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2210,6 +2470,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->findInvoice($this->parser->convertExtInvoiceId($extInvoiceId));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseInvoiceResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2230,6 +2493,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getJournals($this->parser->convertGetJournalsRequest($fromFinancialDate, $throughFinancialDate, $branchNumbers, $journalFilterList, $reference));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetJournalsResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2250,6 +2516,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getFinancialJournal($this->parser->convertGetFinancialJournalRequest($fromFinancialDate, $throughFinancialDate, $reference));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetFinancialJournalResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2270,6 +2539,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getFinancialJournalByCashCount($this->parser->convertGetFinancialJournalByCashCountRequest($cashCountId, $reference));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetFinancialJournalResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2290,6 +2562,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getCashCountList($this->parser->convertGetCashCountListRequest($fromFinancialDate, $throughFinancialDate, $sinceCashCount));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetCashCountListResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2310,6 +2585,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getCashDrawerBalancingList($this->parser->convertGetCashDrawerBalancingListRequest($fromFinancialDate, $throughFinancialDate, $syncMarker, $syncMarkerLimit));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetCashDrawerBalancingListResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2330,6 +2608,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getTurnoverGroups($this->parser->convertGetTurnoverGroupsRequest($onlyActive));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetTurnoverGroupsResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2350,6 +2631,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->updateTurnoverGroups($this->parser->convertUpdateTurnoverGroupsRequest($turnoverGroups));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseUpdateTurnoverGroupsResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2370,6 +2654,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getAllergens();
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetAllergensResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2390,6 +2677,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getWebhookConsumers();
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetWebhookConsumersResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2410,6 +2700,9 @@ class MplusQAPIclient
   {
     try {      
       $result = $this->client->getTicketCounterSales($this->parser->convertGetTicketCounterSalesRequest($syncMarker, $syncMarkerLimit));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetTicketCounterSalesResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2430,6 +2723,9 @@ class MplusQAPIclient
   {
     try {      
       $result = $this->client->getConfiguration($this->parser->convertGetConfigurationRequest($branchNumber, $workplaceNumber, $group, $subgroup, $key));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetConfigurationResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2450,6 +2746,9 @@ class MplusQAPIclient
   {
     try {      
       $result = $this->client->updateConfiguration($this->parser->convertUpdateConfigurationRequest($configuration));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseUpdateConfigurationResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2470,6 +2769,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getPurchaseOrders($this->parser->convertGetPurchaseOrdersRequest($syncMarker, $fromOrderDate, $throughOrderDate, $fromDeliveryDate, $throughDeliveryDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetPurchaseOrdersResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2490,6 +2792,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getPurchaseOrdersV2($this->parser->convertGetPurchaseOrdersRequest($syncMarker, $fromOrderDate, $throughOrderDate, $fromDeliveryDate, $throughDeliveryDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetPurchaseOrdersResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2510,6 +2815,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getPurchaseDeliveries($this->parser->convertGetPurchaseDeliveriesRequest($syncMarker, $fromDeliveryDate, $throughDeliveryDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetPurchaseDeliveriesResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2530,6 +2838,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getPurchaseDeliveriesV2($this->parser->convertGetPurchaseDeliveriesRequest($syncMarker, $fromDeliveryDate, $throughDeliveryDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetPurchaseDeliveriesResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2550,6 +2861,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getBranches();
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetBranchesResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2570,6 +2884,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->createOrder($this->parser->convertOrder($order));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseCreateOrderResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -2584,6 +2901,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->createOrderV2($this->parser->convertCreateOrderV2Request($order, $applySalesAndActions, $applySalesPrices, $applyPriceGroups));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseCreateOrderV2Result($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -2601,6 +2921,9 @@ class MplusQAPIclient
         throw new MplusQAPIException('No orderId set.');
       }
       $result = $this->client->updateOrder($this->parser->convertOrder($order));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseUpdateOrderResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -2615,6 +2938,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->saveOrder($this->parser->convertOrder($order));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseSaveOrderResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -2628,8 +2954,12 @@ class MplusQAPIclient
   public function queueBranchOrder($order, $attempts=0)
   {
     try {
-      if (false !== ($result = $this->client->queueBranchOrder($this->parser->convertOrder($order)))) {
-      return $this->parser->parseQueueBranchOrderResult($result);
+      $result = $this->client->queueBranchOrder($this->parser->convertOrder($order));
+      if($this->returnRawResult) {
+          return $result;
+      }
+      if (false !== ($result)) {
+        return $this->parser->parseQueueBranchOrderResult($result);
       }
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2671,6 +3001,9 @@ class MplusQAPIclient
     return $this->RetryCall( 
       function() use ($request) {
         $result = $this->client->queueBranchOrderPayment($request);
+        if($this->returnRawResult) {
+          return $result;
+        }
         if (false !== $result) {
           return $this->parser->parseQueueBranchOrderPaymentResult($result);
         }
@@ -2681,7 +3014,11 @@ class MplusQAPIclient
   //----------------------------------------------------------------------------
     public function cancelOrder($orderId, $branchNumber = null, $attempts = 0) {
         try {
-            if (false !== ($result = $this->client->cancelOrder($this->parser->convertCancelOrder($orderId, $branchNumber)))) {
+            $result = $this->client->cancelOrder($this->parser->convertCancelOrder($orderId, $branchNumber));
+            if($this->returnRawResult) {
+                return $result;
+            }
+            if (false !== $result) {
                 return $this->parser->parseCancelOrderResult($result);
             }
         } catch (SoapFault $e) {
@@ -2703,7 +3040,11 @@ class MplusQAPIclient
   public function cancelProposal($proposalId, $attempts=0)
   {
     try {
-      if (false !== ($result = $this->client->cancelProposal($this->parser->convertProposalId($proposalId)))) {
+      $result = $result = $this->client->cancelProposal($this->parser->convertProposalId($proposalId));
+      if($this->returnRawResult) {
+          return $result;
+      }
+      if (false !== $result) {
         return $this->parser->parseCancelProposalResult($result);
       }
     } catch (SoapFault $e) {
@@ -2724,7 +3065,11 @@ class MplusQAPIclient
   public function createOrderFromProposal($proposalId, $attempts=0)
   {
     try {
-      if (false !== ($result = $this->client->createOrderFromProposal($this->parser->convertProposalId($proposalId)))) {
+      $result = $this->client->createOrderFromProposal($this->parser->convertProposalId($proposalId));
+      if($this->returnRawResult) {
+          return $result;
+      }
+      if (false !== $result) {
         return $this->parser->parseCreateOrderFromProposalResult($result);
       }
     } catch (SoapFault $e) {
@@ -2745,7 +3090,11 @@ class MplusQAPIclient
   public function createInvoiceFromProposal($proposalId, $attempts=0)
   {
     try {
-      if (false !== ($result = $this->client->createInvoiceFromProposal($this->parser->convertProposalId($proposalId)))) {
+      $result = $this->client->createInvoiceFromProposal($this->parser->convertProposalId($proposalId));
+      if($this->returnRawResult) {
+          return $result;
+      }
+      if (false !== $result) {
         return $this->parser->parseCreateInvoiceFromProposalResult($result);
       }
     } catch (SoapFault $e) {
@@ -2766,7 +3115,11 @@ class MplusQAPIclient
   public function saveProposal($proposal, $attempts=0)
   {
     try {
-      if (false !== ($result = $this->client->saveProposal($this->parser->convertProposal($proposal)))) {
+      $result = $this->client->saveProposal($this->parser->convertProposal($proposal));  
+      if($this->returnRawResult) {
+          return $result;
+      }
+      if (false !== $result) {
         return $this->parser->parseSaveProposalResult($result);
       }
     } catch (SoapFault $e) {
@@ -2787,7 +3140,11 @@ class MplusQAPIclient
   public function saveInvoice($invoice, $attempts=0)
   {
     try {
-      if (false !== ($result = @$this->client->saveInvoice($this->parser->convertInvoice($invoice)))) {
+      $result = @$this->client->saveInvoice($this->parser->convertInvoice($invoice));
+      if($this->returnRawResult) {
+          return $result;
+      }
+      if (false !== $result) {
         return $this->parser->parseSaveInvoiceResult($result);
       } else {
         throw new MplusQAPIException('Error while saving invoice: '.json_encode($invoice));
@@ -2810,7 +3167,11 @@ class MplusQAPIclient
   public function savePurchaseOrder($purchaseOrder, $attempts=0)
   {
     try {
-      if (false !== ($result = @$this->client->savePurchaseOrder($this->parser->convertPurchaseOrder($purchaseOrder)))) {
+      $result = @$this->client->savePurchaseOrder($this->parser->convertPurchaseOrder($purchaseOrder));  
+      if($this->returnRawResult) {
+          return $result;
+      }  
+      if (false !== $result) {
         return $this->parser->parseSavePurchaseOrderResult($result);
       } else {
         throw new MplusQAPIException('Error while saving purchase order: '.json_encode($purchaseOrder));
@@ -2833,8 +3194,11 @@ class MplusQAPIclient
   public function savePurchaseOrderV2($purchaseOrder, $attempts=0)
   {
     try {
-      // i($this->parser->convertPurchaseOrderV2($purchaseOrder));
-      if (false !== ($result = @$this->client->savePurchaseOrderV2($this->parser->convertPurchaseOrderV2($purchaseOrder)))) {
+      $result = @$this->client->savePurchaseOrderV2($this->parser->convertPurchaseOrderV2($purchaseOrder));
+      if($this->returnRawResult) {
+          return $result;
+      }
+      if (false !== $result) {
         return $this->parser->parseSavePurchaseOrderResult($result);
       } else {
         throw new MplusQAPIException('Error while saving purchase order: '.json_encode($purchaseOrder));
@@ -2857,7 +3221,11 @@ class MplusQAPIclient
   public function savePurchaseDelivery($purchaseDelivery, $attempts=0)
   {
     try {
-      if (false !== ($result = @$this->client->savePurchaseDelivery($this->parser->convertPurchaseDelivery($purchaseDelivery)))) {
+      $result = @$this->client->savePurchaseDelivery($this->parser->convertPurchaseDelivery($purchaseDelivery));  
+      if($this->returnRawResult) {
+          return $result;
+      }
+      if (false !== $result) {
         return $this->parser->parseSavePurchaseDeliveryResult($result);
       } else {
         throw new MplusQAPIException('Error while saving invoice: '.json_encode($invoice));
@@ -2880,7 +3248,11 @@ class MplusQAPIclient
   public function savePurchaseDeliveryV2($purchaseDelivery, $attempts=0)
   {
     try {
-      if (false !== ($result = @$this->client->savePurchaseDeliveryV2($this->parser->convertPurchaseDeliveryV2($purchaseDelivery)))) {
+      $result = @$this->client->savePurchaseDeliveryV2($this->parser->convertPurchaseDeliveryV2($purchaseDelivery));  
+      if($this->returnRawResult) {
+          return $result;
+      }
+      if (false !== $result) {
         return $this->parser->parseSavePurchaseDeliveryResult($result);
       } else {
         throw new MplusQAPIException('Error while saving invoice: '.json_encode($invoice));
@@ -2904,6 +3276,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->findRelation($this->parser->convertRelation($relation));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseFindRelationResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2922,6 +3297,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->createRelation($this->parser->convertRelation($relation));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseCreateRelationResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -2934,6 +3312,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->updateRelation($this->parser->convertRelation($relation));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseUpdateRelationResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -2946,6 +3327,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getRelation($this->parser->convertGeneric('relationNumber', $relationNumber));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetRelationResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -2966,6 +3350,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->adjustPoints($this->parser->convertAdjustPointsRequest($relationNumber, $pointsAdjustment));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseAdjustPointsResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -2981,6 +3368,9 @@ class MplusQAPIclient
     try {
       $result = $this->client->getRelationPoints(
               $this->parser->convertGetRelationPointsRequest($relationNumbers, $syncMarker, $syncMarkerLimit));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseRelationPoints($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -3001,6 +3391,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->registerTerminal($this->parser->convertRegisterTerminalRequest($terminal, $forceRegistration));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseRegisterTerminalResult($result);
     } catch (SoapFault $e) {
       throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
@@ -3015,6 +3408,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getWordAliases($this->parser->convertGetWordAliasesRequest($locale));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseWordAliases($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -3035,6 +3431,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getTableOrder($this->parser->convertGetTableOrderRequest($terminal, $branchNumber, $tableNumber));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetTableOrderResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -3055,6 +3454,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getTableOrderV2($this->parser->convertGetTableOrderV2Request($terminal, $tableNumber, $tableSubNumber, $claimTable));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetTableOrderResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -3075,6 +3477,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->findTableOrder($this->parser->convertFindTableOrderRequest($terminal, $extOrderId));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetTableOrderResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -3095,6 +3500,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getTableOrderCourseList($this->parser->convertGetTableOrderCourseListRequest($terminal, $branchNumber, $tableNumber));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetTableOrderCourseListResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -3115,6 +3523,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->saveTableOrder($this->parser->convertSaveTableOrder($terminal, $order));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseSaveTableOrderResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -3135,6 +3546,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->moveTableOrder($this->parser->convertMoveTableOrderRequest($terminal, $order, $tableNumber));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseMoveTableOrderResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -3155,6 +3569,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->cancelTableOrder($this->parser->convertGetTableOrderRequest($terminal, $branchNumber, $tableNumber));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseCancelOrderResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -3176,6 +3593,9 @@ class MplusQAPIclient
     try {
       $forceBranchTerminalNumber = $this->isApiVersionLowerThan('1.0.0');
       $result = $this->client->sendMessage($this->parser->convertSendMessageRequest($branchNumber, $terminalNumber, $text, $sender, $messageType, $forceBranchTerminalNumber));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseSendMessageResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -3196,6 +3616,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->encryptString($this->parser->convertEncryptStringRequest($plainString, $encryptionKey));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseEncryptStringResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -3216,6 +3639,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->getActivities($this->parser->convertGetActivitiesRequest($syncMarker, $syncMarkerLimit));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetActivitiesResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -3236,6 +3662,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->createActivity($this->parser->convertCreateActivityRequest($createActivity));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseCreateActivityResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -3256,6 +3685,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->updateActivity($this->parser->convertUpdateActivityRequest($updateActivity));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseUpdateActivityResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -3276,6 +3708,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->deleteActivity($this->parser->convertDeleteActivityRequest($activityId));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseDeleteActivityResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -3296,6 +3731,9 @@ class MplusQAPIclient
   {
     try {
       $result = $this->client->verifyCredentials($this->parser->convertVerifyCredentialsRequest($request));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseVerifyCredentialsResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -3322,6 +3760,9 @@ public function report($arguments, $attempts = 0)
         unset($arguments['method']);
         $parameters = $this->parser->convertReportRequest($method, $arguments);
         $result = call_user_func(array($this->client, $method), $parameters);
+        if($this->returnRawResult) {
+          return $result;
+        }
         return $this->parser->parseReportResult($method, $result);
     } catch (SoapFault $e) {
         $msg = $e->getMessage();
@@ -3343,6 +3784,9 @@ public function getBranchGroups($attempts = 0)
 {
     try {
         $result = $this->client->getBranchGroups();
+        if($this->returnRawResult) {
+          return $result;
+        }
         return $this->parser->parseGetBranchGroupsResult($result);
     } catch (SoapFault $e) {
         $msg = $e->getMessage();
@@ -3362,6 +3806,9 @@ public function getBranchGroups($attempts = 0)
   {
     try {
       $result = $this->client->getSalePromotions($this->parser->convertGetSalePromotionsRequest($branchNumbers));
+      if($this->returnRawResult) {
+          return $result;
+      }
       return $this->parser->parseGetSalePromotionsResult($result);
     } catch (SoapFault $e) {
       $msg = $e->getMessage();
@@ -3393,6 +3840,9 @@ public function getBranchGroups($attempts = 0)
             $this->validateOverviewType($overviewType);
             $request = $this->parser->convertGetOverviewRequest($overviewType, $selectFields, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search);
             $result = $this->client->getOverview($request);
+            if($this->returnRawResult) {
+                return $result;
+            }
             return $this->parser->parseGetOverviewResult($result);
         } catch (SoapFault $e) {
             $msg = $e->getMessage();
@@ -3414,6 +3864,9 @@ public function getBranchGroups($attempts = 0)
             $this->validateOverviewType($overviewType);
             $request = $this->parser->convertGetOverviewFieldsRequest($overviewType);
             $result = $this->client->getOverviewFields($request);
+            if($this->returnRawResult) {
+                return $result;
+            }
             return $this->parser->parseGetOverviewFieldsResult($result);
         } catch (SoapFault $e) {
             $msg = $e->getMessage();
@@ -3435,6 +3888,9 @@ public function getBranchGroups($attempts = 0)
     public function checkGiftcardPayment($cardNumber, $branchNumber, $amount = null, $attempts = 0) {
         try {
             $result = $this->client->checkGiftcardPayment($this->parser->convertCheckGiftcardPaymentRequest($cardNumber, $branchNumber, $amount));
+            if($this->returnRawResult) {
+                return $result;
+            }
             return $this->parser->parseCheckGiftcardPaymentResult($result);
         } catch (SoapFault $e) {
             $msg = $e->getMessage();
@@ -3454,6 +3910,9 @@ public function getBranchGroups($attempts = 0)
     public function registerGiftcardPayment($cardNumber, $branchNumber, $employeeNumber, $amount, $externalReference, $attempts = 0) {
         try {
             $result = $this->client->registerGiftcardPayment($this->parser->convertRegisterGiftcardPaymentRequest($cardNumber, $branchNumber, $employeeNumber, $amount, $externalReference));
+            if($this->returnRawResult) {
+                return $result;
+            }
             return $this->parser->parseRegisterGiftcardPaymentResult($result);
         } catch (SoapFault $e) {
             $msg = $e->getMessage();
@@ -3474,6 +3933,9 @@ public function getBranchGroups($attempts = 0)
         try {
             $request = $this->parser->convertGetEmployeeAuthorizationsRequest($employeeNumber, $branchNumber);
             $result = $this->client->getEmployeeAuthorizations($request);
+            if($this->returnRawResult) {
+                return $result;
+            }
             return $this->parser->parseGetEmployeeAuthorizationsResult($result);
         } catch (SoapFault $e) {
             $msg = $e->getMessage();
@@ -3494,6 +3956,9 @@ public function getBranchGroups($attempts = 0)
         try {
             $request = $this->parser->convertGetGroupAuthorizationsRequest($groupNumber);
             $result = $this->client->getGroupAuthorizations($request);
+            if($this->returnRawResult) {
+                return $result;
+            }
             return $this->parser->parseGetGroupAuthorizationsResult($result);
         } catch (SoapFault $e) {
             $msg = $e->getMessage();
@@ -3514,6 +3979,9 @@ public function getBranchGroups($attempts = 0)
         try {
             $request = $this->parser->convertUpdateGroupAuthorizationsRequest($groupNumber, $authorizations);
             $result = $this->client->updateGroupAuthorizations($request);
+            if($this->returnRawResult) {
+                return $result;
+            }
             return $this->parser->parseUpdateGroupAuthorizationsResult($result);
         } catch (SoapFault $e) {
             $msg = $e->getMessage();
@@ -3533,6 +4001,9 @@ public function getBranchGroups($attempts = 0)
     public function getAuthorizationGroups($attempts = 0) {
         try {
             $result = $this->client->getAuthorizationGroups();
+            if($this->returnRawResult) {
+                return $result;
+            }
             return $this->parser->parseGetAuthorizationGroupsResult($result);
         } catch (SoapFault $e) {
             $msg = $e->getMessage();
@@ -3553,6 +4024,9 @@ public function getBranchGroups($attempts = 0)
     public function getAuthorizationTree($attempts = 0) {
         try {
             $result = $this->client->getAuthorizationTree();
+            if($this->returnRawResult) {
+                return $result;
+            }
             return $this->parser->parseGetAuthorizationTreeResult($result);
         } catch (SoapFault $e) {
             $msg = $e->getMessage();
@@ -3576,6 +4050,9 @@ public function getBranchGroups($attempts = 0)
                 throw new MplusQAPIException('No orderId set.');
             }
             $result = $this->client->updateOrderV2($this->parser->convertUpdateOrderV2($order));
+            if($this->returnRawResult) {
+                return $result;
+            }
             return $this->parser->parseUpdateOrderV2Result($result);
         } catch (SoapFault $e) {
             throw new MplusQAPIException('SoapFault occurred: ' . $e->getMessage(), 0, $e);
@@ -3590,6 +4067,9 @@ public function getBranchGroups($attempts = 0)
         try {
             $request = $this->parser->convertGetGiftcardRequest($cardNumber, $cardId);
             $result = $this->client->getGiftcard($request);
+            if($this->returnRawResult) {
+                return $result;
+            }
             return $this->parser->parseGetGiftcardResult($result);
         } catch (SoapFault $e) {
             $msg = $e->getMessage();
@@ -3610,6 +4090,9 @@ public function getBranchGroups($attempts = 0)
         try {
             $request = $this->parser->convertGetGiftcardHistoryRequest($cardNumber, $cardId);
             $result = $this->client->getGiftcardHistory($request);
+            if($this->returnRawResult) {
+                return $result;
+            }
             return $this->parser->parseGetGiftcardHistoryResult($result);
         } catch (SoapFault $e) {
             $msg = $e->getMessage();
@@ -3630,6 +4113,9 @@ public function getBranchGroups($attempts = 0)
         try {
             $request = $this->parser->convertCreateGiftcardRequest($cardNumber, $cardTypeId, $branchNumber, $employeeNumber, $amount, $externalReference, $relationNumber);
             $result = $this->client->createGiftcard($request);
+            if($this->returnRawResult) {
+                return $result;
+            }
             return $this->parser->parseCreateGiftcardResult($result);
         } catch (SoapFault $e) {
             $msg = $e->getMessage();
@@ -3650,6 +4136,9 @@ public function getBranchGroups($attempts = 0)
         try {
             $request = $this->parser->convertGetGiftcardTypesRequest($branchNumber);
             $result = $this->client->getGiftcardTypes($request);
+            if($this->returnRawResult) {
+                return $result;
+            }
             return $this->parser->parseGetGiftcardTypesResult($result);
         } catch (SoapFault $e) {
             $msg = $e->getMessage();
@@ -3670,6 +4159,9 @@ public function getBranchGroups($attempts = 0)
         try {
             $request = $this->parser->convertGetRelationGiftcardsRequest($relationNumber);
             $result = $this->client->getRelationGiftcards($request);
+            if($this->returnRawResult) {
+                return $result;
+            }
             return $this->parser->parseGetRelationGiftcardsResult($result);
         } catch (SoapFault $e) {
             $msg = $e->getMessage();
@@ -3690,6 +4182,9 @@ public function getBranchGroups($attempts = 0)
         try {
             $request = $this->parser->convertReloadGiftcardRequest($cardNumber, $branchNumber, $employeeNumber, $amount, $externalReference);
             $result = $this->client->reloadGiftcard($request);
+            if($this->returnRawResult) {
+                return $result;
+            }
             return $this->parser->parseReloadGiftcardResult($result);
         } catch (SoapFault $e) {
             $msg = $e->getMessage();
@@ -3710,6 +4205,9 @@ public function getBranchGroups($attempts = 0)
         try {
             $request = $this->parser->convertGetEmployeeBranchAuthorizationsRequest($employeeNumber);
             $result = $this->client->getEmployeeBranchAuthorizations($request);
+            if($this->returnRawResult) {
+                return $result;
+            }
             return $this->parser->parseGetEmployeeBranchAuthorizationsResult($result);
         } catch (SoapFault $e) {
             $msg = $e->getMessage();
