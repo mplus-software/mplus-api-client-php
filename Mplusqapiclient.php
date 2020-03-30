@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.28.7';
+  const CLIENT_VERSION  = '1.28.8';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -3750,32 +3750,32 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-public function report($arguments, $attempts = 0)
-{
-    try {
-        if (!is_array($arguments) || !array_key_exists('method', $arguments) || empty($arguments['method'])) {
-            throw new Exception("No method defined for group call : " . __FUNCTION__);
+ public function report($arguments, $attempts = 0) {
+        try {
+            if (!is_array($arguments) || !array_key_exists('method', $arguments) || empty($arguments['method'])) {
+                throw new Exception("No method defined for group call : " . __FUNCTION__);
+            }
+            $method = __FUNCTION__ . $arguments['method'];
+            unset($arguments['method']);
+            $parameters = $this->parser->convertReportRequest($method, $arguments);
+            $result = call_user_func(array($this->client, $method), $parameters);
+            if ($this->returnRawResult) {
+                return $result;
+            }
+            return $this->parser->parseReportResult($method, $result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->report($arguments, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
         }
-        $method = __FUNCTION__ . ucfirst(strtolower($arguments['method']));
-        unset($arguments['method']);
-        $parameters = $this->parser->convertReportRequest($method, $arguments);
-        $result = call_user_func(array($this->client, $method), $parameters);
-        if($this->returnRawResult) {
-          return $result;
-        }
-        return $this->parser->parseReportResult($method, $result);
-    } catch (SoapFault $e) {
-        $msg = $e->getMessage();
-        if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
-            sleep(1);
-            return $this->report($arguments, $attempts + 1);
-        } else {
-            throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
-        }
-    } catch (Exception $e) {
-        throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
     }
-} // END report()
+ // END report()
 
 
   //----------------------------------------------------------------------------
@@ -9026,159 +9026,149 @@ class MplusQAPIDataParser
 
 //----------------------------------------------------------------------------
 
-  public function convertReportRequest($method, $arguments)
-  {
-      $fields = array(
-          'reportTurnover' => array(
-              'required' => array(
-                  'fromFinancialDate', 'throughFinancialDate',
-              ),
-              'optional' => array(
-                  'branchNumbers', 'turnoverGroups', 'perHour',
-              ),
-          ),
-          'reportTurnoverByBranch' => array(
-              'required' => array(
-                  'fromFinancialDate', 'throughFinancialDate',
-              ),
-              'optional' => array(
-                  'branchNumbers', 'perHour',
-              ),
-          ),
-          'reportTurnoverByEmployee' => array(
-              'required' => array(
-                  'fromFinancialDate', 'throughFinancialDate',
-              ),
-              'optional' => array(
-                  'branchNumbers', 'employeeNumbers', 'perHour',
-              ),
-          ),
-          'reportTurnoverByActivity' => array(
-              'required' => array(
-                  'fromFinancialDate', 'throughFinancialDate',
-              ),
-              'optional' => array(
-                  'branchNumbers', 'activityNumbers', 'perHour',
-              ),
-          ),
-          'reportTurnoverByTurnoverGroup' => array(
-              'required' => array(
-                  'fromFinancialDate', 'throughFinancialDate',
-              ),
-              'optional' => array(
-                  'branchNumbers', 'turnoverGroups', 'perHour',
-              ),
-          ),
-          'reportTurnoverByArticle' => array(
-              'required' => array(
-                  'fromFinancialDate', 'throughFinancialDate',
-              ),
-              'optional' => array(
-                  'branchNumbers', 'turnoverGroups', 'articleNumbers', 'perHour',
-              ),
-          ),
-          'reportHoursByEmployee' => array(
-              'required' => array(
-                  'fromFinancialDate', 'throughFinancialDate',
-              ),
-              'optional' => array(
-                  'branchNumbers', 'employeeNumbers',
-              ),
-          ),
-          'reportPaymentMethods' => array(
-              'required' => array(
-                  'fromFinancialDate', 'throughFinancialDate',
-              ),
-              'optional' => array(
-                  'branchNumbers', 'perHour',
-              ),
-          ),
-          'reportTables' => array(
-              'required' => array(
-              ),
-              'optional' => array(
-                  'branchNumbers',
-              ),
-          ),
-          'reportCancellations' => array(
+  public function convertReportRequest($method, $arguments) {
+        $fields = array(
+            'reportTurnover' => array(
+                'required' => array(
+                    'fromFinancialDate', 'throughFinancialDate',
+                ),
+                'optional' => array(
+                    'branchNumbers', 'turnoverGroups', 'perHour',
+                ),
+            ),
+            'reportTurnoverByBranch' => array(
+                'required' => array(
+                    'fromFinancialDate', 'throughFinancialDate',
+                ),
+                'optional' => array(
+                    'branchNumbers', 'perHour',
+                ),
+            ),
+            'reportTurnoverByEmployee' => array(
+                'required' => array(
+                    'fromFinancialDate', 'throughFinancialDate',
+                ),
+                'optional' => array(
+                    'branchNumbers', 'employeeNumbers', 'perHour',
+                ),
+            ),
+            'reportTurnoverByActivity' => array(
+                'required' => array(
+                    'fromFinancialDate', 'throughFinancialDate',
+                ),
+                'optional' => array(
+                    'branchNumbers', 'activityNumbers', 'perHour',
+                ),
+            ),
+            'reportTurnoverByTurnoverGroup' => array(
+                'required' => array(
+                    'fromFinancialDate', 'throughFinancialDate',
+                ),
+                'optional' => array(
+                    'branchNumbers', 'turnoverGroups', 'perHour',
+                ),
+            ),
+            'reportTurnoverByArticle' => array(
+                'required' => array(
+                    'fromFinancialDate', 'throughFinancialDate',
+                ),
+                'optional' => array(
+                    'branchNumbers', 'turnoverGroups', 'articleNumbers', 'perHour',
+                ),
+            ),
+            'reportHoursByEmployee' => array(
                 'required' => array(
                     'fromFinancialDate', 'throughFinancialDate',
                 ),
                 'optional' => array(
                     'branchNumbers', 'employeeNumbers',
                 ),
-          ),
-          'reportBPE' => array(
-              'required' => array(
-                  'fromFinancialDate', 'throughFinancialDate',
-              ),
-              'optional' => array(
-                  'branchNumbers', 'articleNumbers', 'perHour',
-              ),
-          ),
-          'reportBranchPerformance' => array(
-              'required' => array(
-                  'fromFinancialDate', 'throughFinancialDate',
-              ),
-              'optional' => array(
-                  'branchNumbers',
-              ),
-          ),
-      );
-      $request = [];
-      if (array_key_exists($method, $fields)) {
-          foreach ($fields[$method] as $type => $callFields) {
-              foreach ($callFields as $callField) {
-                  $required = $type == 'required' ? true : false;
-                  if ($this->fieldExistsInArray($callField, $arguments, $required)) {
-                      switch ($callField) {
-                          case "fromFinancialDate":
-                          case "throughFinancialDate":
-                              $request['dateFilter'][$callField] = $arguments[$callField];
-                              break;
-                          case "branchNumbers":
-                              if (!is_array($arguments[$callField])) {
-                                  $arguments[$callField] = array($arguments[$callField]);
-                              }
-                              $request['branchFilter'] = $arguments[$callField];
-                              break;
-                          case "turnoverGroups":
-                              if (!is_array($arguments[$callField])) {
-                                  $arguments[$callField] = array($arguments[$callField]);
-                              }
-                              $request['turnoverGroupFilter'] = $arguments[$callField];
-                              break;
-                          case "employeeNumbers":
-                              if (!is_array($arguments[$callField])) {
-                                  $arguments[$callField] = array($arguments[$callField]);
-                              }
-                              $request['employeeFilter'] = $arguments[$callField];
-                              break;
-                          case "articleNumbers":
-                              if (!is_array($arguments[$callField])) {
-                                  $arguments[$callField] = array($arguments[$callField]);
-                              }
-                              $request['articleFilter'] = $arguments[$callField];
-                              break;
-                          case "activityNumbers":
-                              if (!is_array($arguments[$callField])) {
-                                  $arguments[$callField] = array($arguments[$callField]);
-                              }
-                              $request['activityFilter'] = $arguments[$callField];
-                              break;
-                          case "perHour":
-                              $request['perHour'] = $arguments['perHour'] === true ? true : false;
-                              break;
-                      }
+            ),
+            'reportPaymentMethods' => array(
+                'required' => array(
+                    'fromFinancialDate', 'throughFinancialDate',
+                ),
+                'optional' => array(
+                    'branchNumbers', 'perHour',
+                ),
+            ),
+            'reportTables' => array(
+                'required' => array(
+                ),
+                'optional' => array(
+                    'branchNumbers',
+                ),
+            ),
+            'reportCancellations' => array(
+                'required' => array(
+                    'fromFinancialDate', 'throughFinancialDate',
+                ),
+                'optional' => array(
+                    'branchNumbers', 'employeeNumbers',
+                ),
+            ),
+            'reportBPE' => array(
+                'required' => array(
+                    'fromFinancialDate', 'throughFinancialDate',
+                ),
+                'optional' => array(
+                    'branchNumbers', 'articleNumbers', 'perHour', 'turnoverGroups'
+                ),
+            ),
+        );
+        $request = [];
+        if (array_key_exists($method, $fields)) {
+            foreach ($fields[$method] as $type => $callFields) {
+                foreach ($callFields as $callField) {
+                    $required = $type == 'required' ? true : false;
+                    if ($this->fieldExistsInArray($callField, $arguments, $required)) {
+                        switch ($callField) {
+                            case "fromFinancialDate":
+                            case "throughFinancialDate":
+                                $request['dateFilter'][$callField] = $arguments[$callField];
+                                break;
+                            case "branchNumbers":
+                                if (!is_array($arguments[$callField])) {
+                                    $arguments[$callField] = array($arguments[$callField]);
+                                }
+                                $request['branchFilter'] = $arguments[$callField];
+                                break;
+                            case "turnoverGroups":
+                                if (!is_array($arguments[$callField])) {
+                                    $arguments[$callField] = array($arguments[$callField]);
+                                }
+                                $request['turnoverGroupFilter'] = $arguments[$callField];
+                                break;
+                            case "employeeNumbers":
+                                if (!is_array($arguments[$callField])) {
+                                    $arguments[$callField] = array($arguments[$callField]);
+                                }
+                                $request['employeeFilter'] = $arguments[$callField];
+                                break;
+                            case "articleNumbers":
+                                if (!is_array($arguments[$callField])) {
+                                    $arguments[$callField] = array($arguments[$callField]);
+                                }
+                                $request['articleFilter'] = $arguments[$callField];
+                                break;
+                            case "activityNumbers":
+                                if (!is_array($arguments[$callField])) {
+                                    $arguments[$callField] = array($arguments[$callField]);
+                                }
+                                $request['activityFilter'] = $arguments[$callField];
+                                break;
+                            case "perHour":
+                                $request['perHour'] = $arguments['perHour'] === true ? true : false;
+                                break;
+                        }
+                    }
+                }
+            }
+        }
 
-                  }
-              }
-          }
-      }
-
-      $object = arrayToObject(array('request' => $request));
-      return $object;
-  } // END convertReportRequest()
+        $object = arrayToObject(array('request' => $request));
+        return $object;
+    } // END convertReportRequest()
   
   public function convertGetSalePromotionsRequest($branchNumbers)
   {
