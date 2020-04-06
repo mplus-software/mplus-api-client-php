@@ -4815,6 +4815,9 @@ class MplusQAPIDataParser
           if (isset($employee['createTimestamp'])) {
             $employee['createTimestamp'] = $this->parseMplusDateTime($employee['createTimestamp']);
           }
+          if (isset($employee['customFieldList']['customField'])) {
+            $employee['customFieldList'] = $employee['customFieldList']['customField'];
+          }
           $employees[$idx] = $employee;
         }
       }
