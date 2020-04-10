@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.29.0';
+  const CLIENT_VERSION  = '1.29.1';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -4276,13 +4276,12 @@ class MplusQAPIDataParser
   private function filterList(&$soapResult, $listName, $dataName) {
     if (is_object($soapResult)) {
         if (isset($soapResult->$listName) && isset($soapResult->$listName->$dataName)) {
-            $soapResult->$dataName = $soapResult->$listName->$dataName;
+            $soapResult->$listName = $soapResult->$listName->$dataName;
         } else {
-            $soapResult->$dataName = [];
+            $soapResult->$listName = [];
         }
-        unset($soapResult->$listName);
     }
-   } // END filterList()
+  } // END filterList()
 
    //----------------------------------------------------------------------------
   public function parseApiVersion($soapApiVersion)
