@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.28.9';
+  const CLIENT_VERSION  = '1.29.0';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -4272,7 +4272,19 @@ class MplusQAPIDataParser
   } // END getLastErrorMessage()
 
   //----------------------------------------------------------------------------
+  
+  private function filterList(&$soapResult, $listName, $dataName) {
+    if (is_object($soapResult)) {
+        if (isset($soapResult->$listName) && isset($soapResult->$listName->$dataName)) {
+            $soapResult->$dataName = $soapResult->$listName->$dataName;
+        } else {
+            $soapResult->$dataName = [];
+        }
+        unset($soapResult->$listName);
+    }
+   } // END filterList()
 
+   //----------------------------------------------------------------------------
   public function parseApiVersion($soapApiVersion)
   {
     $apiVersion = false;
@@ -6725,38 +6737,25 @@ class MplusQAPIDataParser
   } // END parseGetSalePromotionsResult()
   
   //----------------------------------------------------------------------------
-  public function parseGetOverviewFieldsResult($soapGetOverviewFieldsResult) {     
-    $overviewFields = array();
-    
-    if (isset($soapGetOverviewFieldsResult->overviewFieldsList->overviewFields)) {
-      $overviewFields = objectToArray($soapGetOverviewFieldsResult->overviewFieldsList->overviewFields);
+    public function parseGetOverviewFieldsResult($soapResult) {
+        $this->filterList($soapResult, "overviewFieldsList", "overviewFields");
+        $this->filterList($soapResult, "errorList", "errors");
+        return $soapResult;
     }
-    return $overviewFields;
-  } // END parseGetOverviewFieldsResult()
-  
-  //----------------------------------------------------------------------------
-    public function parseGetOverviewResult($soapOverviewResult) {
-        $overview = array();
-        if (isset($soapOverviewResult->overview)) {
-            $overview = objectToArray($soapOverviewResult->overview);
-        }
-        if (isset($soapOverviewResult->overviewList->overview)) {
-            $overview['overviewList'] = objectToArray($soapOverviewResult->overviewList->overview);
-        }
-        return $overview;
+
+// END parseGetOverviewFieldsResult()
+    //----------------------------------------------------------------------------
+    public function parseGetOverviewResult($soapResult) {
+        $this->filterList($soapResult, "overviewList", "overview");
+        $this->filterList($soapResult, "errorList", "errors");
+        return $soapResult;
     }
 
 // END parseGetOverviewResult()
-    
     //----------------------------------------------------------------------------
-    public function parseUpdateBatchResult($soapUpdateBatchResult) {
-        if (isset($soapUpdateBatchResult->errorList) && isset($soapUpdateBatchResult->errorList->errors)) {
-            $soapUpdateBatchResult->errors = objectToArray($soapUpdateBatchResult->errorList->errors);
-        } else {
-            $soapUpdateBatchResult->errors = [];
-        }
-        unset($soapUpdateBatchResult->errorList);
-        return $soapUpdateBatchResult;
+    public function parseUpdateBatchResult($soapResult) {
+        $this->filterList($soapResult, "errorList", "errors");
+        return $soapResult;
     }
 
 // END parseUpdateBatchResult()
