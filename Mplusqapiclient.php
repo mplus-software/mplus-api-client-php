@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.28.8';
+  const CLIENT_VERSION  = '1.29.1';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -82,9 +82,9 @@ class MplusQAPIclient
    */
   private $default_socket_timeout = 600;
   
-  const OverviewTypeEmployee = 'EMPLOYEE';   
-  const OverviewTypeProduct = 'PRODUCT';
-  const OverviewTypeRelation = 'RELATION';
+  const CardTypeEmployee = 'EMPLOYEE';
+  const CardTypeProduct = 'PRODUCT';
+  const CardTypeRelation = 'RELATION';
   
   private $returnRawResult = false;
   
@@ -3823,24 +3823,24 @@ public function getBranchGroups($attempts = 0)
     }
   } // END getSalePromotions()
   
-  private function validateOverviewType($overviewType) {
-        $overviewAllowedTypes = [
-            self::OverviewTypeEmployee,
-            self::OverviewTypeProduct,
-            self::OverviewTypeRelation,
+  protected function validateCardType($cardType) {
+        $cardAllowedTypes = [
+            self::CardTypeEmployee,
+            self::CardTypeProduct,
+            self::CardTypeRelation,
         ];
-        if (!in_array($overviewType, $overviewAllowedTypes)) {
-            throw new Exception('OverviewType should be one of those : ' . implode(', ', $overviewAllowedTypes));
+        if (!in_array($cardType, $cardAllowedTypes)) {
+            throw new Exception('CardType should be one of those : ' . implode(', ', $cardAllowedTypes));
         }
     }
 
     //----------------------------------------------------------------------------
-    public function getOverview($overviewType, $selectFields, $pageNumber = null, $maxPerPage = null, $orderField = null, $sortOrder = null, $filters = null, $search = null, $attempts = 0) {
+    public function getOverview($cardType, $categoryId = 0, $selectFields, $pageNumber = null, $maxPerPage = null, $orderField = null, $sortOrder = null, $filters = null, $search = null, $attempts = 0) {
         try {
-            $this->validateOverviewType($overviewType);
-            $request = $this->parser->convertGetOverviewRequest($overviewType, $selectFields, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search);
+            $this->validateCardType($cardType);
+            $request = $this->parser->convertGetOverviewRequest($cardType, $categoryId, $selectFields, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search);
             $result = $this->client->getOverview($request);
-            if($this->returnRawResult) {
+            if ($this->returnRawResult) {
                 return $result;
             }
             return $this->parser->parseGetOverviewResult($result);
@@ -3848,7 +3848,7 @@ public function getBranchGroups($attempts = 0)
             $msg = $e->getMessage();
             if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
                 sleep(1);
-                return $this->getOverview($overviewType, $selectFields, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search, $attempts + 1);
+                return $this->getOverview($cardType, $categoryId, $selectFields, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search, $attempts + 1);
             } else {
                 throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
             }
@@ -3859,12 +3859,12 @@ public function getBranchGroups($attempts = 0)
 
 // END getOverview()
     //----------------------------------------------------------------------------
-    public function getOverviewFields($overviewType, $attempts = 0) {
+    public function getOverviewFields($cardType, $categoryId = 0, $attempts = 0) {
         try {
-            $this->validateOverviewType($overviewType);
-            $request = $this->parser->convertGetOverviewFieldsRequest($overviewType);
+            $this->validateCardType($cardType);
+            $request = $this->parser->convertGetOverviewFieldsRequest($cardType, $categoryId);
             $result = $this->client->getOverviewFields($request);
-            if($this->returnRawResult) {
+            if ($this->returnRawResult) {
                 return $result;
             }
             return $this->parser->parseGetOverviewFieldsResult($result);
@@ -3872,7 +3872,7 @@ public function getBranchGroups($attempts = 0)
             $msg = $e->getMessage();
             if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
                 sleep(1);
-                return $this->getOverviewFields($overviewType, $attempts + 1);
+                return $this->getOverviewFields($cardType, $categoryId, $attempts + 1);
             } else {
                 throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
             }
@@ -3883,6 +3883,30 @@ public function getBranchGroups($attempts = 0)
 
 // END getOverviewFields()
 
+    //----------------------------------------------------------------------------
+    public function updateBatch($cardType, $categoryId = 0, $numbers, $fields, $attempts = 0) {
+        try {
+            $this->validateCardType($cardType);
+            $request = $this->parser->convertUpdateBatchRequest($cardType, $categoryId, $numbers, $fields);
+            $result = $this->client->updateBatch($request);
+            if ($this->returnRawResult) {
+                return $result;
+            }
+            return $this->parser->parseUpdateBatchResult($result);
+        } catch (SoapFault $e) {
+            $msg = $e->getMessage();
+            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+                sleep(1);
+                return $this->updateBatch($cardType, $categoryId, $numbers, $fields, $attempts + 1);
+            } else {
+                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+            }
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+// END updateBatch()
 
   //----------------------------------------------------------------------------
     public function checkGiftcardPayment($cardNumber, $branchNumber, $amount = null, $attempts = 0) {
@@ -4248,7 +4272,18 @@ class MplusQAPIDataParser
   } // END getLastErrorMessage()
 
   //----------------------------------------------------------------------------
+  
+  private function filterList(&$soapResult, $listName, $dataName) {
+    if (is_object($soapResult)) {
+        if (isset($soapResult->$listName) && isset($soapResult->$listName->$dataName)) {
+            $soapResult->$listName = $soapResult->$listName->$dataName;
+        } else {
+            $soapResult->$listName = [];
+        }
+    }
+  } // END filterList()
 
+   //----------------------------------------------------------------------------
   public function parseApiVersion($soapApiVersion)
   {
     $apiVersion = false;
@@ -4814,6 +4849,9 @@ class MplusQAPIDataParser
           }
           if (isset($employee['createTimestamp'])) {
             $employee['createTimestamp'] = $this->parseMplusDateTime($employee['createTimestamp']);
+          }
+          if (isset($employee['customFieldList']['customField'])) {
+            $employee['customFieldList'] = $employee['customFieldList']['customField'];
           }
           $employees[$idx] = $employee;
         }
@@ -6698,28 +6736,28 @@ class MplusQAPIDataParser
   } // END parseGetSalePromotionsResult()
   
   //----------------------------------------------------------------------------
-  public function parseGetOverviewFieldsResult($soapGetOverviewFieldsResult) {     
-    $overviewFields = array();
-    
-    if (isset($soapGetOverviewFieldsResult->overviewFieldsList->overviewFields)) {
-      $overviewFields = objectToArray($soapGetOverviewFieldsResult->overviewFieldsList->overviewFields);
+    public function parseGetOverviewFieldsResult($soapResult) {
+        $this->filterList($soapResult, "overviewFieldsList", "overviewFields");
+        $this->filterList($soapResult, "errorList", "errors");
+        return $soapResult;
     }
-    return $overviewFields;
-  } // END parseGetOverviewFieldsResult()
-  
-  //----------------------------------------------------------------------------
-    public function parseGetOverviewResult($soapOverviewResult) {
-        $overview = array();
-        if (isset($soapOverviewResult->overview)) {
-            $overview = objectToArray($soapOverviewResult->overview);
-        }
-        if (isset($soapOverviewResult->overviewList->overview)) {
-            $overview['overviewList'] = objectToArray($soapOverviewResult->overviewList->overview);
-        }
-        return $overview;
+
+// END parseGetOverviewFieldsResult()
+    //----------------------------------------------------------------------------
+    public function parseGetOverviewResult($soapResult) {
+        $this->filterList($soapResult, "overviewList", "overview");
+        $this->filterList($soapResult, "errorList", "errors");
+        return $soapResult;
     }
 
 // END parseGetOverviewResult()
+    //----------------------------------------------------------------------------
+    public function parseUpdateBatchResult($soapResult) {
+        $this->filterList($soapResult, "errorList", "errors");
+        return $soapResult;
+    }
+
+// END parseUpdateBatchResult()
   
   //----------------------------------------------------------------------------
     public function parseCheckGiftcardPaymentResult($soapCheckGiftcardPaymentResult) {
@@ -9194,12 +9232,16 @@ class MplusQAPIDataParser
   } // END convertGetSalePromotionsRequest()
   
   //----------------------------------------------------------------------------
-    public function convertGetOverviewRequest($overviewType, $selectFieldList, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search) {
+    public function convertGetOverviewRequest($cardType, $categoryId, $selectFieldList, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search) {
         $request = new stdClass();
         $request->request = new stdClass();
 
-        if (isset($overviewType)) {
-            $request->request->overviewType = $overviewType;
+        if (isset($categoryId)) {
+            $request->request->categoryId = $categoryId;
+        }
+
+        if (isset($cardType)) {
+            $request->request->cardType = $cardType;
         }
 
         if (!is_array($selectFieldList)) {
@@ -9233,16 +9275,33 @@ class MplusQAPIDataParser
 // END convertGetOverviewRequest()
     
     //----------------------------------------------------------------------------
-    public function convertGetOverviewFieldsRequest($overviewType) {
+    public function convertGetOverviewFieldsRequest($cardType, $categoryId = 0) {
         $request = new stdClass();
         $request->request = new stdClass();
-        if (isset($overviewType)) {
-            $request->request->overviewType = $overviewType;
+        $request->request->cardType = $cardType;
+        if (isset($categoryId)) {
+            $request->request->categoryId = $categoryId;
         }
         return $request;
     }
 
 // END convertGetOverviewFieldsRequest()
+    
+    //----------------------------------------------------------------------------
+    public function convertUpdateBatchRequest($cardType, $categoryId, $numbers, $fields) {
+        $request = new stdClass();
+        $request->request = new stdClass();
+        $request->request->cardType = $cardType;
+        $request->request->categoryId = $categoryId;
+        if (!is_array($numbers)) {
+            $numbers = array($numbers);
+        }
+        $request->request->numbers = $numbers;
+        $request->request->fieldList = $fields;
+        return $request;
+    }
+
+// END convertUpdateBatchRequest()
     
   public function parseMplusDate($mplus_date)
   {
