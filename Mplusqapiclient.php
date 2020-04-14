@@ -8532,6 +8532,14 @@ class MplusQAPIDataParser
 
   public function convertOrder($order, $terminal=null, $as_array=false)
   {
+    if (is_object($order)) {
+      if (property_exists($order, 'order')) {
+        return $order;
+      }
+      $wrapper = new stdClass();
+      $wrapper->order = $order;
+      return $wrapper;
+    }
     if ( ! isset($order['orderId']) or is_null($order['orderId'])) {
       $order['orderId'] = '';
     }
