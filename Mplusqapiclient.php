@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.29.2';
+  const CLIENT_VERSION  = '1.30.0';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -1044,6 +1044,29 @@ class MplusQAPIclient
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
   } // END getTableListV2()
+
+  //----------------------------------------------------------------------------
+
+  public function getTableListV3($request, $attempts=0)
+  {
+    try {
+      $result = $this->client->getTableListV3($this->parser->convertGetTableListV3Request($request));
+      if ($this->returnRawResult) {
+        return $result;
+      }
+      return $this->parser->parseTableListV3($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getTableListV3($request, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  }
 
   //----------------------------------------------------------------------------
 
@@ -4518,6 +4541,13 @@ class MplusQAPIDataParser
     }
     return $table_list;
   } // END parseTableListV2()
+
+  //----------------------------------------------------------------------------
+
+  public function parseTableListV3($soapTableListV3)
+  {
+    return parseTableListV2($soapTableListV3);
+  }
 
   //----------------------------------------------------------------------------
 
@@ -8497,6 +8527,17 @@ class MplusQAPIDataParser
     $object = arrayToObject(array('terminal'=>$terminal));
     return $object;
   } // END convertTerminal()
+
+  //----------------------------------------------------------------------------
+
+  public function convertGetTableListV3Request($request)
+  {
+    if (is_null($request)) {
+      $request = [];
+    }
+    $object = arrayToObject(['request'=>$request]);
+    return $object;
+  }
 
   //----------------------------------------------------------------------------
 
