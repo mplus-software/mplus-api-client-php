@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.30.0';
+  const CLIENT_VERSION  = '1.30.1';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -4598,8 +4598,12 @@ class MplusQAPIDataParser
       $soapArticlesInLayout = $soapArticlesInLayout->return;
       $articlesInLayout = objectToArray($soapArticlesInLayout);
       foreach ($articlesInLayout as $idx => $article) {
-        if (isset($article['allergenList']['allergen'])) {
-          $article['allergenList'] = $article['allergenList']['allergen'];
+        if (isset($article['nutritionalCharacteristics']['allergenList']['allergen'])) {
+          $article['nutritionalCharacteristics']['allergenList'] = $article['nutritionalCharacteristics']['allergenList']['allergen'];
+          $articlesInLayout[$idx] = $article;
+        }
+        if (isset($article['nutritionalCharacteristics']['dietRestrictionList']['dietRestriction'])) {
+          $article['nutritionalCharacteristics']['dietRestrictionList'] = $article['nutritionalCharacteristics']['dietRestrictionList']['dietRestriction'];
           $articlesInLayout[$idx] = $article;
         }
         if (isset($article['preparationMethods']['preparationMethod'])) {
@@ -4607,8 +4611,12 @@ class MplusQAPIDataParser
           $articlesInLayout[$idx] = $article;
         }
         foreach ($article['preparationMethods'] as $idx2 => $preparationMethod) {
-          if (isset($preparationMethod['allergenList']['allergen'])) {
-            $preparationMethod['allergenList'] = $preparationMethod['allergenList']['allergen'];
+          if (isset($preparationMethod['nutritionalCharacteristics']['allergenList']['allergen'])) {
+            $preparationMethod['nutritionalCharacteristics']['allergenList'] = $preparationMethod['nutritionalCharacteristics']['allergenList']['allergen'];
+            $articlesInLayout[$idx]['preparationMethods'][$idx2] = $preparationMethod;
+          }
+          if (isset($preparationMethod['nutritionalCharacteristics']['dietRestrictionList']['dietRestriction'])) {
+            $preparationMethod['nutritionalCharacteristics']['dietRestrictionList'] = $preparationMethod['nutritionalCharacteristics']['dietRestrictionList']['dietRestriction'];
             $articlesInLayout[$idx]['preparationMethods'][$idx2] = $preparationMethod;
           }
         }
@@ -4723,18 +4731,27 @@ class MplusQAPIDataParser
           foreach ($product['articleList'] as $idx => $article) {
             $orig_article = $article;
             $article['imageList'] = $this->parseImageList(isset($article['imageList'])?$article['imageList']:array());
-            if (isset($article['allergenList']['allergen'])) {
-              $article['allergenList'] = $article['allergenList']['allergen'];
+            
+            if (isset($article['nutritionalCharacteristics']['allergenList']['allergen'])) {
+                $article['nutritionalCharacteristics']['allergenList'] = $article['nutritionalCharacteristics']['allergenList']['allergen'];
             }
+            if (isset($article['nutritionalCharacteristics']['dietRestrictionList']['dietRestriction'])) {
+                $article['nutritionalCharacteristics']['dietRestrictionList'] = $article['nutritionalCharacteristics']['dietRestrictionList']['dietRestriction'];
+            }
+            
             if (isset($article['preparationMethodList']['preparationMethod'])) {
               $article['preparationMethodList'] = $article['preparationMethodList']['preparationMethod'];
             }
             if (isset($article['preparationMethodList'])) {
               foreach ($article['preparationMethodList'] as $idx2 => $preparationMethod) {
-                if (isset($preparationMethod['allergenList']['allergen'])) {
-                  $preparationMethod['allergenList'] = $preparationMethod['allergenList']['allergen'];
-                  $article['preparationMethodList'][$idx2] = $preparationMethod;
+                if (isset($preparationMethod['nutritionalCharacteristics']['allergenList']['allergen'])) {
+                    $preparationMethod['nutritionalCharacteristics']['allergenList'] = $preparationMethod['nutritionalCharacteristics']['allergenList']['allergen'];
+                    $article['preparationMethodList'][$idx2] = $preparationMethod;
                 }
+                if (isset($preparationMethod['nutritionalCharacteristics']['dietRestrictionList']['dietRestriction'])) {
+                    $preparationMethod['nutritionalCharacteristics']['dietRestrictionList'] = $preparationMethod['nutritionalCharacteristics']['dietRestrictionList']['dietRestriction'];
+                    $article['preparationMethodList'][$idx2] = $preparationMethod;
+                }  
               }
             }
             if (isset($article['customFieldList']['customField'])) {
