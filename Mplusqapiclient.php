@@ -4546,7 +4546,7 @@ class MplusQAPIDataParser
 
   public function parseTableListV3($soapTableListV3)
   {
-    return parseTableListV2($soapTableListV3);
+    return $this->parseTableListV2($soapTableListV3);
   }
 
   //----------------------------------------------------------------------------
