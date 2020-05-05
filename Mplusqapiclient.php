@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.30.2';
+  const CLIENT_VERSION  = '1.30.3';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -3562,7 +3562,30 @@ class MplusQAPIclient
       throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
     }
   } // END getTableOrder()
+  
+  //----------------------------------------------------------------------------
 
+  public function saveTableOrderV2($terminal, $order, $releaseTable, $attempts=0)
+  {
+    try {
+      $result = $this->client->saveTableOrderV2($this->parser->convertSaveTableOrderV2($terminal, $order, $releaseTable));
+      if($this->returnRawResult) {
+          return $result;
+      }
+      return $this->parser->parseSaveTableOrderResult($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->saveTableOrderV2($terminal, $order, $releaseTable, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END saveTableOrderV2()
+  
   //----------------------------------------------------------------------------
 
   public function moveTableOrder($terminal, $order, $tableNumber, $attempts=0)
@@ -9520,6 +9543,20 @@ class MplusQAPIDataParser
       ));
     return $object;
   } // END convertSaveTableOrder()
+  
+  //----------------------------------------------------------------------------
+
+  public function convertSaveTableOrderV2($terminal, $order, $releaseTable)
+  {
+    $order = $this->convertOrder($order, $terminal);
+    $terminal = $this->convertTerminal($terminal);
+    $object = arrayToObject(array("request" => array(
+      'terminal'=>$terminal->terminal,
+      'order'=>$order->order,
+      'releaseTable'=>$releaseTable,
+      )));
+    return $object;
+  } // END convertSaveTableOrderV2()
 
   //----------------------------------------------------------------------------
 
