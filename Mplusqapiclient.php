@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.30.3';
+  const CLIENT_VERSION  = '1.30.4';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -9550,10 +9550,11 @@ class MplusQAPIDataParser
   {
     $order = $this->convertOrder($order, $terminal);
     $terminal = $this->convertTerminal($terminal);
-    $object = arrayToObject(array("request" => array(
-      'terminal'=>$terminal->terminal,
-      'order'=>$order->order,
-      'releaseTable'=>$releaseTable,
+    $object = arrayToObject(array(
+        'terminal'=>$terminal->terminal,
+        "request" => array(
+            'order'=>$order->order,
+            'releaseTable'=>$releaseTable,
       )));
     return $object;
   } // END convertSaveTableOrderV2()
