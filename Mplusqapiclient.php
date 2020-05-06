@@ -1070,6 +1070,29 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function getKitchenTickets($request=null, $attempts=0)
+  {
+    try {
+      $result = $this->client->getKitchenTickets($this->parser->convertGetKitchenTicketsRequest($request));
+      if ($this->returnRawResult) {
+		return $result;
+	  }
+	  return $this->parser->parseGetKitchenTickets($result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->getKitchenTickets($request, $attempts+1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  }
+
+  //----------------------------------------------------------------------------
+
   public function getCurrentTableOrders($request=null, $attempts=0)
   {
     try {
@@ -5416,6 +5439,29 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function parseGetKitchenTickets($soapResult)
+  {
+    $kitchenTickets = [];
+    if (isset($soapResult->kitchenTicketList->kitchenTicket)) {
+      $kitchenTickets = objectToArray($soapResult->kitchenTicketList->kitchenTicket);
+      foreach ($kitchenTickets as $kitchenTicketIdx => $kitchenTicket) {
+        if (isset($kitchenTicket['kitchenTicketCourseList']['kitchenTicketCourse'])) {
+          $kitchenTicket['kitchenTicketCourseList'] = $kitchenTicket['kitchenTicketCourseList']['kitchenTicketCourse'];
+        }
+        foreach ($kitchenTicket['kitchenTicketCourseList'] as $kitchenTicketCourseIdx => $kitchenTicketCourse) {
+          if (isset($kitchenTicketCourse['kitchenTicketLineList']['kitchenTicketLine'])) {
+            $kitchenTicketCourse['kitchenTicketLineList'] = $kitchenTicketCourse['kitchenTicketLineList']['kitchenTicketLine'];
+          }
+          $kitchenTicket['kitchenTicketCourseList'][$kitchenTicketCourseIdx] = $kitchenTicketCourse;
+        }
+        $kitchenTickets[$kitchenTicketIdx] = $kitchenTicket;
+      }
+    }
+    return $kitchenTickets;
+  }
+
+  //----------------------------------------------------------------------------
+
   public function parseGetOrdersResult($soapOrdersResult)
   {
     $orders = array();
@@ -8571,6 +8617,17 @@ class MplusQAPIDataParser
   //----------------------------------------------------------------------------
 
   public function convertGetTableListV3Request($request)
+  {
+    if (is_null($request)) {
+      $request = [];
+    }
+    $object = arrayToObject(['request'=>$request]);
+    return $object;
+  }
+
+  //----------------------------------------------------------------------------
+
+  public function convertGetKitchenTicketsRequest($request)
   {
     if (is_null($request)) {
       $request = [];
