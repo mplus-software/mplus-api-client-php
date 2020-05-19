@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.31.0';
+  const CLIENT_VERSION  = '1.31.1';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -475,7 +475,7 @@ class MplusQAPIclient
   public function getApiVersionBenchmark()
   {
     if (is_null($this->apiVersionBenchmark) or false === $this->apiVersionBenchmark) {
-      if (false !== ($apiVersion = $this->getApiVersion())) {
+      if (false !== ($apiVersion = $this->getApiVersion(true))) {
         $this->apiVersionBenchmark = $this->createApiVersionBenchmark($apiVersion);
       }
     }
@@ -531,7 +531,7 @@ class MplusQAPIclient
   public function getServiceVersionBenchmark()
   {
     if (is_null($this->serviceVersionBenchmark) or false === $this->serviceVersionBenchmark) {
-      if (false !== ($serviceVersion = $this->getApiVersion())) {
+      if (false !== ($serviceVersion = $this->getApiVersion(true))) {
         $this->serviceVersionBenchmark = $this->createServiceVersionBenchmark($serviceVersion);
       }
     }
@@ -601,7 +601,7 @@ class MplusQAPIclient
   protected function checkApiVersion()
   {
     $compatible = true;
-    if (false !== ($api_version = $this->getApiVersion())) {
+    if (false !== ($api_version = $this->getApiVersion(true))) {
       if ($api_version['majorNumber'] < $this->MIN_API_VERSION_MAJOR || $api_version['majorNumber'] > $this->MAX_API_VERSION_MAJOR) {
         $compatible = false;
       }
@@ -679,11 +679,11 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getApiVersion($attempts=0)
+  public function getApiVersion($ignoreRawResultSetting = false, $attempts=0)
   {
     try {
       $result = $this->client->getApiVersion();
-      if($this->returnRawResult) {
+      if(!$ignoreRawResultSetting && $this->returnRawResult) {
           return $result;
       }
       return $this->parser->parseApiVersion($result);
@@ -691,7 +691,7 @@ class MplusQAPIclient
       $msg = $e->getMessage();
       if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
         sleep(1);
-        return $this->getApiVersion($attempts+1);
+        return $this->getApiVersion($ignoreRawResultSetting, $attempts+1);
       } else {
         throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
       }
