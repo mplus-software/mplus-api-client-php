@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.31.1';
+  const CLIENT_VERSION  = '1.31.2';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -5290,7 +5290,7 @@ class MplusQAPIDataParser
   //----------------------------------------------------------------------------
 
   public function parseCreditInvoiceResult($soapCreditInvoiceResult) {
-    if (isset($soapCreditInvoiceResult->result) and $soapCreditInvoiceResult->result == 'CANCEL-INVOICE-RESULT-OK') {
+    if (isset($soapCreditInvoiceResult->result) and $soapCreditInvoiceResult->result == 'CREDIT-INVOICE-RESULT-OK') {
       return true;
     }
     return false;
