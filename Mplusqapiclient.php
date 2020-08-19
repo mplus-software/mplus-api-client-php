@@ -4315,6 +4315,24 @@ public function getBranchGroups($attempts = 0)
         }
     }
     // END getEmployeeBranchAuthorizations()
+    
+    //----------------------------------------------------------------------------
+
+    public function createAndPayTableOrder($order, $paymentList) {
+        try {
+            $result = $this->client->createAndPayTableOrder($this->parser->convertCreateAndPayTableOrder($order, $paymentList));
+            if ($this->getReturnRawResult()) {
+                return $result;
+            }
+            return $this->parser->parseCreateAndPayTableOrderResult($result);
+        } catch (SoapFault $e) {
+            throw new MplusQAPIException('SoapFault occurred: ' . $e->getMessage(), 0, $e);
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+// END createAndPayTableOrder()
 }
 
 //==============================================================================
@@ -7032,6 +7050,13 @@ class MplusQAPIDataParser
         }
     }
     // END parseGetEmployeeBranchAuthorizationsResult()
+    
+    //----------------------------------------------------------------------------
+    public function parseCreateAndPayTableOrderResult($soapCreateAndPayTableOrderResult) {
+        return $soapCreateAndPayTableOrderResult;
+    }
+
+    // END parseCreateAndPayTableOrderResult()
 
   //----------------------------------------------------------------------------
 
@@ -9942,6 +9967,16 @@ class MplusQAPIDataParser
         return $request;
     }
     // END convertGetEmployeeBranchAuthorizationsRequest()
+    
+    //----------------------------------------------------------------------------
+    public function convertCreateAndPayTableOrder($order, $paymentList) {
+        $request = new stdClass();
+        $request->request = $this->convertOrder($order);
+        $request->request->order->paymentList = $this->convertPaymentList($paymentList);
+        return $request;
+    }
+
+// END convertCreateAndPayTableOrderRequest()
     
 }
 
