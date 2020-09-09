@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.31.2';
+  const CLIENT_VERSION  = '1.31.3';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -3904,10 +3904,10 @@ public function getBranchGroups($attempts = 0)
     }
 
     //----------------------------------------------------------------------------
-    public function getOverview($cardType, $categoryId = 0, $selectFields, $pageNumber = null, $maxPerPage = null, $orderField = null, $sortOrder = null, $filters = null, $search = null, $attempts = 0) {
+    public function getOverview($cardType, $categoryId = 0, $selectFields, $pageNumber = null, $maxPerPage = null, $orderField = null, $sortOrder = null, $filters = null, $search = null, $retrieveImageList = null, $attempts = 0) {
         try {
             $this->validateCardType($cardType);
-            $request = $this->parser->convertGetOverviewRequest($cardType, $categoryId, $selectFields, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search);
+            $request = $this->parser->convertGetOverviewRequest($cardType, $categoryId, $selectFields, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search, $retrieveImageList);
             $result = $this->client->getOverview($request);
             if ($this->returnRawResult) {
                 return $result;
@@ -3917,7 +3917,7 @@ public function getBranchGroups($attempts = 0)
             $msg = $e->getMessage();
             if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
                 sleep(1);
-                return $this->getOverview($cardType, $categoryId, $selectFields, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search, $attempts + 1);
+                return $this->getOverview($cardType, $categoryId, $selectFields, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search, $retrieveImageList, $attempts + 1);
             } else {
                 throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
             }
@@ -4366,6 +4366,10 @@ class MplusQAPIDataParser
             $soapResult->$listName = $soapResult->$listName->$dataName;
         } else {
             $soapResult->$listName = [];
+        }
+    } else if(is_array($soapResult)) {
+        foreach($soapResult as $item) {
+            $this->filterList($item, $listName, $dataName);
         }
     }
   } // END filterList()
@@ -6880,6 +6884,7 @@ class MplusQAPIDataParser
     //----------------------------------------------------------------------------
     public function parseGetOverviewResult($soapResult) {
         $this->filterList($soapResult, "overviewList", "overview");
+        $this->filterList($soapResult->overviewList, "imageList", "image");
         $this->filterList($soapResult, "errorList", "errors");
         return $soapResult;
     }
@@ -9395,7 +9400,7 @@ class MplusQAPIDataParser
   } // END convertGetSalePromotionsRequest()
   
   //----------------------------------------------------------------------------
-    public function convertGetOverviewRequest($cardType, $categoryId, $selectFieldList, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search) {
+    public function convertGetOverviewRequest($cardType, $categoryId, $selectFieldList, $pageNumber, $maxPerPage, $orderField, $sortOrder, $filters, $search, $retrieveImageList) {
         $request = new stdClass();
         $request->request = new stdClass();
 
@@ -9431,6 +9436,9 @@ class MplusQAPIDataParser
 
         if (isset($search)) {
             $request->request->search = $search;
+        }
+        if (isset($retrieveImageList)) {
+            $request->request->retrieveImageList = $retrieveImageList;
         }
         return $request;
     }
