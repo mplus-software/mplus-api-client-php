@@ -4333,6 +4333,60 @@ public function getBranchGroups($attempts = 0)
     }
 
 // END createAndPayTableOrder()
+    
+    //----------------------------------------------------------------------------
+
+    public function getPurchaseBook($branchNumber) {
+        try {
+            $result = $this->client->getPurchaseBook($this->parser->convertGetPurchaseBookRequest($branchNumber));
+            if ($this->getReturnRawResult()) {
+                return $result;
+            }
+            return $this->parser->parseGetPurchaseBookResult($result);
+        } catch (SoapFault $e) {
+            throw new MplusQAPIException('SoapFault occurred: ' . $e->getMessage(), 0, $e);
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+// END getPurchaseBook()
+    
+    //----------------------------------------------------------------------------
+
+    public function addToPurchaseBook($branchNumber, $entries) {
+        try {
+            $result = $this->client->addToPurchaseBook($this->parser->convertAddToPurchaseBookRequest($branchNumber, $entries));
+            if ($this->getReturnRawResult()) {
+                return $result;
+            }
+            return $this->parser->parseAddToPurchaseBookResult($result);
+        } catch (SoapFault $e) {
+            throw new MplusQAPIException('SoapFault occurred: ' . $e->getMessage(), 0, $e);
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+// END addToPurchaseBook()
+    
+    //----------------------------------------------------------------------------
+
+    public function savePurchaseBook($branchNumber, $entries) {
+        try {
+            $result = $this->client->savePurchaseBook($this->parser->convertSavePurchaseBookRequest($branchNumber, $entries));
+            if ($this->getReturnRawResult()) {
+                return $result;
+            }
+            return $this->parser->parseSavePurchaseBookResult($result);
+        } catch (SoapFault $e) {
+            throw new MplusQAPIException('SoapFault occurred: ' . $e->getMessage(), 0, $e);
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+// END savePurchaseBook()
 }
 
 //==============================================================================
@@ -7062,6 +7116,27 @@ class MplusQAPIDataParser
     }
 
     // END parseCreateAndPayTableOrderResult()
+    
+    //----------------------------------------------------------------------------
+    public function parseGetPurchaseBookResult($soapGetPurchaseBookResult) {
+        return $soapGetPurchaseBookResult;
+    }
+
+    // END parseGetPurchaseBookResult()
+    
+    //----------------------------------------------------------------------------
+    public function parseAddToPurchaseBookResult($soapAddToPurchaseBookResult) {
+        return $soapAddToPurchaseBookResult;
+    }
+
+    // END parseAddToPurchaseBookResult()
+    
+    //----------------------------------------------------------------------------
+    public function parseSavePurchaseBookResult($soapSavePurchaseBookResult) {
+        return $soapSavePurchaseBookResult;
+    }
+
+    // END parseSavePurchaseBookResult()
 
   //----------------------------------------------------------------------------
 
@@ -9985,6 +10060,38 @@ class MplusQAPIDataParser
     }
 
 // END convertCreateAndPayTableOrderRequest()
+    
+    //----------------------------------------------------------------------------
+    public function convertGetPurchaseBookRequest($branchNumber) {
+        $request = new stdClass();
+        $request->request = new stdClass();
+        $request->request->branchNumber = $branchNumber;
+        return $request;
+    }
+
+// END convertGetPurchaseBookRequest()
+    
+    //----------------------------------------------------------------------------
+    public function convertAddToPurchaseBookRequest($branchNumber, $entries) {
+        $request = new stdClass();
+        $request->request = new stdClass();
+        $request->request->branchNumber = $branchNumber;
+        $request->request->entries = $entries;
+        return $request;
+    }
+
+// END convertAddToPurchaseBookRequest()
+    
+    //----------------------------------------------------------------------------
+    public function convertSavePurchaseBookRequest($branchNumber, $entries) {
+        $request = new stdClass();
+        $request->request = new stdClass();
+        $request->request->branchNumber = $branchNumber;
+        $request->request->entries = $entries;
+        return $request;
+    }
+
+// END convertSavePurchaseBookRequest()
     
 }
 
