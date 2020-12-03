@@ -6900,6 +6900,14 @@ class MplusQAPIDataParser
                     }
                 }
                 break;
+          case "reportAverageSpending":
+                $data = array();
+                if (isset($soapReportResult->averageSpendingList->averageSpending)) {
+                    foreach ($soapReportResult->averageSpendingList->averageSpending as $soapAverageSpending) {
+                        $data[] = $soapAverageSpending;
+                    }
+                }
+                break;
       }
       return $data;
   } // END parseReportResult()
@@ -9402,6 +9410,22 @@ class MplusQAPIDataParser
                 ),
                 'optional' => array(
                     'branchNumbers', 'articleNumbers', 'perHour', 'turnoverGroups'
+                ),
+            ),
+            'reportBranchPerformance' => array(
+                'required' => array(
+                    'fromFinancialDate', 'throughFinancialDate',
+                ),
+                'optional' => array(
+                    'branchNumbers'
+                ),
+            ),
+            'reportAverageSpending' => array(
+                'required' => array(
+                    'fromFinancialDate', 'throughFinancialDate', 'source'
+                ),
+                'optional' => array(
+                    'branchNumbers', 'employeeNumbers'
                 ),
             ),
         );
