@@ -9471,6 +9471,9 @@ class MplusQAPIDataParser
                             case "perHour":
                                 $request['perHour'] = $arguments['perHour'] === true ? true : false;
                                 break;
+                            default:
+                                $request[$callField] = $arguments[$callField];
+                                break;
                         }
                     }
                 }
