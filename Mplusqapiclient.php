@@ -9328,7 +9328,7 @@ class MplusQAPIDataParser
                     'fromFinancialDate', 'throughFinancialDate',
                 ),
                 'optional' => array(
-                    'branchNumbers', 'turnoverGroups', 'perHour',
+                    'branchNumbers', 'turnoverGroups', 'perHour', 'turnoverGroupTypes',
                 ),
             ),
             'reportTurnoverByBranch' => array(
@@ -9449,6 +9449,12 @@ class MplusQAPIDataParser
                                     $arguments[$callField] = array($arguments[$callField]);
                                 }
                                 $request['turnoverGroupFilter'] = $arguments[$callField];
+                                break;
+                            case "turnoverGroupTypes":
+                                if (!is_array($arguments[$callField])) {
+                                    $arguments[$callField] = array($arguments[$callField]);
+                                }
+                                $request['turnoverGroupTypeFilter'] = $arguments[$callField];
                                 break;
                             case "employeeNumbers":
                                 if (!is_array($arguments[$callField])) {
