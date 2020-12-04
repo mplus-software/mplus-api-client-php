@@ -3819,33 +3819,31 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
- public function report($arguments, $attempts = 0) {
-        try {
-            if (!is_array($arguments) || !array_key_exists('method', $arguments) || empty($arguments['method'])) {
-                throw new Exception("No method defined for group call : " . __FUNCTION__);
-            }
-            $method = __FUNCTION__ . $arguments['method'];
-            unset($arguments['method']);
-            $parameters = $this->parser->convertReportRequest($method, $arguments);
-            $result = call_user_func(array($this->client, $method), $parameters);
-            if ($this->returnRawResult) {
-                return $result;
-            }
-            return $this->parser->parseReportResult($method, $result);
-        } catch (SoapFault $e) {
-            $msg = $e->getMessage();
-            if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
-                sleep(1);
-                return $this->report($arguments, $attempts + 1);
-            } else {
-                throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
-            }
-        } catch (Exception $e) {
-            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
-        }
+  public function report($arguments, $attempts = 0) {
+    try {
+      if (!is_array($arguments) || !array_key_exists('method', $arguments) || empty($arguments['method'])) {
+        throw new Exception("No method defined for group call : " . __FUNCTION__);
+      }
+      $method = __FUNCTION__ . $arguments['method'];
+      unset($arguments['method']);
+      $parameters = $this->parser->convertReportRequest($method, $arguments);
+      $result = call_user_func(array($this->client, $method), $parameters);
+      if ($this->returnRawResult) {
+        return $result;
+      }
+      return $this->parser->parseReportResult($method, $result);
+    } catch (SoapFault $e) {
+      $msg = $e->getMessage();
+      if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
+        sleep(1);
+        return $this->report($arguments, $attempts + 1);
+      } else {
+        throw new MplusQAPIException('SoapFault occurred: ' . $msg, 0, $e);
+      }
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
     }
- // END report()
-
+  }
 
   //----------------------------------------------------------------------------
 
