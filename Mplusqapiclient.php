@@ -2834,10 +2834,10 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getPurchaseOrdersV2($syncMarker, $fromOrderDate, $throughOrderDate, $fromDeliveryDate=null, $throughDeliveryDate=null, $branchNumbers=null, $employeeNumbers=null, $relationNumbers=null, $articleNumbers=null, $articleTurnoverGroups=null, $articlePluNumbers=null, $articleBarcodes=null, $syncMarkerLimit=null, $attempts=0)
+  public function getPurchaseOrdersV2($syncMarker, $fromOrderDate, $throughOrderDate, $fromDeliveryDate=null, $throughDeliveryDate=null, $branchNumbers=null, $employeeNumbers=null, $relationNumbers=null, $articleNumbers=null, $articleTurnoverGroups=null, $articlePluNumbers=null, $articleBarcodes=null, $syncMarkerLimit=null, $purchaseOrderNumber=null, $extPurchaseOrderId=null, $attempts=0)
   {
     try {
-      $result = $this->client->getPurchaseOrdersV2($this->parser->convertGetPurchaseOrdersRequest($syncMarker, $fromOrderDate, $throughOrderDate, $fromDeliveryDate, $throughDeliveryDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit));
+      $result = $this->client->getPurchaseOrdersV2($this->parser->convertGetPurchaseOrdersRequest($syncMarker, $fromOrderDate, $throughOrderDate, $fromDeliveryDate, $throughDeliveryDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit, $purchaseOrderNumber, $extPurchaseOrderId));
       if($this->returnRawResult) {
           return $result;
       }
@@ -2846,7 +2846,7 @@ class MplusQAPIclient
       $msg = $e->getMessage();
       if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
         sleep(1);
-        return $this->getPurchaseOrdersV2($syncMarker, $fromFinancialDate, $throughFinancialDate, $fromDeliveryDate, $throughDeliveryDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit, $attempts+1);
+        return $this->getPurchaseOrdersV2($syncMarker, $fromOrderDate, $throughOrderDate, $fromDeliveryDate, $throughDeliveryDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit, $purchaseOrderNumber, $extPurchaseOrderId, $attempts+1);
       } else {
         throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
       }
@@ -7888,7 +7888,7 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertGetPurchaseOrdersRequest($syncMarker, $fromOrderDate, $throughOrderDate, $fromDeliveryDate, $throughDeliveryDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit)
+  public function convertGetPurchaseOrdersRequest($syncMarker, $fromOrderDate, $throughOrderDate, $fromDeliveryDate, $throughDeliveryDate, $branchNumbers, $employeeNumbers, $relationNumbers, $articleNumbers, $articleTurnoverGroups, $articlePluNumbers, $articleBarcodes, $syncMarkerLimit, $purchaseOrderNumber=null, $extPurchaseOrderId=null)
   {
     $fromOrderDate = is_null($fromOrderDate)?null:$this->convertMplusDate($fromOrderDate, 'fromOrderDate');
     $throughOrderDate = is_null($throughOrderDate)?null:$this->convertMplusDate($throughOrderDate, 'throughOrderDate');
@@ -7917,6 +7917,12 @@ class MplusQAPIDataParser
     }
 
     $array = array();
+    if (!is_null($purchaseOrderNumber) and !empty($purchaseOrderNumber)) {
+      $array['purchaseOrderNumber'] = $this->convertYearNumber($purchaseOrderNumber);
+    }
+    elseif (!is_null($extPurchaseOrderId) and !empty($extPurchaseOrderId)) {
+      $array['extPurchaseOrderId'] = $extPurchaseOrderId;
+    }
     if ( ! is_null($syncMarker)) {
       $array['syncMarker'] = (int)$syncMarker;
       if ( ! is_null($syncMarkerLimit) and $syncMarkerLimit > 0) {
