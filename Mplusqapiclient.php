@@ -4385,6 +4385,41 @@ public function getBranchGroups($attempts = 0)
     }
 
 // END savePurchaseBook()
+    
+    //----------------------------------------------------------------------------
+
+    public function getStockCorrections(
+            $employeeNumbers = null, 
+            $branchNumbers = null, 
+            $articleNumbers = null, 
+            $fromFinancialDateTime = null, 
+            $throughFinancialDateTime = null,
+            $correctionType = null,
+            $correctionNumber = null
+            ) {
+        try {
+            $result = $this->client->getStockCorrections($this->parser->convertGetStockCorrectionsRequest(
+                    $employeeNumbers, 
+                    $branchNumbers,
+                    $articleNumbers,
+                    $fromFinancialDateTime,
+                    $throughFinancialDateTime,
+                    $correctionType,
+                    $correctionNumber
+                    ));
+            if ($this->getReturnRawResult()) {
+                return $result;
+            }
+            return $this->parser->parseGetStockCorrectionsResult($result);
+        } catch (SoapFault $e) {
+            throw new MplusQAPIException('SoapFault occurred: ' . $e->getMessage(), 0, $e);
+        } catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+    
+    // END getStockCorrections()
+    
 }
 
 //==============================================================================
@@ -10129,6 +10164,54 @@ class MplusQAPIDataParser
     }
 
 // END convertSavePurchaseBookRequest()
+    
+    //----------------------------------------------------------------------------
+    
+    public function convertGetStockCorrectionsRequest(
+            $employeeNumbers, 
+            $branchNumbers,
+            $articleNumbers,
+            $fromFinancialDateTime,
+            $throughFinancialDateTime,
+            $correctionType,
+            $correctionNumber
+            ) {
+        $array = [];
+        $array['request'] = [];
+        if(!is_null($employeeNumbers)) {
+            if(!is_array($employeeNumbers)) {
+                $employeeNumbers = [$employeeNumbers];
+            }
+            $request['request']['employeeNumbers'] = $employeeNumbers;
+        }
+        if(!is_null($branchNumbers)) {
+            if(!is_array($branchNumbers)) {
+                $branchNumbers = [$branchNumbers];
+            }
+            $request['request']['branchNumbers'] = $branchNumbers;
+        }
+        if(!is_null($articleNumbers)) {
+            if(!is_array($articleNumbers)) {
+                $articleNumbers = [$articleNumbers];
+            }
+            $request['request']['articleNumbers'] = $articleNumbers;
+        }
+        if (!is_null($fromFinancialDateTime) && !empty($fromFinancialDateTime)) {
+            $fromFinancialDateTime = $this->convertMplusDateTime($fromFinancialDateTime, 'fromFinancialDateTime');
+            $array['request']['fromFinancialDateTime'] = $fromFinancialDateTime;
+        }
+        if (!is_null($throughFinancialDateTime) && !empty($throughFinancialDateTime)) {
+            $throughFinancialDateTime = $this->convertMplusDateTime($throughFinancialDateTime, 'throughFinancialDateTime');
+            $array['request']['throughFinancialDateTime'] = $throughFinancialDateTime;
+        }
+        if(!is_null($correctionType)) {
+            $array['request']['correctionType'] = $correctionType;
+        }
+        //@TODO Continue here with correctionNumber !!! Also add parseGetStockCorrectionsResponse
+        return arrayToObject($array);
+    }
+    
+    // END convertGetStockCorrectionsRequest()
     
 }
 
