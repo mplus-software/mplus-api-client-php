@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.33.0';
+  const CLIENT_VERSION  = '1.33.1';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -7178,6 +7178,13 @@ class MplusQAPIDataParser
     }
 
     // END parseSavePurchaseBookResult()
+    
+    //----------------------------------------------------------------------------
+    public function parseGetStockCorrectionsResult($soapGetStockCorrectionsResult) {
+        return $soapGetStockCorrectionsResult;
+    }
+    
+    // END parseGetStockCorrectionsResult()
 
   //----------------------------------------------------------------------------
 
@@ -10207,7 +10214,9 @@ class MplusQAPIDataParser
         if(!is_null($correctionType)) {
             $array['request']['correctionType'] = $correctionType;
         }
-        //@TODO Continue here with correctionNumber !!! Also add parseGetStockCorrectionsResponse
+        if (!is_null($correctionNumber) && !empty($correctionNumber)) {
+            $array['request']['correctionNumber'] = $this->convertYearNumber($correctionNumber);
+        }
         return arrayToObject($array);
     }
     
