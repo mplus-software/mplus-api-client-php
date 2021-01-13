@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.33.0';
+  const CLIENT_VERSION  = '1.33.1';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -4383,8 +4383,41 @@ public function getBranchGroups($attempts = 0)
             throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
         }
     }
+    
+    //----------------------------------------------------------------------------
 
-// END savePurchaseBook()
+    public function getStockCorrections(
+        $employeeNumbers = null, 
+        $branchNumbers = null, 
+        $articleNumbers = null, 
+        $fromFinancialDate = null, 
+        $throughFinancialDate = null,
+        $correctionType = null,
+        $stockCorrectionNumber = null
+    ) {
+        try {
+            $result = $this->client->getStockCorrections($this->parser->convertGetStockCorrectionsRequest(
+                $employeeNumbers,
+                $branchNumbers,
+                $articleNumbers,
+                $fromFinancialDate,
+                $throughFinancialDate,
+                $correctionType,
+                $stockCorrectionNumber
+            ));
+            if ($this->getReturnRawResult()) {
+                return $result;
+            }
+            return $this->parser->parseGetStockCorrectionsResult($result);
+        }
+        catch (SoapFault $e) {
+            throw new MplusQAPIException('SoapFault occurred: ' . $e->getMessage(), 0, $e);
+        }
+        catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+    
 }
 
 //==============================================================================
@@ -7143,6 +7176,13 @@ class MplusQAPIDataParser
     }
 
     // END parseSavePurchaseBookResult()
+    
+    //----------------------------------------------------------------------------
+    public function parseGetStockCorrectionsResult($soapGetStockCorrectionsResult) {
+        return $soapGetStockCorrectionsResult;
+    }
+    
+    // END parseGetStockCorrectionsResult()
 
   //----------------------------------------------------------------------------
 
@@ -10127,8 +10167,51 @@ class MplusQAPIDataParser
         $request->request->entries = $entries;
         return $request;
     }
-
-// END convertSavePurchaseBookRequest()
+    
+    //----------------------------------------------------------------------------
+    
+    public function convertGetStockCorrectionsRequest(
+        $employeeNumbers, 
+        $branchNumbers,
+        $articleNumbers,
+        $fromFinancialDate,
+        $throughFinancialDate,
+        $correctionType,
+        $stockCorrectionNumber
+    ) {
+        $request = [];
+        if (!is_null($employeeNumbers)) {
+            if (!is_array($employeeNumbers)) {
+                $employeeNumbers = [$employeeNumbers];
+            }
+            $request['employeeNumbers'] = $employeeNumbers;
+        }
+        if (!is_null($branchNumbers)) {
+            if (!is_array($branchNumbers)) {
+                $branchNumbers = [$branchNumbers];
+            }
+            $request['branchNumbers'] = $branchNumbers;
+        }
+        if (!is_null($articleNumbers)) {
+            if (!is_array($articleNumbers)) {
+                $articleNumbers = [$articleNumbers];
+            }
+            $request['articleNumbers'] = $articleNumbers;
+        }
+        if (!is_null($fromFinancialDate) && !empty($fromFinancialDate)) {
+            $request['fromFinancialDate'] = $fromFinancialDate;
+        }
+        if (!is_null($throughFinancialDate) && !empty($throughFinancialDate)) {
+            $request['throughFinancialDate'] = $throughFinancialDate;
+        }
+        if (!is_null($correctionType)) {
+            $request['correctionType'] = $correctionType;
+        }
+        if (!is_null($stockCorrectionNumber) && !empty($stockCorrectionNumber)) {
+            $request['stockCorrectionNumber'] = $this->convertYearNumber($stockCorrectionNumber);
+        }
+        return arrayToObject(['request'=>$request]);
+    }
     
 }
 
