@@ -4383,42 +4383,40 @@ public function getBranchGroups($attempts = 0)
             throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
         }
     }
-
-// END savePurchaseBook()
     
     //----------------------------------------------------------------------------
 
     public function getStockCorrections(
-            $employeeNumbers = null, 
-            $branchNumbers = null, 
-            $articleNumbers = null, 
-            $fromFinancialDateTime = null, 
-            $throughFinancialDateTime = null,
-            $correctionType = null,
-            $correctionNumber = null
-            ) {
+        $employeeNumbers = null, 
+        $branchNumbers = null, 
+        $articleNumbers = null, 
+        $fromFinancialDate = null, 
+        $throughFinancialDate = null,
+        $correctionType = null,
+        $stockCorrectionNumber = null
+    ) {
         try {
             $result = $this->client->getStockCorrections($this->parser->convertGetStockCorrectionsRequest(
-                    $employeeNumbers, 
-                    $branchNumbers,
-                    $articleNumbers,
-                    $fromFinancialDateTime,
-                    $throughFinancialDateTime,
-                    $correctionType,
-                    $correctionNumber
-                    ));
+                $employeeNumbers,
+                $branchNumbers,
+                $articleNumbers,
+                $fromFinancialDate,
+                $throughFinancialDate,
+                $correctionType,
+                $stockCorrectionNumber
+            ));
             if ($this->getReturnRawResult()) {
                 return $result;
             }
             return $this->parser->parseGetStockCorrectionsResult($result);
-        } catch (SoapFault $e) {
+        }
+        catch (SoapFault $e) {
             throw new MplusQAPIException('SoapFault occurred: ' . $e->getMessage(), 0, $e);
-        } catch (Exception $e) {
+        }
+        catch (Exception $e) {
             throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
         }
     }
-    
-    // END getStockCorrections()
     
 }
 
@@ -10169,58 +10167,51 @@ class MplusQAPIDataParser
         $request->request->entries = $entries;
         return $request;
     }
-
-// END convertSavePurchaseBookRequest()
     
     //----------------------------------------------------------------------------
     
     public function convertGetStockCorrectionsRequest(
-            $employeeNumbers, 
-            $branchNumbers,
-            $articleNumbers,
-            $fromFinancialDateTime,
-            $throughFinancialDateTime,
-            $correctionType,
-            $correctionNumber
-            ) {
-        $array = [];
-        $array['request'] = [];
-        if(!is_null($employeeNumbers)) {
-            if(!is_array($employeeNumbers)) {
+        $employeeNumbers, 
+        $branchNumbers,
+        $articleNumbers,
+        $fromFinancialDate,
+        $throughFinancialDate,
+        $correctionType,
+        $stockCorrectionNumber
+    ) {
+        $request = [];
+        if (!is_null($employeeNumbers)) {
+            if (!is_array($employeeNumbers)) {
                 $employeeNumbers = [$employeeNumbers];
             }
-            $request['request']['employeeNumbers'] = $employeeNumbers;
+            $request['employeeNumbers'] = $employeeNumbers;
         }
-        if(!is_null($branchNumbers)) {
-            if(!is_array($branchNumbers)) {
+        if (!is_null($branchNumbers)) {
+            if (!is_array($branchNumbers)) {
                 $branchNumbers = [$branchNumbers];
             }
-            $request['request']['branchNumbers'] = $branchNumbers;
+            $request['branchNumbers'] = $branchNumbers;
         }
-        if(!is_null($articleNumbers)) {
-            if(!is_array($articleNumbers)) {
+        if (!is_null($articleNumbers)) {
+            if (!is_array($articleNumbers)) {
                 $articleNumbers = [$articleNumbers];
             }
-            $request['request']['articleNumbers'] = $articleNumbers;
+            $request['articleNumbers'] = $articleNumbers;
         }
-        if (!is_null($fromFinancialDateTime) && !empty($fromFinancialDateTime)) {
-            $fromFinancialDateTime = $this->convertMplusDateTime($fromFinancialDateTime, 'fromFinancialDateTime');
-            $array['request']['fromFinancialDateTime'] = $fromFinancialDateTime;
+        if (!is_null($fromFinancialDate) && !empty($fromFinancialDate)) {
+            $request['fromFinancialDate'] = $fromFinancialDate;
         }
-        if (!is_null($throughFinancialDateTime) && !empty($throughFinancialDateTime)) {
-            $throughFinancialDateTime = $this->convertMplusDateTime($throughFinancialDateTime, 'throughFinancialDateTime');
-            $array['request']['throughFinancialDateTime'] = $throughFinancialDateTime;
+        if (!is_null($throughFinancialDate) && !empty($throughFinancialDate)) {
+            $request['throughFinancialDate'] = $throughFinancialDate;
         }
-        if(!is_null($correctionType)) {
-            $array['request']['correctionType'] = $correctionType;
+        if (!is_null($correctionType)) {
+            $request['correctionType'] = $correctionType;
         }
-        if (!is_null($correctionNumber) && !empty($correctionNumber)) {
-            $array['request']['correctionNumber'] = $this->convertYearNumber($correctionNumber);
+        if (!is_null($stockCorrectionNumber) && !empty($stockCorrectionNumber)) {
+            $request['stockCorrectionNumber'] = $this->convertYearNumber($stockCorrectionNumber);
         }
-        return arrayToObject($array);
+        return arrayToObject(['request'=>$request]);
     }
-    
-    // END convertGetStockCorrectionsRequest()
     
 }
 
