@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.33.1';
+  const CLIENT_VERSION  = '1.33.2';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -383,6 +383,17 @@ class MplusQAPIclient
     return $this->returnRawResult;
   } // END getReturnRawResult()
 
+  private function getHttpResponseCode($url) {
+    $headers = @get_headers($url);
+    if (is_array($headers) && count($headers) > 0 && strpos($headers[0], 'HTTP/') == 0) {
+        $parts = explode(' ', $headers[0]);
+        if(count($parts)>= 2) {
+            return intval($parts[1]);
+        }
+    }
+    return false;
+  }
+  
   //----------------------------------------------------------------------------
 
   public function initClient()
@@ -426,14 +437,16 @@ class MplusQAPIclient
     $wsdl_url = $location.'?wsdl';
     try {
       if (!$this->skipQuickAvailabilityCheck) { 
-        // Don't wait longer than 5 seconds for the headers.
-        // We call get_headers() here because we want a relatively fast check if the API is available at all
+        // Don't wait longer than 5 seconds for the http response code to complete
         // , before we actually initialize the SoapClient and start running requests
+        // we expect a "405 Method Not Allowed" http response code if the api is online
         ini_set('default_socket_timeout', 5);
-        if (false === @get_headers($wsdl_url)) {
-            throw new MplusQAPIException(sprintf('Cannot find API WSDL @ %s', $wsdl_url));
+        if ($this->getHttpResponseCode($location) != 405) { 
+            throw new MplusQAPIException(sprintf('Cannot find API WSDL @ %s', $wsdl_url)); // Message is unchanged due to backward compatibility. Actually not checking if wsdl present anymore.
         }
       }
+      // set max. wait time for API reply
+      ini_set('default_socket_timeout', $this->getDefaultSocketTimeout());
       $this->client = @new SoapClient($wsdl_url, $options);
       if (false === $this->client or is_null($this->client)) {
         throw new MplusQAPIException('Unable to load SoapClient.');
@@ -441,9 +454,6 @@ class MplusQAPIclient
     } catch (SoapFault $exception) {
       throw new MplusQAPIException($exception->getMessage());
     }
-
-    // increase max. wait time for API reply
-    ini_set('default_socket_timeout', $this->getDefaultSocketTimeout());
 
     if ( ! $this->skipApiVersionCheck) {
       $this->checkApiVersion();
