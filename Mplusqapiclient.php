@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.34.1';
+  const CLIENT_VERSION  = '1.34.2';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -4428,6 +4428,27 @@ public function getBranchGroups($attempts = 0)
         }
     }
     
+    //----------------------------------------------------------------------------
+    public function getArticlesNutritionalCharacteristics($articleNumbers) {
+        try {
+            $result = $this->client->getArticlesNutritionalCharacteristics($this->parser->convertGetArticlesNutritionalCharacteristicsRequest(
+                $articleNumbers
+            ));
+            if ($this->getReturnRawResult()) {
+                return $result;
+            }
+            return $this->parser->parseGetArticlesNutritionalCharacteristicsResult($result);
+        }
+        catch (SoapFault $e) {
+            throw new MplusQAPIException('SoapFault occurred: ' . $e->getMessage(), 0, $e);
+        }
+        catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+    
+    //----------------------------------------------------------------------------
+    
 }
 
 //==============================================================================
@@ -7193,6 +7214,13 @@ class MplusQAPIDataParser
     }
     
     // END parseGetStockCorrectionsResult()
+    
+    
+    //----------------------------------------------------------------------------
+    public function parseGetArticlesNutritionalCharacteristicsResult($soapGetArticlesNutritionalCharacteristicsResult) {
+        return $soapGetArticlesNutritionalCharacteristicsResult;
+    }
+    // END parseGetArticlesNutritionalCharacteristicsResult()
 
   //----------------------------------------------------------------------------
 
@@ -10222,6 +10250,19 @@ class MplusQAPIDataParser
         }
         return arrayToObject(['request'=>$request]);
     }
+    
+    //----------------------------------------------------------------------------
+    
+    public function convertGetArticlesNutritionalCharacteristicsRequest($articleNumbers) {
+        $request = [];
+        if (!is_array($articleNumbers)) {
+            $articleNumbers = [$articleNumbers];
+        }
+        $request['articleNumbers'] = $articleNumbers;
+        return arrayToObject(['request'=>$request]);
+    }
+    
+    //----------------------------------------------------------------------------
     
 }
 
