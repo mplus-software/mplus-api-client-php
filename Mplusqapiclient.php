@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.34.2';
+  const CLIENT_VERSION  = '1.34.3';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -4438,6 +4438,21 @@ public function getBranchGroups($attempts = 0)
                 return $result;
             }
             return $this->parser->parseGetArticlesNutritionalCharacteristicsResult($result);
+        }
+        catch (SoapFault $e) {
+            throw new MplusQAPIException('SoapFault occurred: ' . $e->getMessage(), 0, $e);
+        }
+        catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+    
+    //----------------------------------------------------------------------------
+    
+    public function getPreparationMethodGroups() {
+        try {
+            $result = $this->client->getPreparationMethodGroups();
+            return $result;
         }
         catch (SoapFault $e) {
             throw new MplusQAPIException('SoapFault occurred: ' . $e->getMessage(), 0, $e);
