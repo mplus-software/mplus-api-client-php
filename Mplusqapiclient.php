@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.34.3';
+  const CLIENT_VERSION  = '1.34.4';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -4452,6 +4452,23 @@ public function getBranchGroups($attempts = 0)
     public function getPreparationMethodGroups() {
         try {
             $result = $this->client->getPreparationMethodGroups();
+            return $result;
+        }
+        catch (SoapFault $e) {
+            throw new MplusQAPIException('SoapFault occurred: ' . $e->getMessage(), 0, $e);
+        }
+        catch (Exception $e) {
+            throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+        }
+    }
+    
+    //----------------------------------------------------------------------------
+    
+    public function getArticlesPreparationMethodGroups($articleNumbers) {
+        try {
+            $result = $this->client->getArticlesPreparationMethodGroups($this->parser->convertGetArticlesPreparationMethodGroupsRequest(
+                $articleNumbers
+            ));
             return $result;
         }
         catch (SoapFault $e) {
@@ -10269,6 +10286,17 @@ class MplusQAPIDataParser
     //----------------------------------------------------------------------------
     
     public function convertGetArticlesNutritionalCharacteristicsRequest($articleNumbers) {
+        $request = [];
+        if (!is_array($articleNumbers)) {
+            $articleNumbers = [$articleNumbers];
+        }
+        $request['articleNumbers'] = $articleNumbers;
+        return arrayToObject(['request'=>$request]);
+    }
+    
+    //----------------------------------------------------------------------------
+    
+    public function convertGetArticlesPreparationMethodGroupsRequest($articleNumbers) {
         $request = [];
         if (!is_array($articleNumbers)) {
             $articleNumbers = [$articleNumbers];
