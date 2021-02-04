@@ -2,7 +2,7 @@
 
 class MplusQAPIclient
 {
-  const CLIENT_VERSION  = '1.34.4';
+  const CLIENT_VERSION  = '1.34.5';
   const WSDL_TTL = 300;
 
   var $MIN_API_VERSION_MAJOR = 0;
@@ -1673,10 +1673,10 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
-  public function getArticleGroups($groupNumbers=array(), $syncMarker=null, $syncMarkerLimit=null, $attempts=0)
+  public function getArticleGroups($groupNumbers=array(), $syncMarker=null, $syncMarkerLimit=null, $retrieveArticleNumbers=null, $attempts=0)
   {
     try {
-      $result = $this->client->getArticleGroups($this->parser->convertGetArticleGroupsRequest($groupNumbers, $syncMarker, $syncMarkerLimit));
+      $result = $this->client->getArticleGroups($this->parser->convertGetArticleGroupsRequest($groupNumbers, $syncMarker, $syncMarkerLimit, $retrieveArticleNumbers));
       if($this->returnRawResult) {
           return $result;
       }
@@ -1685,7 +1685,7 @@ class MplusQAPIclient
       $msg = $e->getMessage();
       if (false !== stripos($msg, 'Could not connect to host') and $attempts < 3) {
         sleep(1);
-        return $this->getArticleGroups($groupNumbers, $syncMarker, $syncMarkerLimit, $attempts+1);
+        return $this->getArticleGroups($groupNumbers, $syncMarker, $syncMarkerLimit, $retrieveArticleNumbers, $attempts+1);
       } else {
         throw new MplusQAPIException('SoapFault occurred: '.$msg, 0, $e);
       }
@@ -8364,7 +8364,7 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
-  public function convertGetArticleGroupsRequest($groupNumbers, $syncMarker, $syncMarkerLimit)
+  public function convertGetArticleGroupsRequest($groupNumbers, $syncMarker, $syncMarkerLimit, $retrieveArticleNumbers)
   {
     $request = array();
     if ( ! is_array($groupNumbers)) {
@@ -8376,6 +8376,9 @@ class MplusQAPIDataParser
     }
     if ( ! is_null($syncMarkerLimit)) {
       $request['syncMarkerLimit'] = $syncMarkerLimit;
+    }
+    if ( ! is_null($retrieveArticleNumbers)) {
+      $request['retrieveArticleNumbers'] = $retrieveArticleNumbers;
     }
     $object = arrayToObject(array('request'=>$request));
     return $object;
