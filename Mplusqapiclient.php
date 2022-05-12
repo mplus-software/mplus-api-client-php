@@ -8967,12 +8967,6 @@ class MplusQAPIDataParser
     if ( ! isset($order['vatMethod'])) {
       $order['vatMethod'] = 'VAT-METHOD-INCLUSIVE';
     }
-    if ( ! isset($order['changeCounter'])) {
-      $order['changeCounter'] = 0;
-    }
-    if ( ! isset($order['versionNumber'])) {
-      $order['versionNumber'] = 0;
-    }
     if ( ! isset($order['prepaidAmount'])) {
       $order['prepaidAmount'] = 0;
     }
