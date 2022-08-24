@@ -1719,6 +1719,23 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function newArticleGroup($articleGroup = array())
+  {
+    try {
+      $result = $this->client->newArticleGroup($this->parser->convertNewArticleGroupRequest($articleGroup));
+      if ($this->returnRawResult) {
+        return $result;
+      }
+      return $this->parser->parseNewArticleGroupResult($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: ' . $e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: ' . $e->getMessage(), 0, $e);
+    }
+  } // END newArticleGroup()
+
+  //----------------------------------------------------------------------------
+
   public function saveArticleGroups($articleGroupList = array())
   {
     try {
@@ -5183,6 +5200,23 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function parseNewArticleGroupResult($soapNewArticleGroupResponse)
+  {
+    $result = false;
+    if (isset($soapNewArticleGroupResponse->result) and $soapNewArticleGroupResponse->result == 'NEW-ARTICLE-GROUP-RESULT-OK') {
+      $result = true;
+      if (isset($soapNewArticleGroupResponse->groupNumber)) {
+        $result = array();
+      }
+      if (isset($soapNewArticleGroupResponse->groupNumber)) {
+        $result['groupNumber'] = $soapNewArticleGroupResponse->groupNumber;
+      }
+    }
+    return $result;
+  } // END parseNewArticleGroupResult()
+
+  //----------------------------------------------------------------------------
+
   public function parseArticleSubGroups($articleSubGroups) {
     if (isset($articleSubGroups['articleGroups']['groupNumber'])) {
       $articleSubGroups = array($articleSubGroups['articleGroups']);
@@ -8404,6 +8438,29 @@ class MplusQAPIDataParser
     $object = arrayToObject(array('request'=>$request));
     return $object;
   } // END convertGetArticleGroupChangesRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertNewArticleGroupRequest($articleGroup)
+  {
+    $request = array();
+
+    if (isset($articleGroup['parentGroupNumber']))
+      $request['parentGroupNumber'] = $articleGroup['parentGroupNumber'];
+    else
+      $request['parentGroupNumber'] = 0;
+
+    if (isset($articleGroup['name']))
+      $request['name'] = $articleGroup['name'];
+    if (isset($articleGroup['text']))
+      $request['text'] = $articleGroup['text'];
+    if (isset($articleGroup['sortOrder']))
+      $request['sortOrder'] = $articleGroup['sortOrder'];
+    if (isset($articleGroup['imageId']))
+      $request['imageId'] = $articleGroup['imageId'];
+
+    return arrayToObject(array('request' => $request));
+  } // END convertNewArticleGroupRequest()
 
   //----------------------------------------------------------------------------
 
