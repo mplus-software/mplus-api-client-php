@@ -1736,6 +1736,23 @@ class MplusQAPIclient
 
   //----------------------------------------------------------------------------
 
+  public function addProductsToArticleGroup($groupNumber, $productNumbers = array(), $position = null)
+  {
+    try {
+      $result = $this->client->addProductsToArticleGroup($this->parser->convertAddProductsToArticleGroupRequest($groupNumber, $productNumbers, $position));
+      if($this->returnRawResult) {
+        return $result;
+      }
+      return $this->parser->parseAddProductsToArticleGroupResponse($result);
+    } catch (SoapFault $e) {
+      throw new MplusQAPIException('SoapFault occurred: '.$e->getMessage(), 0, $e);
+    } catch (Exception $e) {
+      throw new MplusQAPIException('Exception occurred: '.$e->getMessage(), 0, $e);
+    }
+  } // END addProductsToArticleGroup()
+
+  //----------------------------------------------------------------------------
+
   public function getStock($branchNumber, $articleNumbers=array(), $stockId=null, $attempts=0)
   {
     try {
@@ -5201,6 +5218,12 @@ class MplusQAPIDataParser
 
   //----------------------------------------------------------------------------
 
+  public function parseAddProductsToArticleGroupResponse($soapUpdateProductResult) {
+    return isset($soapUpdateProductResult->result) and $soapUpdateProductResult->result == 'ADD-PRODUCTS-TO-ARTICLE-GROUP-RESULT-OK';
+  } // END parseAddProductsToArticleGroupResponse()
+
+  //----------------------------------------------------------------------------
+
   public function parseStock($soapStock) {
     if (isset($soapStock->articleStocks)) {
       $soapArticleStocks = $soapStock->articleStocks;
@@ -8434,6 +8457,17 @@ class MplusQAPIDataParser
       return $object;
     }
   } // END convertSaveArticleGroupsRequest()
+
+  //----------------------------------------------------------------------------
+
+  public function convertAddProductsToArticleGroupRequest($groupNumber, $productNumbers, $position = null)
+  {
+    return arrayToObject(array('request' => array(
+      'groupNumber' => $groupNumber,
+      'position' => $position ? $position : 0,
+      'productNumbers' => $productNumbers
+    )));
+  } // END convertGetStockRequest()
 
   //----------------------------------------------------------------------------
 
